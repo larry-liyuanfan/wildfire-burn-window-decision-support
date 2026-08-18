@@ -7,6 +7,7 @@
 #SBATCH --output=logs/%x-%j.out
 #SBATCH --error=logs/%x-%j.err
 set -euo pipefail
+module load GCCcore/13.3.0 Apptainer/1.4.5
 
 : "${PROJECT_ROOT:?Set repository path on project GPFS}"
 : "${IMAGE_PATH:?Set reviewed Apptainer image path}"
@@ -19,4 +20,3 @@ srun apptainer exec --bind "${VICCLIM_ROOT}:${VICCLIM_ROOT}:ro" "${IMAGE_PATH}" 
   python scripts/build_kerchunk.py \
     --input-glob "${VICCLIM_ROOT}/**/*.nc" \
     --output "${REFERENCE_PATH}"
-

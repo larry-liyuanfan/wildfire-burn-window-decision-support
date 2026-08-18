@@ -8,6 +8,7 @@
 #SBATCH --output=logs/%x-%A_%a.out
 #SBATCH --error=logs/%x-%A_%a.err
 set -euo pipefail
+module load GCCcore/13.3.0 Apptainer/1.4.5
 
 : "${PROJECT_ROOT:?Set repository path on project GPFS}"
 : "${IMAGE_PATH:?Set reviewed Apptainer image path}"
@@ -25,4 +26,3 @@ srun apptainer exec "${IMAGE_PATH}" \
     benchmark --hours 8760 --cells 4096 \
     --chunk-hours 168 --chunk-cells 256 \
     --scheduler distributed --seed 20260818 --output-dir "${OUT}"
-
