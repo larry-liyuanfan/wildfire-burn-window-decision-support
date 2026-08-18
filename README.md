@@ -1,88 +1,141 @@
 # Wildfire Burn-window Decision Support
 
-This project documents a prescribed-burn decision support workflow for identifying safe and operationally useful burn windows in Victoria, Australia.
+Deterministic domain tools that turn gridded fire-weather data and expert
+prescriptions into auditable candidate windows, explanations, sensitivity
+scenarios and feasible schedules. The project is designed as a **trusted tool
+layer for an AI agent**: an LLM may choose a tool, but it cannot invent weather
+rules, bypass missing-data policy or return an infeasible schedule.
 
-The work combines gridded climate data with expert-defined fire management prescriptions. The repository is prepared as a sanitized portfolio version and includes project documentation, summary results, and analysis outputs that can be shared safely.
+## Why this project exists
 
-## Problem
+The research question is how often suitable prescribed-burning conditions occur
+in Victoria, how availability changes across space and time, and how sensitive
+the result is to the definition of a window. The engineering question is how to
+make that analysis reproducible at VicClim6 scale (1972–2024, approximately
+4 km) and safe to call from an Agentic AI application.
 
-Prescribed burning needs suitable weather and fuel conditions. A burn window is only available when multiple constraints are satisfied at the same time, such as temperature, humidity, wind, and drought conditions.
+This repository complements a multimodal-search/Agent portfolio by demonstrating
+the part that must remain deterministic: typed tools, explicit constraints,
+large-array execution, provenance and refusal to guess unresolved semantics.
 
-This project turns multi-dimensional climate data and expert thresholds into a rule-based burn suitability analysis workflow.
+## Stable tool contracts
 
-## Data
+All five public tools return a `ToolEnvelope` containing status, data version,
+source, active constraints, warnings and a typed result.
 
-| Source | Description |
+| Tool | Deterministic responsibility |
 |---|---|
-| VicClim6 | NetCDF climate data for Victoria |
-| Coverage | 1972-2024 |
-| Spatial resolution | About 4 km grid |
-| Temporal resolution | Hourly climate variables |
-| Variables | Temperature, relative humidity, wind speed, FFDI, KBDI, drought factor |
-| FMS prescriptions | Expert-defined burn suitability thresholds |
+| `find_burn_windows` | Evaluate an AND-rule and extract continuous 2/4/6-hour runs |
+| `explain_limiting_factors` | Attribute all and exclusive rule failures |
+| `compare_threshold_scenarios` | Compare explicit threshold perturbations with a fixed baseline |
+| `get_region_trend` | Report Theil–Sen slope and seeded block-bootstrap interval |
+| `optimize_burn_schedule` | Compare earliest/highest-score greedy baselines with a validated binary programme |
 
-## Method
+The Pydantic schemas are in `src/burnwindows/models.py`; JSON Schema can be
+generated directly with `ToolEnvelope.model_json_schema()` and the request
+models used by a calling service.
 
-The analysis workflow includes:
+## Technical design
 
-1. Load multi-variable NetCDF climate files with Xarray.
-2. Align variables across time, latitude, and longitude.
-3. Convert daily KBDI data to hourly resolution for rule alignment.
-4. Apply expert threshold rules to generate burn-window masks.
-5. Analyze monthly and hourly burn-window patterns.
-6. Diagnose limiting factors when burn windows are unavailable.
-7. Run threshold sensitivity analysis for temperature ranges.
+- **Rule AST:** every usable workbook value becomes a typed bound; anything not
+  safely interpretable is retained in `unresolved`, never silently dropped.
+- **Time alignment:** date-labelled daily data defaults to a 24-hour availability
+  lag and backward-only fill. Using a value earlier requires an explicit source
+  guarantee that its timestamp is its availability time. Naive timestamps require
+  an explicit source timezone; ambiguous or nonexistent DST wall times fail.
+- **Units:** conversion occurs only when NetCDF attributes explicitly declare
+  Kelvin, fractional humidity or metres/second. Unknown units produce warnings.
+- **Missing data:** callers choose `error`, `fail` or `ignore`; the default is
+  `error`. Unmapped fuel/ground-wind constraints are excluded with warnings
+  unless the caller explicitly includes them.
+- **Scale:** Xarray/Dask evaluation stays lazy until metrics are computed.
+  NetCDF, Zarr and Kerchunk references share one input adapter.
+- **Scheduling:** candidate windows are binary variables with resource and daily
+  capacity constraints. Every solver output is independently validated.
 
-## 2024 Demo Results
+See [architecture](docs/architecture.md), [decision log](docs/decisions.md) and
+[evidence ledger](docs/evidence.md).
 
-| Result | Value |
-|---|---:|
-| All conditions OK | 6.49% |
-| Temperature OK | 37.53% |
-| Relative humidity OK | 24.61% |
-| Wind OK | 72.44% |
-| KBDI OK | 38.64% |
+## Quick start
 
-Monthly burn-window frequency was highest in March, April, November, and December in the 2024 demo.
+```bash
+python -m venv .venv
+python -m pip install -e ".[dev,kerchunk]"
+pytest
+```
 
-| Month | Mean burn-window frequency |
-|---:|---:|
-| 3 | 14.52% |
-| 4 | 11.20% |
-| 11 | 10.88% |
-| 12 | 10.56% |
+The private prescription workbook remains outside Git:
 
-Hour-of-day analysis showed stronger burn-window availability in the early morning. In the 2024 demo, the highest average hourly frequencies occurred around 00:00-03:00.
+```bash
+burn-window inspect --prescriptions /restricted/FMS-Prescriptions_2.xlsx
+```
 
-## Sensitivity Analysis
+Create a deterministic **synthetic** smoke-test input:
 
-Temperature threshold sensitivity:
+```bash
+python scripts/generate_synthetic_fixture.py --output data/synthetic.nc
+burn-window inspect \
+  --prescriptions /restricted/FMS-Prescriptions_2.xlsx \
+  --input data/synthetic.nc
+```
 
-| Temperature range | Mean burn-window frequency |
-|---|---:|
-| 12-28 | 9.04% |
-| 15-25 | 6.49% |
-| 18-24 | 4.02% |
+Run one real-data slice only after confirming field semantics and units:
 
-Relaxing the temperature range from 15-25 to 12-28 increased the average burn-window frequency from 6.49% to 9.04% in the 2024 demo.
+```bash
+burn-window analyse \
+  --prescriptions /restricted/FMS-Prescriptions_2.xlsx \
+  --input /restricted/VicClim6 \
+  --burn-class "<exact class name>" \
+  --durations 2 4 6 \
+  --missing-policy error \
+  --data-kind real \
+  --output-dir artifacts/run-001
+```
 
-## Limiting Factors
+Every analysis emits `run_manifest.json`, `metrics.json` and
+`error_cases.json`. The manifest captures git SHA, input hashes where practical,
+configuration, hardware, Slurm IDs and whether the run used real or synthetic
+data.
 
-The analysis also identifies why windows fail. In the 2024 demo:
+## Spartan execution
 
-| Factor | Outside-range frequency |
-|---|---:|
-| Relative humidity | 75.39% |
-| Temperature | 62.47% |
-| KBDI | 61.36% |
-| Wind | 27.56% |
+`spartan/` contains an Apptainer definition and restartable Slurm jobs:
 
-This helps separate weather constraints that are usually binding from those that are less restrictive.
+- `build_image.sbatch` builds the versioned runtime;
+- `build_kerchunk.sbatch` creates references without copying climate payloads;
+- `run_full_pipeline.sbatch` runs a 1972–2024 array with one checkpoint per year;
+- `run_scaling_benchmark.sbatch` compares 1/2/4 workers on a clearly labelled
+  deterministic synthetic benchmark.
 
-## Tech Stack
+Set the required environment variables shown at the top of each script. Raw
+climate data, source prescriptions, Kerchunk paths and analysis outputs stay on
+restricted project storage.
 
-Python, Xarray, Dask, Pandas, NumPy, Matplotlib, NetCDF, geospatial climate data.
+## Evidence status
 
-## Notes
+Verified locally in this repository:
 
-This repository is a sanitized portfolio version. Raw climate datasets, internal project documents, and restricted materials are not redistributed.
+- package installation and deterministic tool contracts;
+- boundary, missing-value, no-lookahead and irregular-time tests;
+- NumPy/Xarray-Dask equivalence on fixtures;
+- solver feasibility validation and greedy comparisons;
+- runtime compilation of all 43 workbook rows into typed or unresolved fields.
+
+Not yet verified from accessible real VicClim6 data:
+
+- the prior 2024 values **6.49%** and **9.04%**;
+- prior scale, runtime, completeness or speedup claims;
+- 1972–2024 trend, 1→4 worker scaling, and optimisation lift targets.
+
+These values are historical project records only and must not be presented as
+reproduced results until an artifact contains the exact data range, rule version,
+commit and hardware.
+
+## Data and publication boundary
+
+This repository does not redistribute the FMS workbook, VicClim6 NetCDF files,
+fire-history data, internal documents or raw Kerchunk references. Workbook
+thresholds may have licensing constraints, so no generated threshold dump is
+committed. The code can be reviewed publicly; project data and derived artifacts
+require a separate licensing and privacy review. No open-source licence is
+granted at this stage.

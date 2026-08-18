@@ -1,0 +1,20 @@
+Bootstrap: docker
+From: python:3.12-slim
+
+%labels
+    Author Larry Fan
+    Purpose Reproducible prescribed-burn analysis runtime
+
+%files
+    . /opt/burn-window
+
+%post
+    python -m pip install --no-cache-dir /opt/burn-window[kerchunk,milp]
+
+%environment
+    export PYTHONUNBUFFERED=1
+    export HDF5_USE_FILE_LOCKING=FALSE
+
+%runscript
+    exec burn-window "$@"
+
