@@ -8,6 +8,7 @@
 #SBATCH --output=logs/%x-%A_%a.out
 #SBATCH --error=logs/%x-%A_%a.err
 set -euo pipefail
+module load GCCcore/13.3.0 Apptainer/1.4.5
 
 : "${PROJECT_ROOT:?Repository must live on project GPFS}"
 : "${IMAGE_PATH:?Point to the reviewed Apptainer image}"
@@ -43,4 +44,3 @@ srun apptainer exec \
     --missing-policy error \
     --data-kind real \
     --output-dir "${RUN_DIR}"
-
