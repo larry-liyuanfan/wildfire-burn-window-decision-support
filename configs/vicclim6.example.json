@@ -1,0 +1,18 @@
+{
+  "data_period": "1972-2024",
+  "spatial_resolution": "approximately 4 km",
+  "variable_aliases": {
+    "T_SFC": "temperature_c",
+    "TSFC": "temperature_c",
+    "RHSFC": "relative_humidity_pct",
+    "WMAG": "wind_speed_kmh",
+    "FFDI": "FFDI",
+    "KBDI": "KBDI",
+    "DF": "drought_factor"
+  },
+  "chunks": {"time": 168, "lat": 64, "lon": 64},
+  "daily_value_availability_lag_hours": 24,
+  "minimum_window_hours": [2, 4, 6],
+  "evidence_status": "configuration-only; no result values"
+}
+

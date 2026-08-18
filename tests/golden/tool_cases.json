@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "data_kind": "deterministic-synthetic-golden-fixture",
+  "find_burn_windows": {
+    "times": [
+      "2026-03-01T00:00:00",
+      "2026-03-01T01:00:00",
+      "2026-03-01T02:00:00",
+      "2026-03-01T03:00:00",
+      "2026-03-01T04:00:00",
+      "2026-03-01T05:00:00"
+    ],
+    "temperature_c": [20, 20, 30, 20, 20, 20],
+    "relative_humidity_pct": [50, 50, 50, 50, 50, 50],
+    "min_duration_hours": 2,
+    "expected_durations": [2, 3]
+  }
+}
+
