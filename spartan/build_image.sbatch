@@ -11,7 +11,11 @@ set -euo pipefail
 : "${PROJECT_ROOT:?Set PROJECT_ROOT to the cloned repository path on project storage}"
 : "${IMAGE_PATH:?Set IMAGE_PATH to a writable project-storage .sif path}"
 
-mkdir -p "${PROJECT_ROOT}/logs" "$(dirname "${IMAGE_PATH}")"
+ARTIFACT_ROOT="$(dirname "${IMAGE_PATH}")"
+mkdir -p "${PROJECT_ROOT}/logs" "${ARTIFACT_ROOT}" \
+  "${ARTIFACT_ROOT}/apptainer-cache" "${ARTIFACT_ROOT}/apptainer-tmp"
+export APPTAINER_CACHEDIR="${ARTIFACT_ROOT}/apptainer-cache"
+export APPTAINER_TMPDIR="${ARTIFACT_ROOT}/apptainer-tmp"
+module load GCCcore/13.3.0 Apptainer/1.4.5
 cd "${PROJECT_ROOT}"
 apptainer build --fakeroot "${IMAGE_PATH}" spartan/Apptainer.def
-

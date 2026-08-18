@@ -5,12 +5,14 @@
 - The local project materials contain the FMS workbook and Week 1–2 documents.
 - No `.nc`, `.nc4` or Zarr input was found in the local project/search paths.
 - The workbook opens successfully and contains 43 burn-class rows and 25 columns.
-- No Spartan host entry or non-interactive credential is configured on this
-  workstation, so Mediaflux visibility and a read-only sample open were not
-  tested from this run.
+- Spartan Open OnDemand login was verified as `yzhang3504`; the `punim2936`
+  account and `/data/gpfs/projects/punim2936` project storage are accessible.
+- A read-only search of the accessible project tree and the user's home did not
+  locate VicClim6 or another FLARE NetCDF source. The documented Mediaflux path
+  still needs to be mounted or mapped to a compute-visible path.
 
-This is an access-state statement, not evidence that Spartan or Mediaflux is
-unavailable to the user.
+This is an access-state statement, not evidence that the source dataset is
+unavailable to the research team.
 
 ## First Spartan session
 
@@ -40,4 +42,3 @@ missing counts. Do not copy raw data into Git, OneDrive or home storage.
    labels and missing/unmapped constraints.
 5. Build the Apptainer image and run one year/burn class before scaling the array.
 6. Store outputs under project GPFS and retain the Slurm job ID in each manifest.
-
