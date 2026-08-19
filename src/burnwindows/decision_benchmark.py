@@ -18,7 +18,6 @@ from .optimizer import (
     validate_selection,
 )
 
-
 REGIONS = ("east", "west", "north")
 
 
