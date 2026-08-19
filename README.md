@@ -51,7 +51,8 @@ models used by a calling service.
 - **Scale:** Xarray/Dask evaluation stays lazy until metrics are computed.
   NetCDF, Zarr and Kerchunk references share one input adapter.
 - **Scheduling:** candidate windows are binary variables with resource and daily
-  capacity constraints. Every solver output is independently validated.
+  capacity constraints. The robust formulation maximises the minimum utility
+  across explicit regional-adverse scenarios. Every solver output is independently validated.
 
 See [architecture](docs/architecture.md), [decision log](docs/decisions.md) and
 [evidence ledger](docs/evidence.md).
@@ -97,6 +98,22 @@ Every analysis emits `run_manifest.json`, `metrics.json` and
 configuration, hardware, Slurm IDs and whether the run used real or synthetic
 data.
 
+Run the deterministic operations benchmark:
+
+```bash
+burn-window decision-benchmark --repetitions 30 --held-out-scenarios 200 \
+  --output-dir artifacts/decision-benchmark
+```
+
+The verified synthetic run on 2026-08-19 evaluated 30 seeded candidate sets and
+6,000 held-out uncertainty scenarios per policy. All greedy, nominal MILP and
+robust MILP outputs were independently feasible. Nominal MILP improved mean
+scenario utility over the best greedy by 1.79% (paired-seed bootstrap mean 95%
+interval 0.91%–2.77%). Robust MILP reduced mean mobilisation-penalty units by
+2.55%, but its held-out P05 utility interval crossed zero relative to nominal
+MILP; therefore no stable robustness-lift claim is made. These are synthetic
+utility units, not dollars, realised area or fire-risk reduction.
+
 ## Spartan execution
 
 `spartan/` contains an Apptainer definition and restartable Slurm jobs:
@@ -119,13 +136,14 @@ Verified locally in this repository:
 - boundary, missing-value, no-lookahead and irregular-time tests;
 - NumPy/Xarray-Dask equivalence on fixtures;
 - solver feasibility validation and greedy comparisons;
+- max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
 
 Not yet verified from accessible real VicClim6 data:
 
 - the prior 2024 values **6.49%** and **9.04%**;
 - prior scale, runtime, completeness or speedup claims;
-- 1972–2024 trend, 1→4 worker scaling, and optimisation lift targets.
+- 1972–2024 trend, 1→4 worker scaling, and real-candidate optimisation value.
 
 These values are historical project records only and must not be presented as
 reproduced results until an artifact contains the exact data range, rule version,

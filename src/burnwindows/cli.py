@@ -150,6 +150,26 @@ def command_benchmark(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_decision_benchmark(args: argparse.Namespace) -> int:
+    from .decision_benchmark import run_decision_benchmark_suite
+
+    metrics = run_decision_benchmark_suite(
+        seed=args.seed,
+        repetitions=args.repetitions,
+        held_out_scenarios=args.held_out_scenarios,
+        crew_capacity=args.crew_capacity,
+        daily_capacity=args.daily_capacity,
+    )
+    manifest = make_manifest(
+        command=sys.argv,
+        config=vars(args),
+        data_kind="deterministic-synthetic-operations-benchmark",
+    )
+    write_run_artifacts(args.output_dir, manifest=manifest, metrics=metrics)
+    print(json.dumps(metrics, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="burn-window")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -190,6 +210,18 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--seed", type=int, default=20260818)
     benchmark.add_argument("--output-dir", type=Path, required=True)
     benchmark.set_defaults(handler=command_benchmark)
+
+    decision = subparsers.add_parser(
+        "decision-benchmark",
+        help="compare greedy, nominal MILP and robust MILP on fixed synthetic operations scenarios",
+    )
+    decision.add_argument("--seed", type=int, default=20260819)
+    decision.add_argument("--repetitions", type=int, default=30)
+    decision.add_argument("--held-out-scenarios", type=int, default=200)
+    decision.add_argument("--crew-capacity", type=int, default=2)
+    decision.add_argument("--daily-capacity", type=int, default=3)
+    decision.add_argument("--output-dir", type=Path, required=True)
+    decision.set_defaults(handler=command_decision_benchmark)
     return parser
 
 

@@ -73,3 +73,8 @@ small tests use an exact enumerative fallback when SciPy is absent. The selected
 set is revalidated independently. Objective units are scenario utility, never
 reported as realised money or risk reduction.
 
+The robust extension adds one continuous lower-bound variable `z` and one row
+per planning scenario: `z <= Σ utility[scenario,candidate] × selected[candidate]`.
+Maximising `z` produces a max-min schedule. Held-out simulations evaluate the
+fixed selections; they do not turn scenario utility into a forecast or currency.
+
