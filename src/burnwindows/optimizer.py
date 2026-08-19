@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from datetime import datetime
 from itertools import combinations
-from collections.abc import Mapping
 
 import numpy as np
 

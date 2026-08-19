@@ -11,7 +11,12 @@ from typing import Any
 import numpy as np
 
 from .models import ScheduleCandidate, ScheduleResult
-from .optimizer import greedy_schedule, solve_robust_schedule, solve_schedule, validate_selection
+from .optimizer import (
+    greedy_schedule,
+    solve_robust_schedule,
+    solve_schedule,
+    validate_selection,
+)
 
 
 REGIONS = ("east", "west", "north")
