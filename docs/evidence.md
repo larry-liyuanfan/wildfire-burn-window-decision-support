@@ -21,6 +21,7 @@
 | 2024 suitability was 6.49%; widened temperature gave 9.04% | `project-record-only` | No accessible data/run manifest | Must not be called reproduced or verified |
 | One year contains about 317M space-time points; East Gippsland 140M samples | `project-record-only` | Shape calculation and filter log absent | Do not use publicly until reproduced |
 | 1972–2024 full pipeline completes and is restartable | `code-ready/data-blocked` | Slurm/Apptainer scripts exist; no Spartan job artifact | Describe architecture, not completed computation |
+| Official VicClim6 public-source inventory | `verified-metadata-only` | VicClim6 descriptor: hourly 4 x 4 km NetCDF, January 1972–June 2024; public viewer checked but product API requires an authenticated session | May describe source discovery and access boundary; not a real-data pipeline run |
 | 1→4 worker efficiency ≥60% | `target` | No same-workload real-data runs | Do not state as result |
 | Optimizer improves objective ≥10% over best greedy | `not-met-synthetic` | Observed mean lift 1.79% on the current suite | Do not state ≥10%; use the measured result and boundary |
 

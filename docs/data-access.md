@@ -14,6 +14,14 @@
   `mediaflux-data-mover` (shareable-token based). Neither a client config nor a
   shareable token was present in the SSH environment. The currently logged-in
   Open OnDemand account had no active Virtual Desktop session to reuse.
+- A second official route was checked rather than assuming Mediaflux was the
+  only source. The public [VicClim Viewer](https://vicclim-next.dri.edu/) and its
+  [VicClim6 description](https://vicclim-next.dri.edu/Victoria_gridded_climatology_description_Version_6_0.pdf)
+  confirm hourly 4 x 4 km NetCDF coverage from January 1972 through **June
+  2024**. The viewer advertises bounded CSV/chart exports, but its product API
+  rejected an unauthenticated request because a session ID is required. No
+  public bulk-NetCDF URL was discovered, and no external account was created on
+  the candidate's behalf.
 - `/data/gpfs/projects/punim2936` had only about 2.5 GiB free, so the full
   collection must not be copied there blindly. First inventory collection size,
   then select restricted scratch or another approved compute-visible location.
@@ -24,6 +32,12 @@
 
 This is an access-state statement, not evidence that the source dataset is
 unavailable to the research team.
+
+The viewer can become a bounded validation fallback after an authorised account
+session is available: export a small region/time slice, retain its URL/query and
+hash, and compare it with the NetCDF pipeline's golden output. It is **not** a
+verified substitute for full-corpus Mediaflux access and must not be described
+as a 1972--2024 Spartan run.
 
 ## First Spartan session
 
