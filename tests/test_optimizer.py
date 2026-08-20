@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from burnwindows.optimizer import (
+    build_feasibility_certificate,
     explain_selection,
     greedy_schedule,
     solve_schedule,
@@ -20,10 +21,27 @@ def test_optimizer_selects_best_non_overlapping_set(schedule_candidates) -> None
     assert result.feasible
     assert set(result.selected_ids) == {"b", "c"}
     assert result.objective_value == 28
+    certificate = result.metadata["feasibility_certificate"]
+    assert certificate["feasible"]
+    assert certificate["objective_residual"] == 0
+    assert certificate["max_crew_demand"] == 1
+    assert result.metadata["solver_proof"]["optimality_proven"]
     explanations = explain_selection(schedule_candidates, result, crew_capacity=1)
     assert explanations["a"]["reason_code"] == "crew_capacity_conflict"
     assert explanations["a"]["blocking_selected_ids"] == ["b"]
     assert explanations["a"]["local_replacement_gap"] == 10
+
+
+def test_certificate_rejects_tampered_schedule(schedule_candidates) -> None:
+    certificate = build_feasibility_certificate(
+        schedule_candidates,
+        ["a", "b"],
+        crew_capacity=1,
+        reported_objective=999,
+    )
+    assert not certificate["feasible"]
+    assert certificate["errors"]
+    assert certificate["objective_residual"] != 0
 
 
 def test_minimum_duration_is_enforced(schedule_candidates) -> None:

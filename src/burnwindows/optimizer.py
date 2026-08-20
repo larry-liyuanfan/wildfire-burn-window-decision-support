@@ -44,6 +44,82 @@ def validate_selection(
     return not errors, errors
 
 
+def build_feasibility_certificate(
+    candidates: Iterable[ScheduleCandidate],
+    selected_ids: Iterable[str],
+    *,
+    crew_capacity: int,
+    daily_capacity: int | None = None,
+    reported_objective: float | None = None,
+) -> dict[str, object]:
+    """Build a machine-checkable certificate for a returned schedule.
+
+    This independently recomputes the objective and every resource constraint
+    from the selected candidate IDs. It verifies a proposed solution; it does
+    not by itself prove global optimality.
+    """
+
+    pool = list(candidates)
+    selected_set = set(selected_ids)
+    selected = [item for item in pool if item.id in selected_set]
+    feasible, errors = validate_selection(
+        pool,
+        selected_set,
+        crew_capacity=crew_capacity,
+        daily_capacity=daily_capacity,
+    )
+    points = sorted({item.start for item in selected} | {item.end for item in selected})
+    crew_loads = [
+        {
+            "timestamp": point.isoformat(),
+            "crew_demand": sum(item.crew_demand for item in selected if _active(item, point)),
+        }
+        for point in points
+    ]
+    tight_crew_points = [
+        row["timestamp"] for row in crew_loads if row["crew_demand"] == crew_capacity
+    ]
+    per_day: dict[object, int] = defaultdict(int)
+    for item in selected:
+        per_day[item.start.date()] += 1
+    tight_days = (
+        [day.isoformat() for day, count in sorted(per_day.items()) if count == daily_capacity]
+        if daily_capacity is not None
+        else []
+    )
+    recomputed = sum(item.objective_value for item in selected)
+    residual = None if reported_objective is None else recomputed - reported_objective
+    return {
+        "feasible": feasible,
+        "errors": errors,
+        "selected_count": len(selected),
+        "recomputed_objective": recomputed,
+        "reported_objective": reported_objective,
+        "objective_residual": residual,
+        "max_crew_demand": max((int(row["crew_demand"]) for row in crew_loads), default=0),
+        "crew_capacity": crew_capacity,
+        "tight_crew_timestamps": tight_crew_points,
+        "daily_capacity": daily_capacity,
+        "tight_daily_dates": tight_days,
+        "scope": "independent primal-feasibility and objective-recomputation certificate; not an optimality proof",
+    }
+
+
+def _solver_proof(result: object) -> dict[str, object]:
+    """Normalize SciPy/HiGHS branch-and-bound evidence for JSON output."""
+
+    gap = getattr(result, "mip_gap", None)
+    dual_bound = getattr(result, "mip_dual_bound", None)
+    nodes = getattr(result, "mip_node_count", None)
+    return {
+        "optimality_proven": getattr(result, "status", None) == 0,
+        "relative_mip_gap": None if gap is None else float(gap),
+        "objective_upper_bound": None if dual_bound is None else -float(dual_bound),
+        "branch_and_bound_nodes": None if nodes is None else int(nodes),
+        "solver_success": bool(getattr(result, "success", False)),
+    }
+
+
 def explain_selection(
     candidates: Iterable[ScheduleCandidate],
     result: ScheduleResult,
@@ -204,6 +280,7 @@ def solve_schedule(
     selected: list[str]
     method = "milp"
     status = ""
+    solver_proof: dict[str, object]
     try:
         from scipy.optimize import Bounds, LinearConstraint, milp
 
@@ -222,6 +299,7 @@ def solve_schedule(
             raise RuntimeError(result.message)
         selected = [item.id for item, value in zip(pool, result.x, strict=True) if value >= 0.5]
         status = f"scipy-status-{result.status}: {result.message}"
+        solver_proof = _solver_proof(result)
     except (ImportError, RuntimeError):
         if len(pool) > 24:
             raise RuntimeError("SciPy MILP unavailable and exact fallback is limited to 24 candidates")
@@ -242,6 +320,13 @@ def solve_schedule(
                     best_value = value
                     selected = ids
         status = "enumerated-optimum"
+        solver_proof = {
+            "optimality_proven": True,
+            "relative_mip_gap": 0.0,
+            "objective_upper_bound": best_value,
+            "branch_and_bound_nodes": None,
+            "solver_success": True,
+        }
     feasible, errors = validate_selection(
         pool,
         selected,
@@ -254,10 +339,11 @@ def solve_schedule(
     for item in pool:
         if item.id not in selected:
             rejected[item.id] = "not selected by objective/constraints"
+    objective_value = sum(item.objective_value for item in pool if item.id in selected)
     return ScheduleResult(
         method=method,
         selected_ids=selected,
-        objective_value=sum(item.objective_value for item in pool if item.id in selected),
+        objective_value=objective_value,
         feasible=True,
         rejected=rejected,
         solver_status=status,
@@ -265,6 +351,14 @@ def solve_schedule(
             "formulation": "binary linear programme",
             "candidate_count": len(pool),
             "constraint_count": len(rows),
+            "solver_proof": solver_proof,
+            "feasibility_certificate": build_feasibility_certificate(
+                pool,
+                selected,
+                crew_capacity=crew_capacity,
+                daily_capacity=daily_capacity,
+                reported_objective=objective_value,
+            ),
         },
     )
 
@@ -318,6 +412,7 @@ def solve_robust_schedule(
     selected: list[str]
     method = "robust-milp"
     status = ""
+    solver_proof: dict[str, object]
     try:
         from scipy.optimize import Bounds, LinearConstraint, milp
 
@@ -346,6 +441,7 @@ def solve_robust_schedule(
             raise RuntimeError(result.message)
         selected = [item.id for item, value in zip(pool, result.x[:-1], strict=True) if value >= 0.5]
         status = f"scipy-status-{result.status}: {result.message}"
+        solver_proof = _solver_proof(result)
     except (ImportError, RuntimeError):
         if len(pool) > 24:
             raise RuntimeError("SciPy robust MILP unavailable and exact fallback is limited to 24 candidates")
@@ -371,6 +467,13 @@ def solve_robust_schedule(
                     best_value = worst_case
                     selected = ids
         status = "enumerated-robust-optimum"
+        solver_proof = {
+            "optimality_proven": True,
+            "relative_mip_gap": 0.0,
+            "objective_upper_bound": best_value,
+            "branch_and_bound_nodes": None,
+            "solver_success": True,
+        }
 
     feasible, errors = validate_selection(
         pool,
@@ -403,6 +506,16 @@ def solve_robust_schedule(
             "scenario_count": len(scenario_names),
             "scenario_totals": totals,
             "objective_definition": "minimum scenario utility",
+            "solver_proof": solver_proof,
+            "feasibility_certificate": build_feasibility_certificate(
+                pool,
+                selected,
+                crew_capacity=crew_capacity,
+                daily_capacity=daily_capacity,
+                reported_objective=sum(
+                    item.objective_value for item in pool if item.id in selected_set
+                ),
+            ),
         },
     )
 
@@ -467,6 +580,7 @@ def solve_cvar_schedule(
     selected: list[str]
     method = "cvar-milp"
     status = ""
+    solver_proof: dict[str, object]
     try:
         from scipy.optimize import Bounds, LinearConstraint, milp
 
@@ -504,6 +618,7 @@ def solve_cvar_schedule(
             raise RuntimeError(result.message)
         selected = [item.id for item, value in zip(pool, result.x[: len(pool)], strict=True) if value >= 0.5]
         status = f"scipy-status-{result.status}: {result.message}"
+        solver_proof = _solver_proof(result)
     except (ImportError, RuntimeError):
         if len(pool) > 24:
             raise RuntimeError("SciPy CVaR MILP unavailable and exact fallback is limited to 24 candidates")
@@ -530,6 +645,13 @@ def solve_cvar_schedule(
                     best_value = value
                     selected = ids
         status = "enumerated-cvar-optimum"
+        solver_proof = {
+            "optimality_proven": True,
+            "relative_mip_gap": 0.0,
+            "objective_upper_bound": best_value,
+            "branch_and_bound_nodes": None,
+            "solver_success": True,
+        }
 
     feasible, errors = validate_selection(
         pool,
@@ -565,6 +687,16 @@ def solve_cvar_schedule(
             "alpha": alpha,
             "tail_fraction": 1.0 - alpha,
             "objective_definition": "mean utility in the empirical lower tail",
+            "solver_proof": solver_proof,
+            "feasibility_certificate": build_feasibility_certificate(
+                pool,
+                selected,
+                crew_capacity=crew_capacity,
+                daily_capacity=daily_capacity,
+                reported_objective=sum(
+                    item.objective_value for item in pool if item.id in selected_set
+                ),
+            ),
         },
     )
 

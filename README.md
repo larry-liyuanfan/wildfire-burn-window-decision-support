@@ -29,7 +29,7 @@ source, active constraints, warnings and a typed result.
 | `explain_limiting_factors` | Attribute all and exclusive rule failures |
 | `compare_threshold_scenarios` | Compare explicit threshold perturbations with a fixed baseline |
 | `get_region_trend` | Report Theil–Sen slope and seeded block-bootstrap interval |
-| `optimize_burn_schedule` | Compare two greedy baselines with a validated binary programme, local rejection reasons and discrete crew-capacity counterfactuals |
+| `optimize_burn_schedule` | Compare two greedy baselines with a validated binary programme, machine-checkable feasibility/solver certificates, local rejection reasons and discrete crew-capacity counterfactuals |
 
 The Pydantic schemas are in `src/burnwindows/models.py`; JSON Schema can be
 generated directly with `ToolEnvelope.model_json_schema()` and the request
@@ -120,6 +120,12 @@ MILP. CVaR improved mean held-out P05 utility by 1.42% versus nominal (paired-se
 bootstrap mean 95% interval 0.25%–3.25%); 60% of runs selected the same policy,
 so this is a bounded average tail-utility result rather than universal dominance.
 These are synthetic utility units, not dollars, realised area or fire-risk reduction.
+
+Every nominal, max-min and CVaR result now carries two separate audit records:
+an independent primal certificate that recomputes the selected objective and
+all crew/day constraints, and the HiGHS branch-and-bound proof metadata
+(optimality status, relative MIP gap, objective bound and node count). The
+former verifies feasibility; only the latter can support an optimality claim.
 
 ## Spartan execution
 

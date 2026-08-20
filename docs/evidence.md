@@ -17,6 +17,7 @@
 | Robust policy mean mobilisation penalty is 2.55% below nominal MILP | `verified-synthetic` | Same deterministic benchmark | Units are scenario penalty, not dollars; do not imply field savings |
 | Robust P05 lift over nominal is stable | `unsupported` | Bootstrap interval crosses zero | Do not claim robustness improvement |
 | CVaR mean held-out P05 lift over nominal is 1.42% (paired-seed bootstrap mean 95% interval 0.25%–3.25%) | `verified-synthetic` | 30 seeds; 40 independent planning scenarios/run; 6,000 held-out scenarios/policy | State that 60% of runs selected the same policy; do not call it financial, real-data or universal improvement |
+| Nominal, max-min and CVaR schedules expose independent feasibility/objective certificates plus HiGHS MIP proof metadata | `verified-local` | Optimizer tests, including a deliberately tampered schedule | Feasibility certificate is not itself an optimality proof; MIP gap/bound apply to the solver run |
 | 2024 suitability was 6.49%; widened temperature gave 9.04% | `project-record-only` | No accessible data/run manifest | Must not be called reproduced or verified |
 | One year contains about 317M space-time points; East Gippsland 140M samples | `project-record-only` | Shape calculation and filter log absent | Do not use publicly until reproduced |
 | 1972–2024 full pipeline completes and is restartable | `code-ready/data-blocked` | Slurm/Apptainer scripts exist; no Spartan job artifact | Describe architecture, not completed computation |

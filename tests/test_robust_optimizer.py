@@ -37,6 +37,8 @@ def test_robust_optimizer_maximises_worst_case_scenario() -> None:
     assert result.selected_ids == ["stable"]
     assert result.objective_value == 11.0
     assert result.feasible
+    assert result.metadata["solver_proof"]["optimality_proven"]
+    assert result.metadata["feasibility_certificate"]["feasible"]
 
 
 def test_robust_optimizer_rejects_incomplete_scenarios() -> None:
@@ -81,6 +83,8 @@ def test_cvar_optimizer_protects_lower_tail() -> None:
     assert result.selected_ids == ["stable"]
     assert result.objective_value == pytest.approx(11.0)
     assert result.metadata["tail_fraction"] == pytest.approx(0.2)
+    assert result.metadata["solver_proof"]["optimality_proven"]
+    assert result.metadata["feasibility_certificate"]["feasible"]
 
 
 def test_cvar_optimizer_rejects_invalid_alpha() -> None:
