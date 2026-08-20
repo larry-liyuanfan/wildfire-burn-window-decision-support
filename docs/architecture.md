@@ -73,6 +73,13 @@ small tests use an exact enumerative fallback when SciPy is absent. The selected
 set is revalidated independently. Objective units are scenario utility, never
 reported as realised money or risk reduction.
 
+For Agent explanations, rejected candidates are classified as minimum-duration,
+crew-capacity, daily-capacity or global-objective trade-offs. Capacity-conflict
+records identify the selected blockers and a local replacement gap. The typed
+tool also resolves the neighbouring integer crew capacities and reports their
+objective deltas. These are discrete counterfactual diagnostics around the
+model, not LP dual prices, causal estimates or currency.
+
 The robust extension adds one continuous lower-bound variable `z` and one row
 per planning scenario: `z <= Σ utility[scenario,candidate] × selected[candidate]`.
 Maximising `z` produces a max-min schedule. Held-out simulations evaluate the

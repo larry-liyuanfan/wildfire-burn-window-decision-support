@@ -25,6 +25,7 @@ Spartan run, so historical 6.49% and 9.04% values are not claimed as reproduced.
 | How is a continuous operational window defined? | `extract_windows`; irregular gaps split runs |
 | How do you scale beyond memory? | `io.py`, Kerchunk builder and Spartan Slurm array |
 | How do you know optimisation output is valid? | MILP constraints plus independent `validate_selection` |
+| Why was a candidate rejected, and what would another crew buy? | `explain_selection` plus the typed tool's discrete crew-capacity counterfactuals; both carry non-dual/non-financial boundaries |
 | Why CVaR as well as max-min? | `solve_cvar_schedule` exposes a tail-risk parameter and avoids letting one worst scenario dominate |
 | What is genuinely measured today? | `docs/evidence.md` and run manifests |
 
@@ -52,4 +53,6 @@ Spartan run, so historical 6.49% and 9.04% values are not claimed as reproduced.
 20. Why do historical percentages remain unverified even if they appear in an earlier presentation?
 21. How does the CVaR linearisation work, and why are planning and held-out scenarios separately seeded?
 22. Why can a positive mean P05 lift coexist with 60% unchanged policies?
+23. Why is the discrete crew-capacity objective delta not a shadow price?
+24. When can a local blocking-set explanation disagree with a globally optimal counterfactual?
 

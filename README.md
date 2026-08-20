@@ -29,7 +29,7 @@ source, active constraints, warnings and a typed result.
 | `explain_limiting_factors` | Attribute all and exclusive rule failures |
 | `compare_threshold_scenarios` | Compare explicit threshold perturbations with a fixed baseline |
 | `get_region_trend` | Report Theil–Sen slope and seeded block-bootstrap interval |
-| `optimize_burn_schedule` | Compare earliest/highest-score greedy baselines with a validated binary programme |
+| `optimize_burn_schedule` | Compare two greedy baselines with a validated binary programme, local rejection reasons and discrete crew-capacity counterfactuals |
 
 The Pydantic schemas are in `src/burnwindows/models.py`; JSON Schema can be
 generated directly with `ToolEnvelope.model_json_schema()` and the request
@@ -53,6 +53,9 @@ models used by a calling service.
 - **Scheduling:** candidate windows are binary variables with resource and daily
   capacity constraints. The decision layer now compares nominal, max-min and
   lower-tail CVaR formulations; every solver output is independently validated.
+  The Agent-facing nominal tool also reports which selected windows block each
+  rejected candidate and a one-step crew-capacity frontier. Those diagnostics
+  are explicitly not LP duals, causal effects or financial marginal values.
 
 See [architecture](docs/architecture.md), [decision log](docs/decisions.md) and
 [evidence ledger](docs/evidence.md).
@@ -142,6 +145,7 @@ Verified locally in this repository:
 - boundary, missing-value, no-lookahead and irregular-time tests;
 - NumPy/Xarray-Dask equivalence on fixtures;
 - solver feasibility validation and greedy comparisons;
+- deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
 

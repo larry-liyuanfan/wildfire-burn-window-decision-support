@@ -11,6 +11,7 @@
 | Continuous 2/4/6-hour windows handle irregular time gaps | `verified-local` | Window tests | May describe behavior |
 | Dask and NumPy agree on deterministic fixtures | `verified-synthetic` | Test and benchmark artifacts | Say fixture/synthetic; do not imply full-data performance |
 | Binary optimizer returns feasible schedules and compares two greedies | `verified-synthetic` | Optimizer tests | Say tested on golden scenarios |
+| Nominal tool reports deterministic rejection blockers and a discrete crew-capacity frontier | `verified-synthetic` | Optimizer/tool tests | Describe as local decision diagnostics; never call the delta an LP shadow price, causal effect or money |
 | Max-min and CVaR MILPs remain feasible across 30 seeded suites | `verified-synthetic` | `decision-benchmark`; 38 tests | Say synthetic operations benchmark only |
 | Nominal MILP mean lift over best greedy is 1.79% (bootstrap mean 95% interval 0.91%–2.77%) | `verified-synthetic` | 30 seeds; 6,000 held-out scenarios/policy | Do not call this financial return or real-data lift |
 | Robust policy mean mobilisation penalty is 2.55% below nominal MILP | `verified-synthetic` | Same deterministic benchmark | Units are scenario penalty, not dollars; do not imply field savings |

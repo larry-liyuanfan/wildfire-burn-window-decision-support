@@ -44,6 +44,81 @@ def validate_selection(
     return not errors, errors
 
 
+def explain_selection(
+    candidates: Iterable[ScheduleCandidate],
+    result: ScheduleResult,
+    *,
+    crew_capacity: int,
+    daily_capacity: int | None = None,
+) -> dict[str, dict[str, object]]:
+    """Return deterministic, local explanations for selected/rejected candidates.
+
+    The replacement gap is a diagnostic around the returned solution. It is not
+    an LP dual, a causal estimate or a financial marginal value.
+    """
+
+    candidates = list(candidates)
+    selected_ids = set(result.selected_ids)
+    selected = [item for item in candidates if item.id in selected_ids]
+    explanations: dict[str, dict[str, object]] = {}
+    for item in candidates:
+        if item.id in selected_ids:
+            explanations[item.id] = {
+                "status": "selected",
+                "reason_code": "optimal_feasible_schedule",
+                "candidate_objective_value": item.objective_value,
+                "blocking_selected_ids": [],
+                "local_replacement_gap": None,
+            }
+            continue
+        recorded = result.rejected.get(item.id, "not selected")
+        if recorded == "shorter than minimum duration":
+            explanations[item.id] = {
+                "status": "rejected",
+                "reason_code": "minimum_duration",
+                "candidate_objective_value": item.objective_value,
+                "blocking_selected_ids": [],
+                "local_replacement_gap": None,
+            }
+            continue
+        blockers: set[str] = set()
+        for point in sorted(
+            {item.start, item.end}
+            | {candidate.start for candidate in selected}
+            | {candidate.end for candidate in selected}
+        ):
+            if not _active(item, point):
+                continue
+            active_selected = [candidate for candidate in selected if _active(candidate, point)]
+            demand = item.crew_demand + sum(candidate.crew_demand for candidate in active_selected)
+            if demand > crew_capacity:
+                blockers.update(candidate.id for candidate in active_selected)
+        daily_blocked = False
+        if daily_capacity is not None:
+            same_day = [candidate for candidate in selected if candidate.start.date() == item.start.date()]
+            if len(same_day) >= daily_capacity:
+                blockers.update(candidate.id for candidate in same_day)
+                daily_blocked = True
+        blocking_value = sum(
+            candidate.objective_value for candidate in selected if candidate.id in blockers
+        )
+        explanations[item.id] = {
+            "status": "rejected",
+            "reason_code": (
+                "daily_capacity_conflict"
+                if daily_blocked
+                else "crew_capacity_conflict"
+                if blockers
+                else "global_objective_tradeoff"
+            ),
+            "candidate_objective_value": item.objective_value,
+            "blocking_selected_ids": sorted(blockers),
+            "blocking_objective_value": blocking_value if blockers else None,
+            "local_replacement_gap": blocking_value - item.objective_value if blockers else None,
+        }
+    return explanations
+
+
 def greedy_schedule(
     candidates: Iterable[ScheduleCandidate],
     *,
