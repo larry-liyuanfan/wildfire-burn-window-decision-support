@@ -1,6 +1,6 @@
 # Data-access runbook
 
-## Observed through 20 August 2026
+## Observed through 21 August 2026
 
 - The local project materials contain the FMS workbook and Week 1–2 documents.
 - No `.nc`, `.nc4` or Zarr input was found in the local project/search paths.
@@ -22,6 +22,12 @@
   rejected an unauthenticated request because a session ID is required. No
   public bulk-NetCDF URL was discovered, and no external account was created on
   the candidate's behalf.
+- A browser-level recheck on 21 August reached the official Viewer directly.
+  The home page displayed `Login required`; the registration page requires an
+  account name, email address, first name, last name, password and password
+  confirmation. Supplying those personal fields and creating the external
+  account is therefore an explicit user-authorisation step, not an automated
+  data-download fallback. No form fields were filled or submitted.
 - `/data/gpfs/projects/punim2936` had only about 2.5 GiB free, so the full
   collection must not be copied there blindly. First inventory collection size,
   then select restricted scratch or another approved compute-visible location.
