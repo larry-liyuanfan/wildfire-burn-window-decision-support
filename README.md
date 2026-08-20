@@ -141,6 +141,10 @@ former verifies feasibility; only the latter can support an optimality claim.
 - `run_arco_era5_preflight.sbatch` reads a bounded Victoria slice from the
   anonymous public ARCO-ERA5 Zarr store and verifies the real-data I/O and
   meteorological-derivation path without copying the source collection.
+- `run_public_weather_screen.sbatch` streams the public weather-only screen in
+  configurable time chunks. Its JSON checkpoint preserves per-cell unfinished
+  run lengths, monthly counts and constraint failures, so 2/4/6-hour runs remain
+  exact across chunk and restart boundaries.
 
 Set the required environment variables shown at the top of each script. Raw
 climate data, source prescriptions, Kerchunk paths and analysis outputs stay on
@@ -167,7 +171,7 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 42 local tests plus one bounded, real public ARCO-ERA5 read/derive/write
+- 47 local tests plus one bounded, real public ARCO-ERA5 read/derive/write
   preflight on Spartan with exact commit, source and output hashes.
 
 Not yet verified from accessible real VicClim6 data:
