@@ -6,6 +6,13 @@ from typing import Any
 
 import numpy as np
 
+from .models import Bound, Condition, Prescription
+
+HISTORICAL_WEATHER_SCREEN_SOURCE = (
+    "https://www.ffm.vic.gov.au/__data/assets/pdf_file/0015/531222/"
+    "Report-of-the-Inquiry-into-the-2002-2003-Victorian-Bushfires.pdf"
+)
+
 
 def relative_humidity_from_dewpoint(
     temperature_kelvin: Any,
@@ -70,3 +77,60 @@ def derive_public_fire_weather_fields(dataset: Any) -> Any:
         }
     )
     return result
+
+
+def historical_weather_screen_prescription() -> Prescription:
+    """Return a deliberately incomplete, public weather-only screening rule.
+
+    The 2003 Victorian Bushfires Inquiry records Tolhurst's historical weather
+    criteria among a larger prescription that also includes FFDI, next-day
+    FFDI, FFFI and rainfall-history constraints.  Only the three variables
+    directly observable in the public ERA5 adapter are compiled here.  The
+    unresolved map makes the omitted criteria machine-visible, so callers must
+    describe the result as a necessary-condition screen rather than a burn
+    window or operational recommendation.
+    """
+
+    return Prescription(
+        burn_class="historical-tolhurst-weather-screen",
+        source=HISTORICAL_WEATHER_SCREEN_SOURCE,
+        conditions=[
+            Condition(
+                field="Temperature",
+                variable="temperature_c",
+                unit="degC",
+                lower=Bound(value=14.0, inclusive=False),
+                upper=Bound(value=25.0, inclusive=False),
+                source_text=">14 and <25",
+                operational_status="provisional",
+            ),
+            Condition(
+                field="RelativeHumidity",
+                variable="relative_humidity_pct",
+                unit="%",
+                lower=Bound(value=35.0, inclusive=False),
+                upper=Bound(value=70.0, inclusive=False),
+                source_text=">35 and <70",
+                operational_status="provisional",
+            ),
+            Condition(
+                field="WindSpeed",
+                variable="wind_speed_kmh",
+                unit="km/h",
+                upper=Bound(value=20.0, inclusive=False),
+                source_text="<20",
+                operational_status="provisional",
+            ),
+        ],
+        unresolved={
+            "FFDI": "historical criterion <10; not derived by the public ERA5 adapter",
+            "next_day_FFDI": "historical criterion <15; not derived by the public ERA5 adapter",
+            "FFFI": "historical criterion 6-10; not derived by the public ERA5 adapter",
+            "rain_history": "day/previous-two-day criterion; not implemented without validated accumulation semantics",
+            "fuel_moisture_and_burn_plan": "site-specific operational inputs are unavailable",
+        },
+        metadata={
+            "evidence_kind": "historical-public-necessary-condition-screen",
+            "operational_use": "prohibited",
+        },
+    )
