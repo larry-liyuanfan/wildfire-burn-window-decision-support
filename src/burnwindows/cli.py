@@ -150,6 +150,21 @@ def command_benchmark(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_inventory(args: argparse.Namespace) -> int:
+    from .inventory import inventory_netcdf
+
+    report = inventory_netcdf(args.input, sample_count=args.sample_count)
+    manifest = make_manifest(
+        command=sys.argv,
+        input_paths=[args.input],
+        config={"sample_count": args.sample_count},
+        data_kind="real-data-metadata-inventory",
+    )
+    write_run_artifacts(args.output_dir, manifest=manifest, metrics=report)
+    print(json.dumps(report, indent=2, default=str))
+    return 0
+
+
 def command_decision_benchmark(args: argparse.Namespace) -> int:
     from .decision_benchmark import run_decision_benchmark_suite
 
@@ -181,6 +196,14 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_parser.add_argument("--chunks", help='JSON, for example {"time":168,"lat":64,"lon":64}')
     inspect_parser.add_argument("--output", type=Path)
     inspect_parser.set_defaults(handler=command_inspect)
+
+    inventory = subparsers.add_parser(
+        "inventory", help="record scale and representative headers without copying payload data"
+    )
+    inventory.add_argument("--input", type=Path, required=True)
+    inventory.add_argument("--sample-count", type=int, default=3)
+    inventory.add_argument("--output-dir", type=Path, required=True)
+    inventory.set_defaults(handler=command_inventory)
 
     analyse = subparsers.add_parser("analyse", help="run one burn-class analysis with provenance")
     analyse.add_argument("--prescriptions", type=Path, required=True)

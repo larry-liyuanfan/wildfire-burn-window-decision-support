@@ -20,7 +20,9 @@ VARIABLE_ALIASES = {
 }
 
 
-def _expand_paths(input_path: str | Path) -> list[str]:
+def discover_climate_files(input_path: str | Path) -> list[str]:
+    """Resolve a NetCDF file, directory or glob without opening payload data."""
+
     text = str(input_path)
     path = Path(text)
     if path.is_dir():
@@ -46,7 +48,7 @@ def open_climate_dataset(
 
     chunks = chunks or {"time": 168}
     if backend == "netcdf":
-        files = _expand_paths(input_path)
+        files = discover_climate_files(input_path)
         if len(files) == 1:
             return xr.open_dataset(files[0], chunks=chunks)
         return xr.open_mfdataset(files, combine="by_coords", chunks=chunks, parallel=True)

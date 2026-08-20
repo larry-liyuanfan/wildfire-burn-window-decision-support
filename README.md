@@ -119,6 +119,8 @@ utility units, not dollars, realised area or fire-risk reduction.
 `spartan/` contains an Apptainer definition and restartable Slurm jobs:
 
 - `build_image.sbatch` builds the versioned runtime;
+- `run_real_preflight.sbatch` inventories collection scale and three
+  representative NetCDF headers in a 15-minute, 2-CPU gate;
 - `build_kerchunk.sbatch` creates references without copying climate payloads;
 - `run_full_pipeline.sbatch` runs a 1972–2024 array with one checkpoint per year;
 - `run_scaling_benchmark.sbatch` compares 1/2/4 workers on a clearly labelled

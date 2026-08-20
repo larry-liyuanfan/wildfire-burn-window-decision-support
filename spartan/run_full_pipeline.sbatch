@@ -13,7 +13,7 @@ module load GCCcore/13.3.0 Apptainer/1.4.5
 : "${PROJECT_ROOT:?Repository must live on project GPFS}"
 : "${IMAGE_PATH:?Point to the reviewed Apptainer image}"
 : "${PRESCRIPTIONS_PATH:?Point to the private FMS workbook outside Git}"
-: "${VICCLIM_ROOT:=/Volumes/proj-6600_prescribed_burn_windows-1128.4.1443/data/climate/VicClim6}"
+: "${VICCLIM_ROOT:?Set the confirmed compute-visible VicClim6 path; no macOS default}"
 : "${BURN_CLASS:?Set one exact BurnClass value after supervisor confirmation}"
 : "${OUTPUT_ROOT:?Use project GPFS, not home}"
 
