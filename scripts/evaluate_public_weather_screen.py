@@ -51,12 +51,20 @@ def main() -> None:
     parser.add_argument("--max-hours", type=int, default=8784)
     parser.add_argument("--chunk-hours", type=int, default=168)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--stop-after-chunks",
+        type=int,
+        default=0,
+        help="test-only controlled interruption after N completed chunks (exit 75)",
+    )
     args = parser.parse_args()
     if not 24 <= args.hours <= args.max_hours:
         raise SystemExit("hours must be between 24 and max-hours")
     args.output.mkdir(parents=True, exist_ok=True)
     if args.chunk_hours < 24:
         raise SystemExit("chunk-hours must be at least 24")
+    if args.stop_after_chunks < 0:
+        raise SystemExit("stop-after-chunks must be non-negative")
     started = time.perf_counter()
     git_sha = _git_sha()
     checkpoint_path = args.output / "checkpoint.json"
@@ -82,6 +90,7 @@ def main() -> None:
     warnings: set[str] = set()
     latitude_range: list[float] | None = None
     longitude_range: list[float] | None = None
+    chunks_this_run = 0
     while accumulator.processed_hours < args.hours:
         offset = accumulator.processed_hours
         chunk_size = min(args.chunk_hours, args.hours - offset)
@@ -124,6 +133,23 @@ def main() -> None:
             ),
             flush=True,
         )
+        chunks_this_run += 1
+        if (
+            args.stop_after_chunks > 0
+            and chunks_this_run >= args.stop_after_chunks
+            and accumulator.processed_hours < args.hours
+        ):
+            print(
+                json.dumps(
+                    {
+                        "event": "controlled_stop",
+                        "processed_hours": accumulator.processed_hours,
+                        "exit_code": 75,
+                    }
+                ),
+                flush=True,
+            )
+            raise SystemExit(75)
 
     summary = accumulator.summary()
     assert accumulator.grid_shape is not None
