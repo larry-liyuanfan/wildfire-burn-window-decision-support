@@ -1,0 +1,66 @@
+{
+  "evidence_status": "verified-real-public-reanalysis",
+  "screen_kind": "historical-public-weather-only-necessary-condition-screen",
+  "slurm_job_id": "29462409",
+  "git_sha": "51db417ce0886393f1af1b57d2e526c561b57762",
+  "source": "https://github.com/google-research/arco-era5",
+  "store": "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3",
+  "selection": {
+    "time": ["2024-01-01T00:00:00", "2024-12-31T23:00:00"],
+    "latitude": [-39.5, -34.0],
+    "longitude": [140.5, 150.5]
+  },
+  "dimensions": {
+    "time": 8784,
+    "latitude": 23,
+    "longitude": 41
+  },
+  "summary": {
+    "evaluated_cell_hours": 8283312,
+    "screened_cell_hours": 1391401,
+    "screen_rate": 0.16797640847042825,
+    "maximal_run_counts_at_least_hours": {
+      "2": 243967,
+      "4": 160691,
+      "6": 96270
+    },
+    "monthly": {
+      "2024-01": {"evaluated": 701592, "screened": 121111, "rate": 0.17262311998996568},
+      "2024-02": {"evaluated": 656328, "screened": 169096, "rate": 0.2576394729464536},
+      "2024-03": {"evaluated": 701592, "screened": 188956, "rate": 0.2693246217174654},
+      "2024-04": {"evaluated": 678960, "screened": 148666, "rate": 0.21896135265700484},
+      "2024-05": {"evaluated": 701592, "screened": 116388, "rate": 0.16589128724386823},
+      "2024-06": {"evaluated": 678960, "screened": 26293, "rate": 0.03872540355838341},
+      "2024-07": {"evaluated": 701592, "screened": 25829, "rate": 0.03681484395489116},
+      "2024-08": {"evaluated": 701592, "screened": 73891, "rate": 0.10531904582720442},
+      "2024-09": {"evaluated": 678960, "screened": 81136, "rate": 0.1195004123954283},
+      "2024-10": {"evaluated": 701592, "screened": 136356, "rate": 0.19435227311599904},
+      "2024-11": {"evaluated": 678960, "screened": 140188, "rate": 0.2064746082243431},
+      "2024-12": {"evaluated": 701592, "screened": 163491, "rate": 0.233028597817535}
+    },
+    "limiting_factors": [
+      {"constraint": "RelativeHumidity:1", "failure_count": 5278036, "failure_rate": 0.6371890857183696},
+      {"constraint": "Temperature:0", "failure_count": 4377447, "failure_rate": 0.5284657875980042},
+      {"constraint": "WindSpeed:2", "failure_count": 2173407, "failure_rate": 0.262383814590106}
+    ]
+  },
+  "runtime": {
+    "state": "COMPLETED",
+    "exit_code": "0:0",
+    "elapsed": "02:59:47",
+    "application_elapsed_seconds": 10748.415,
+    "allocation": "2 CPU, 8 GB",
+    "slurm_max_rss_kib": 1077252,
+    "total_cpu": "23:21.860"
+  },
+  "hashes": {
+    "metrics_sha256": "efcb932d034b77b6691cb0522eed1939e33203f8091e5f18eb7dc8e04fb7f45a"
+  },
+  "unresolved": [
+    "FFDI and next-day FFDI",
+    "FFFI",
+    "rain-history accumulation semantics",
+    "fuel moisture, site and burn-plan constraints"
+  ],
+  "boundary": "This is an upper-bound weather-only necessary-condition screen using public ARCO-ERA5 and historical published criteria. It is not a burn-window, safety, treated-area, operational recommendation, risk-reduction or economic-value result."
+}

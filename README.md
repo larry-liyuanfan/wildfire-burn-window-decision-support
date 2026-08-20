@@ -147,8 +147,12 @@ former verifies feasibility; only the latter can support an optimality claim.
   exact across chunk and restart boundaries.
 - `run_public_weather_restart_gate.sbatch` compares one uninterrupted 336-hour
   public-data run with a controlled exit-75 plus resume run and requires an
-  exact semantic hash match. The remote gate remains unverified until its Slurm
-  job completes.
+  exact semantic hash match. Spartan job `29467567` completed at exact commit
+  `6eb8c5f`: the controlled run stopped after 168/336 hours, resumed from its
+  checkpoint, and matched the uninterrupted run with semantic SHA-256
+  `6e13387b...205a` over 316,848 cell-hours. The compact
+  [restart-gate record](artifacts/public/arco_era5_restart_gate_29467567.json)
+  preserves the job, hashes, runtime and boundary without copying the Zarr data.
 
 Set the required environment variables shown at the top of each script. Raw
 climate data, source prescriptions, Kerchunk paths and analysis outputs stay on
@@ -173,7 +177,23 @@ with batch MaxRSS 762,940 KiB. The compact
 [run record](artifacts/public/arco_era5_weather_screen_29462231.json) is public.
 Missing FFDI, next-day FFDI, FFFI, rain-history, fuel moisture, site and burn-plan
 constraints make this an upper-bound weather screen, not a burn-window, safety,
-treated-area or economic result. The full 2024 job remains in progress.
+treated-area or economic result.
+
+Full-year Spartan job `29462409` completed from the same exact code commit over
+all 8,784 hours of leap-year 2024 and the 23 x 41 grid: `8,283,312` cell-hours
+were evaluated and `1,391,401` passed the three weather-only necessary
+conditions (`16.7976%`). Maximal 2/4/6-hour run counts were
+`243,967/160,691/96,270`. RH, temperature and wind failed at 63.72%, 52.85% and
+26.24% of evaluated cell-hours respectively; failure categories can overlap.
+The job completed in `2 h 59 min 47 s` with exit `0:0` and batch MaxRSS
+`1,077,252 KiB`. Monthly counts sum exactly to the annual total. The compact
+[full-year run record](artifacts/public/arco_era5_weather_screen_2024_29462409.json)
+publishes the source, range, commit, metrics hash and boundary without copying
+the public Zarr payload.
+
+This larger run improves scale and provenance evidence only. It still omits
+FFDI/FFFI, validated rain history, fuel moisture, site and burn-plan constraints,
+so `16.7976%` is not a burn-window rate or an operational/economic finding.
 
 ## Evidence status
 
@@ -186,8 +206,11 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 49 local tests plus bounded real public ARCO-ERA5 preflight and 168-hour
-  weather-only screen jobs on Spartan with exact commits and hashes.
+- 49 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
+  and full-year 2024 weather-only screen jobs on Spartan with exact commits and
+  hashes;
+- a remote controlled exit-75/checkpoint/resume gate whose uninterrupted and
+  resumed 336-hour summaries have an exact semantic hash match.
 
 Not yet verified from accessible real VicClim6 data:
 
