@@ -145,6 +145,10 @@ former verifies feasibility; only the latter can support an optimality claim.
   configurable time chunks. Its JSON checkpoint preserves per-cell unfinished
   run lengths, monthly counts and constraint failures, so 2/4/6-hour runs remain
   exact across chunk and restart boundaries.
+- `run_public_weather_restart_gate.sbatch` compares one uninterrupted 336-hour
+  public-data run with a controlled exit-75 plus resume run and requires an
+  exact semantic hash match. The remote gate remains unverified until its Slurm
+  job completes.
 
 Set the required environment variables shown at the top of each script. Raw
 climate data, source prescriptions, Kerchunk paths and analysis outputs stay on
@@ -160,6 +164,17 @@ NetCDF remains on Spartan. This is an anonymous 0.25-degree engineering
 preflight, **not** VicClim6 validation, an FFDI/KBDI derivation, a burn-window
 result or economic evidence.
 
+Spartan job `29462231` then executed the bounded weather-only screen from exact
+commit `51db417`: 168 hourly steps over the same 23 × 41 Victoria grid produced
+158,424 evaluated cell-hours and 43,690 necessary-condition passes (27.5779%).
+The 2/4/6-hour maximal-run counts were 7,642/4,798/2,937; RH, temperature and
+wind failure counts were 85,611/51,495/35,344. The job completed in 4 min 49 s
+with batch MaxRSS 762,940 KiB. The compact
+[run record](artifacts/public/arco_era5_weather_screen_29462231.json) is public.
+Missing FFDI, next-day FFDI, FFFI, rain-history, fuel moisture, site and burn-plan
+constraints make this an upper-bound weather screen, not a burn-window, safety,
+treated-area or economic result. The full 2024 job remains in progress.
+
 ## Evidence status
 
 Verified locally in this repository:
@@ -171,8 +186,8 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 47 local tests plus one bounded, real public ARCO-ERA5 read/derive/write
-  preflight on Spartan with exact commit, source and output hashes.
+- 49 local tests plus bounded real public ARCO-ERA5 preflight and 168-hour
+  weather-only screen jobs on Spartan with exact commits and hashes.
 
 Not yet verified from accessible real VicClim6 data:
 
