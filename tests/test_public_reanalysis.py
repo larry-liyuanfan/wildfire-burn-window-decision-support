@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 import xarray as xr
@@ -34,3 +36,11 @@ def test_public_derivation_declares_units_and_refuses_to_invent_indices() -> Non
     assert derived["precipitation_mm"].item() == pytest.approx(2.0)
     assert "FFDI" not in derived and "KBDI" not in derived
     assert derived.attrs["not_vicclim6"] == "true"
+
+
+def test_public_preflight_clones_linked_worktrees_without_shared_alternates() -> None:
+    script = (
+        Path(__file__).parents[1] / "spartan" / "run_arco_era5_preflight.sbatch"
+    ).read_text(encoding="utf-8")
+    assert 'git clone --no-local --no-checkout "${SOURCE_REPO}" "${CODE_ROOT}"' in script
+    assert "git clone --shared" not in script
