@@ -29,6 +29,9 @@ VARIABLES = [
     "2m_dewpoint_temperature",
     "10m_u_component_of_wind",
     "10m_v_component_of_wind",
+    # The conservative shared adapter validates and emits precipitation even
+    # though this partial screen does not apply the unresolved rain-history rule.
+    "total_precipitation",
 ]
 
 

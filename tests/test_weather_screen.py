@@ -14,6 +14,12 @@ def test_historical_screen_keeps_missing_operational_constraints_explicit() -> N
     assert rule.metadata["operational_use"] == "prohibited"
 
 
+def test_public_screen_fetches_every_field_required_by_shared_adapter() -> None:
+    from scripts.evaluate_public_weather_screen import VARIABLES
+
+    assert "total_precipitation" in VARIABLES
+
+
 def test_continuous_run_counts_operate_per_grid_cell() -> None:
     mask = np.asarray(
         [
