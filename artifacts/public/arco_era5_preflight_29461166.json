@@ -1,0 +1,34 @@
+{
+  "evidence_status": "verified-real-public-reanalysis",
+  "slurm_job_id": "29461166",
+  "git_sha": "9f2401f8cf39a0ccd62433e5792cedd20e830fd5",
+  "source": "https://github.com/google-research/arco-era5",
+  "store": "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3",
+  "selection": {
+    "time": [
+      "2024-02-01T00:00:00.000000000",
+      "2024-02-01T23:00:00.000000000"
+    ],
+    "latitude": [-39.5, -34.0],
+    "longitude": [140.5, 150.5]
+  },
+  "dimensions": {
+    "time": 24,
+    "latitude": 23,
+    "longitude": 41
+  },
+  "derived_variables": [
+    "temperature_c",
+    "relative_humidity_pct",
+    "wind_speed_kmh",
+    "precipitation_mm"
+  ],
+  "derived_file_bytes": 835744,
+  "derived_file_sha256": "d0e769f5c772bf30543c0a77acfb8329c7aeea3cb8a6cfa2d6e843bd12528fe7",
+  "metrics_sha256": "1b79f1fb933d2983db661c521d108114ed97b3bc0429fcd2e113a2e99f198e61",
+  "run_manifest_sha256": "e5018eeaee969b8111c6b84fce4313a29648a15646d1406c07655e4c7ed43f3c",
+  "elapsed_seconds": 97,
+  "batch_max_rss_kib": 768868,
+  "python_max_rss_kib": 251644,
+  "boundary": "Anonymous public ERA5 engineering preflight at 0.25 degrees. It does not replace 4 km VicClim6, validate FMS prescriptions, or derive FFDI/KBDI, trends, burn-window rates or economic value."
+}

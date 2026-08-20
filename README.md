@@ -138,10 +138,23 @@ former verifies feasibility; only the latter can support an optimality claim.
 - `run_full_pipeline.sbatch` runs a 1972–2024 array with one checkpoint per year;
 - `run_scaling_benchmark.sbatch` compares 1/2/4 workers on a clearly labelled
   deterministic synthetic benchmark.
+- `run_arco_era5_preflight.sbatch` reads a bounded Victoria slice from the
+  anonymous public ARCO-ERA5 Zarr store and verifies the real-data I/O and
+  meteorological-derivation path without copying the source collection.
 
 Set the required environment variables shown at the top of each script. Raw
 climate data, source prescriptions, Kerchunk paths and analysis outputs stay on
 restricted project storage.
+
+Spartan job `29461166` completed the public-data preflight from exact commit
+`9f2401f8`: 24 hourly steps over a 23 x 41 Victoria grid were read from the
+official ARCO-ERA5 store, temperature/RH/wind/precipitation fields were derived,
+and an 835,744-byte NetCDF with SHA-256 `d0e769f5...28fe7` was produced in 97
+seconds (batch MaxRSS 768,868 KiB). The compact
+[run record](artifacts/public/arco_era5_preflight_29461166.json) is public; the
+NetCDF remains on Spartan. This is an anonymous 0.25-degree engineering
+preflight, **not** VicClim6 validation, an FFDI/KBDI derivation, a burn-window
+result or economic evidence.
 
 ## Evidence status
 
@@ -154,6 +167,8 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
+- 42 local tests plus one bounded, real public ARCO-ERA5 read/derive/write
+  preflight on Spartan with exact commit, source and output hashes.
 
 Not yet verified from accessible real VicClim6 data:
 

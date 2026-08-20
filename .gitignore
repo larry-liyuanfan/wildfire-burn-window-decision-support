@@ -5,7 +5,10 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
-artifacts/
+artifacts/*
+!artifacts/public/
+artifacts/public/*
+!artifacts/public/*.json
 data/
 *.nc
 *.nc4

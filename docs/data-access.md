@@ -39,6 +39,23 @@
 This is an access-state statement, not evidence that the source dataset is
 unavailable to the research team.
 
+## Anonymous public engineering fallback
+
+The official Google Research ARCO-ERA5 store provides anonymous hourly
+0.25-degree reanalysis. It is not a substitute for VicClim6, but it can validate
+the storage, Xarray and physical-unit derivation path while Mediaflux access is
+unavailable. Spartan job `29461166`, exact commit `9f2401f8`, read 1 February
+2024 00:00--23:00 UTC over 34--39.5 degrees south and 140.5--150.5 degrees east.
+The slice contained 24 x 23 x 41 cells and produced temperature, relative
+humidity, wind speed and precipitation fields. The 835,744-byte derived NetCDF
+hash is `d0e769f5c772bf30543c0a77acfb8329c7aeea3cb8a6cfa2d6e843bd12528fe7`;
+job elapsed time was 97 seconds and batch MaxRSS was 768,868 KiB.
+
+The source collection and NetCDF remain on Spartan. The public compact manifest
+records the source URL, store, time/space selection, dimensions and hashes. No
+FFDI, KBDI, prescription rule, burn-window rate, trend or economic metric is
+derived from this fallback.
+
 The viewer can become a bounded validation fallback after an authorised account
 session is available: export a small region/time slice, retain its URL/query and
 hash, and compare it with the NetCDF pipeline's golden output. It is **not** a

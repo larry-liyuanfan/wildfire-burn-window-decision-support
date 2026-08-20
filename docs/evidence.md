@@ -22,6 +22,7 @@
 | One year contains about 317M space-time points; East Gippsland 140M samples | `project-record-only` | Shape calculation and filter log absent | Do not use publicly until reproduced |
 | 1972–2024 full pipeline completes and is restartable | `code-ready/data-blocked` | Slurm/Apptainer scripts exist; no Spartan job artifact | Describe architecture, not completed computation |
 | Official VicClim6 public-source inventory | `verified-metadata-only` | VicClim6 descriptor: hourly 4 x 4 km NetCDF, January 1972–June 2024; official Viewer rechecked 21 Aug and requires login/account registration before product access | May describe source discovery and access boundary; not a real-data pipeline run |
+| Anonymous public ARCO-ERA5 read/derive/write preflight | `verified-real-public-reanalysis` | Spartan job 29461166; exact commit `9f2401f8`; 24 x 23 x 41 slice; output and metrics hashes in `artifacts/public/arco_era5_preflight_29461166.json`; 42 local tests | May describe real public-data engineering and provenance only; 0.25-degree ERA5 is not VicClim6 and proves no FFDI/KBDI, prescription, window, trend or economic result |
 | 1→4 worker efficiency ≥60% | `target` | No same-workload real-data runs | Do not state as result |
 | Optimizer improves objective ≥10% over best greedy | `not-met-synthetic` | Observed mean lift 1.79% on the current suite | Do not state ≥10%; use the measured result and boundary |
 
