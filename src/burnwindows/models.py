@@ -93,6 +93,8 @@ class ScheduleResult(BaseModel):
         "exact-fallback",
         "robust-milp",
         "robust-exact-fallback",
+        "cvar-milp",
+        "cvar-exact-fallback",
         "earliest-feasible",
         "highest-score",
     ]

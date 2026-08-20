@@ -13,6 +13,7 @@ import numpy as np
 from .models import ScheduleCandidate, ScheduleResult
 from .optimizer import (
     greedy_schedule,
+    solve_cvar_schedule,
     solve_robust_schedule,
     solve_schedule,
     validate_selection,
@@ -58,6 +59,30 @@ def design_scenarios(candidates: list[ScheduleCandidate]) -> dict[str, dict[str,
         scenarios[name] = {
             item.id: (
                 item.area_hectares * item.robustness * region_multipliers[item.region]
+                + item.quality
+                - item.mobilisation_cost
+            )
+            for item in candidates
+        }
+    return scenarios
+
+
+def sample_scenarios(
+    candidates: list[ScheduleCandidate], *, seed: int, count: int
+) -> dict[str, dict[str, float]]:
+    """Draw planning scenarios independently from the held-out evaluation set."""
+
+    if count < 10:
+        raise ValueError("planning scenario count must be at least 10")
+    rng = np.random.default_rng(seed)
+    scenarios: dict[str, dict[str, float]] = {}
+    for index in range(count):
+        multipliers = {region: float(rng.uniform(0.55, 1.02)) for region in REGIONS}
+        shocked = REGIONS[int(rng.integers(0, len(REGIONS)))]
+        multipliers[shocked] = float(rng.uniform(0.2, 0.55))
+        scenarios[f"sample-{index:03d}"] = {
+            item.id: (
+                item.area_hectares * item.robustness * multipliers[item.region]
                 + item.quality
                 - item.mobilisation_cost
             )
@@ -131,6 +156,7 @@ def run_decision_benchmark(
         raise ValueError("held_out_scenarios must be at least 20")
     candidates = generate_candidates(seed)
     scenarios = design_scenarios(candidates)
+    cvar_scenarios = sample_scenarios(candidates, seed=seed + 10_000, count=40)
     rng = np.random.default_rng(seed + 1)
     held_out = []
     for _ in range(held_out_scenarios):
@@ -156,6 +182,13 @@ def run_decision_benchmark(
         ("robust_milp", lambda: solve_robust_schedule(
             candidates, scenarios, crew_capacity=crew_capacity, daily_capacity=daily_capacity,
         )),
+        ("cvar80_milp", lambda: solve_cvar_schedule(
+            candidates,
+            cvar_scenarios,
+            crew_capacity=crew_capacity,
+            daily_capacity=daily_capacity,
+            alpha=0.8,
+        )),
     ):
         started = time.perf_counter()
         policies[name] = solve()
@@ -178,11 +211,13 @@ def run_decision_benchmark(
     )
     robust_p05 = metrics["robust_milp"]["held_out_p05_utility"]
     nominal_p05 = metrics["nominal_milp"]["held_out_p05_utility"]
+    cvar_p05 = metrics["cvar80_milp"]["held_out_p05_utility"]
     return {
         "scope": "deterministic synthetic operations benchmark; utility and mobilisation cost are scenario units, not dollars",
         "seed": seed,
         "candidate_count": len(candidates),
         "design_scenario_count": len(scenarios),
+        "cvar_planning_scenario_count": len(cvar_scenarios),
         "held_out_scenario_count": held_out_scenarios,
         "crew_capacity": crew_capacity,
         "daily_capacity": daily_capacity,
@@ -194,6 +229,9 @@ def run_decision_benchmark(
             ),
             "robust_p05_lift_over_nominal_milp": (
                 robust_p05 / nominal_p05 - 1 if not math.isclose(nominal_p05, 0.0) else None
+            ),
+            "cvar80_p05_lift_over_nominal_milp": (
+                cvar_p05 / nominal_p05 - 1 if not math.isclose(nominal_p05, 0.0) else None
             ),
         },
         "selected_ids": {name: result.selected_ids for name, result in policies.items()},
@@ -234,6 +272,7 @@ def run_decision_benchmark_suite(
     for key in (
         "nominal_milp_lift_over_best_greedy",
         "robust_p05_lift_over_nominal_milp",
+        "cvar80_p05_lift_over_nominal_milp",
     ):
         values = [float(run["comparisons"][key]) for run in runs if run["comparisons"][key] is not None]
         comparisons[key] = {
@@ -266,6 +305,7 @@ def run_decision_benchmark_suite(
         "total_held_out_scenario_evaluations_per_policy": repetitions * held_out_scenarios,
         "candidate_count_per_run": runs[0]["candidate_count"],
         "design_scenario_count_per_run": runs[0]["design_scenario_count"],
+        "cvar_planning_scenario_count_per_run": runs[0]["cvar_planning_scenario_count"],
         "crew_capacity": crew_capacity,
         "daily_capacity": daily_capacity,
         "comparisons": comparisons,

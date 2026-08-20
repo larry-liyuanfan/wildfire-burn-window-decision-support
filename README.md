@@ -51,8 +51,8 @@ models used by a calling service.
 - **Scale:** Xarray/Dask evaluation stays lazy until metrics are computed.
   NetCDF, Zarr and Kerchunk references share one input adapter.
 - **Scheduling:** candidate windows are binary variables with resource and daily
-  capacity constraints. The robust formulation maximises the minimum utility
-  across explicit regional-adverse scenarios. Every solver output is independently validated.
+  capacity constraints. The decision layer now compares nominal, max-min and
+  lower-tail CVaR formulations; every solver output is independently validated.
 
 See [architecture](docs/architecture.md), [decision log](docs/decisions.md) and
 [evidence ledger](docs/evidence.md).
@@ -105,14 +105,18 @@ burn-window decision-benchmark --repetitions 30 --held-out-scenarios 200 \
   --output-dir artifacts/decision-benchmark
 ```
 
-The verified synthetic run on 2026-08-19 evaluated 30 seeded candidate sets and
-6,000 held-out uncertainty scenarios per policy. All greedy, nominal MILP and
-robust MILP outputs were independently feasible. Nominal MILP improved mean
+The verified synthetic run, refreshed on 2026-08-20, evaluated 30 seeded
+candidate sets and 6,000 held-out uncertainty scenarios per policy. CVaR used
+40 separately seeded planning scenarios per run, so evaluation scenarios never
+entered its objective. All greedy, nominal, max-min and CVaR MILP outputs were
+independently feasible. Nominal MILP improved mean
 scenario utility over the best greedy by 1.79% (paired-seed bootstrap mean 95%
 interval 0.91%–2.77%). Robust MILP reduced mean mobilisation-penalty units by
 2.55%, but its held-out P05 utility interval crossed zero relative to nominal
-MILP; therefore no stable robustness-lift claim is made. These are synthetic
-utility units, not dollars, realised area or fire-risk reduction.
+MILP. CVaR improved mean held-out P05 utility by 1.42% versus nominal (paired-seed
+bootstrap mean 95% interval 0.25%–3.25%); 60% of runs selected the same policy,
+so this is a bounded average tail-utility result rather than universal dominance.
+These are synthetic utility units, not dollars, realised area or fire-risk reduction.
 
 ## Spartan execution
 

@@ -78,3 +78,10 @@ per planning scenario: `z <= Σ utility[scenario,candidate] × selected[candidat
 Maximising `z` produces a max-min schedule. Held-out simulations evaluate the
 fixed selections; they do not turn scenario utility into a forecast or currency.
 
+The CVaR extension uses a free quantile variable plus one non-negative shortfall
+variable per scenario. At `alpha=0.8`, the objective maximises empirical mean
+utility in the worst 20% of 40 independently sampled planning scenarios. Its
+fixed selection is then evaluated on 200 separately seeded scenarios per run.
+This reduces single-worst-case conservatism while preserving a visible risk
+parameter and an auditable linear formulation.
+

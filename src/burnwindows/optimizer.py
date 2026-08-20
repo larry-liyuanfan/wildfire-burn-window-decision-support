@@ -331,3 +331,165 @@ def solve_robust_schedule(
         },
     )
 
+
+def _lower_tail_mean(values: Iterable[float], alpha: float) -> float:
+    ordered = np.sort(np.asarray(list(values), dtype=float))
+    if not len(ordered):
+        raise ValueError("CVaR requires at least one scenario")
+    tail_count = max(1, int(np.ceil((1.0 - alpha) * len(ordered))))
+    return float(np.mean(ordered[:tail_count]))
+
+
+def solve_cvar_schedule(
+    candidates: Iterable[ScheduleCandidate],
+    scenario_utilities: Mapping[str, Mapping[str, float]],
+    *,
+    crew_capacity: int,
+    alpha: float = 0.8,
+    min_duration_hours: float = 1.0,
+    daily_capacity: int | None = None,
+) -> ScheduleResult:
+    """Maximise empirical lower-tail CVaR across planning scenarios.
+
+    ``alpha=0.8`` maximises the mean of the worst 20% scenario utilities. The
+    formulation trades expected performance against tail protection without
+    treating a single worst case as a probabilistic forecast.
+    """
+
+    if crew_capacity < 1:
+        raise ValueError("crew_capacity must be positive")
+    if not 0.0 <= alpha < 1.0:
+        raise ValueError("alpha must be in [0, 1)")
+    if not scenario_utilities:
+        raise ValueError("at least one scenario is required")
+    candidates = list(candidates)
+    short = {
+        item.id: "shorter than minimum duration"
+        for item in candidates
+        if item.duration_hours < min_duration_hours
+    }
+    pool = [item for item in candidates if item.id not in short]
+    scenario_names = sorted(scenario_utilities)
+    for scenario in scenario_names:
+        missing = [item.id for item in pool if item.id not in scenario_utilities[scenario]]
+        if missing:
+            raise ValueError(f"scenario {scenario!r} lacks candidate utilities: {missing}")
+        values = np.asarray([scenario_utilities[scenario][item.id] for item in pool], dtype=float)
+        if not np.isfinite(values).all():
+            raise ValueError(f"scenario {scenario!r} contains non-finite utility")
+    if not pool:
+        return ScheduleResult(
+            method="cvar-exact-fallback",
+            selected_ids=[],
+            objective_value=0.0,
+            feasible=True,
+            rejected=short,
+            solver_status="empty-feasible-set",
+            metadata={"alpha": alpha, "scenario_count": len(scenario_names)},
+        )
+
+    capacity_rows, capacity_limits = _constraint_rows(pool, crew_capacity, daily_capacity)
+    selected: list[str]
+    method = "cvar-milp"
+    status = ""
+    try:
+        from scipy.optimize import Bounds, LinearConstraint, milp
+
+        scenario_count = len(scenario_names)
+        variable_count = len(pool) + 1 + scenario_count
+        rows = [row + [0.0] * (1 + scenario_count) for row in capacity_rows]
+        limits = list(capacity_limits)
+        for index, scenario in enumerate(scenario_names):
+            utilities = [float(scenario_utilities[scenario][item.id]) for item in pool]
+            row = [-value for value in utilities] + [1.0] + [0.0] * scenario_count
+            row[len(pool) + 1 + index] = -1.0
+            rows.append(row)
+            limits.append(0.0)
+        objective = np.zeros(variable_count, dtype=float)
+        objective[len(pool)] = -1.0
+        objective[len(pool) + 1 :] = 1.0 / ((1.0 - alpha) * scenario_count)
+        lower = np.concatenate(
+            [np.zeros(len(pool)), np.asarray([-np.inf]), np.zeros(scenario_count)]
+        )
+        upper = np.concatenate(
+            [np.ones(len(pool)), np.asarray([np.inf]), np.full(scenario_count, np.inf)]
+        )
+        result = milp(
+            c=objective,
+            integrality=np.concatenate([np.ones(len(pool)), np.zeros(1 + scenario_count)]),
+            bounds=Bounds(lower, upper),
+            constraints=LinearConstraint(
+                np.asarray(rows, dtype=float),
+                -np.inf,
+                np.asarray(limits, dtype=float),
+            ),
+            options={"time_limit": 60.0},
+        )
+        if result.x is None:
+            raise RuntimeError(result.message)
+        selected = [item.id for item, value in zip(pool, result.x[: len(pool)], strict=True) if value >= 0.5]
+        status = f"scipy-status-{result.status}: {result.message}"
+    except (ImportError, RuntimeError):
+        if len(pool) > 24:
+            raise RuntimeError("SciPy CVaR MILP unavailable and exact fallback is limited to 24 candidates")
+        method = "cvar-exact-fallback"
+        best_value = 0.0
+        selected = []
+        for count in range(1, len(pool) + 1):
+            for subset in combinations(pool, count):
+                ids = [item.id for item in subset]
+                feasible, _ = validate_selection(
+                    pool,
+                    ids,
+                    crew_capacity=crew_capacity,
+                    daily_capacity=daily_capacity,
+                )
+                if not feasible:
+                    continue
+                totals = [
+                    sum(float(scenario_utilities[name][item.id]) for item in subset)
+                    for name in scenario_names
+                ]
+                value = _lower_tail_mean(totals, alpha)
+                if value > best_value + 1e-12:
+                    best_value = value
+                    selected = ids
+        status = "enumerated-cvar-optimum"
+
+    feasible, errors = validate_selection(
+        pool,
+        selected,
+        crew_capacity=crew_capacity,
+        daily_capacity=daily_capacity,
+    )
+    if not feasible:
+        raise RuntimeError(f"CVaR solver returned infeasible selection: {errors}")
+    selected_set = set(selected)
+    totals = {
+        name: sum(float(scenario_utilities[name][item.id]) for item in pool if item.id in selected_set)
+        for name in scenario_names
+    }
+    objective_value = _lower_tail_mean(totals.values(), alpha)
+    rejected = dict(short)
+    for item in pool:
+        if item.id not in selected_set:
+            rejected[item.id] = "not selected by lower-tail CVaR objective/constraints"
+    return ScheduleResult(
+        method=method,
+        selected_ids=selected,
+        objective_value=objective_value,
+        feasible=True,
+        rejected=rejected,
+        solver_status=status,
+        metadata={
+            "formulation": "empirical lower-tail CVaR binary linear programme",
+            "candidate_count": len(pool),
+            "constraint_count": len(capacity_rows) + len(scenario_names),
+            "scenario_count": len(scenario_names),
+            "scenario_totals": totals,
+            "alpha": alpha,
+            "tail_fraction": 1.0 - alpha,
+            "objective_definition": "mean utility in the empirical lower tail",
+        },
+    )
+

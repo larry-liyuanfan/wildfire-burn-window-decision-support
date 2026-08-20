@@ -14,6 +14,7 @@
 | D010 | Label synthetic metrics at creation time | Fixtures prove code, not project outcomes | Synthetic rates and timings are prohibited resume evidence |
 | D011 | Do not publish the FMS workbook or a threshold dump | Licensing/publication permission is unclear | Workbook is supplied at runtime from restricted storage |
 | D012 | Keep 6.49%, 9.04% and prior scale claims unverified | No accessible run artifact reproduces them | README records them only as historical project claims |
+| D013 | Add lower-tail CVaR beside nominal and max-min schedules | A single worst scenario was conservative and did not yield stable held-out P05 improvement | Risk appetite is explicit (`alpha=0.8`); planning and held-out scenarios use independent seeds |
 
 ## Open decisions requiring supervisor or data-owner confirmation
 

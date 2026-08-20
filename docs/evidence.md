@@ -11,10 +11,11 @@
 | Continuous 2/4/6-hour windows handle irregular time gaps | `verified-local` | Window tests | May describe behavior |
 | Dask and NumPy agree on deterministic fixtures | `verified-synthetic` | Test and benchmark artifacts | Say fixture/synthetic; do not imply full-data performance |
 | Binary optimizer returns feasible schedules and compares two greedies | `verified-synthetic` | Optimizer tests | Say tested on golden scenarios |
-| Max-min robust MILP remains feasible across 30 seeded suites | `verified-synthetic` | `decision-benchmark`; 35 tests | Say synthetic operations benchmark only |
+| Max-min and CVaR MILPs remain feasible across 30 seeded suites | `verified-synthetic` | `decision-benchmark`; 38 tests | Say synthetic operations benchmark only |
 | Nominal MILP mean lift over best greedy is 1.79% (bootstrap mean 95% interval 0.91%–2.77%) | `verified-synthetic` | 30 seeds; 6,000 held-out scenarios/policy | Do not call this financial return or real-data lift |
 | Robust policy mean mobilisation penalty is 2.55% below nominal MILP | `verified-synthetic` | Same deterministic benchmark | Units are scenario penalty, not dollars; do not imply field savings |
 | Robust P05 lift over nominal is stable | `unsupported` | Bootstrap interval crosses zero | Do not claim robustness improvement |
+| CVaR mean held-out P05 lift over nominal is 1.42% (paired-seed bootstrap mean 95% interval 0.25%–3.25%) | `verified-synthetic` | 30 seeds; 40 independent planning scenarios/run; 6,000 held-out scenarios/policy | State that 60% of runs selected the same policy; do not call it financial, real-data or universal improvement |
 | 2024 suitability was 6.49%; widened temperature gave 9.04% | `project-record-only` | No accessible data/run manifest | Must not be called reproduced or verified |
 | One year contains about 317M space-time points; East Gippsland 140M samples | `project-record-only` | Shape calculation and filter log absent | Do not use publicly until reproduced |
 | 1972–2024 full pipeline completes and is restartable | `code-ready/data-blocked` | Slurm/Apptainer scripts exist; no Spartan job artifact | Describe architecture, not completed computation |

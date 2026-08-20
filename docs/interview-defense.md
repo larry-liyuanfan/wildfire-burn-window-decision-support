@@ -8,7 +8,9 @@ rule compiler that preserves inequality boundaries and records ambiguous fields
 instead of guessing, a no-lookahead daily-to-hourly alignment policy, Xarray/Dask
 evaluation with NetCDF/Zarr/Kerchunk adapters, continuous-window extraction,
 limiting-factor and sensitivity tools, and a binary scheduling layer validated
-against greedy baselines. Tests currently verify the engineering behavior on
+against greedy baselines. I compared nominal, max-min and lower-tail CVaR
+formulations, keeping planning scenarios independent from held-out evaluation.
+Tests currently verify the engineering behavior on
 golden synthetic fixtures. Full VicClim6 metrics remain pending a recorded
 Spartan run, so historical 6.49% and 9.04% values are not claimed as reproduced.
 
@@ -23,6 +25,7 @@ Spartan run, so historical 6.49% and 9.04% values are not claimed as reproduced.
 | How is a continuous operational window defined? | `extract_windows`; irregular gaps split runs |
 | How do you scale beyond memory? | `io.py`, Kerchunk builder and Spartan Slurm array |
 | How do you know optimisation output is valid? | MILP constraints plus independent `validate_selection` |
+| Why CVaR as well as max-min? | `solve_cvar_schedule` exposes a tail-risk parameter and avoids letting one worst scenario dominate |
 | What is genuinely measured today? | `docs/evidence.md` and run manifests |
 
 ## Expected deep questions
@@ -47,4 +50,6 @@ Spartan run, so historical 6.49% and 9.04% values are not claimed as reproduced.
 18. How are raw data licences separated from code publication?
 19. What would make a sensitivity result operationally actionable?
 20. Why do historical percentages remain unverified even if they appear in an earlier presentation?
+21. How does the CVaR linearisation work, and why are planning and held-out scenarios separately seeded?
+22. Why can a positive mean P05 lift coexist with 60% unchanged policies?
 
