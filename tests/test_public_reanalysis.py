@@ -38,9 +38,11 @@ def test_public_derivation_declares_units_and_refuses_to_invent_indices() -> Non
     assert derived.attrs["not_vicclim6"] == "true"
 
 
-def test_public_preflight_clones_linked_worktrees_without_shared_alternates() -> None:
+def test_public_preflight_clones_exact_commit_from_public_remote() -> None:
     script = (
         Path(__file__).parents[1] / "spartan" / "run_arco_era5_preflight.sbatch"
     ).read_text(encoding="utf-8")
-    assert 'git clone --no-local --no-checkout "${SOURCE_REPO}" "${CODE_ROOT}"' in script
+    assert "https://github.com/larry-liyuanfan/wildfire-burn-window-decision-support.git" in script
+    assert 'git clone --filter=blob:none --no-checkout "${FLARE_REMOTE_URL}" "${CODE_ROOT}"' in script
+    assert '${FLARE_GIT_COMMIT:?set the exact pushed commit to execute}' in script
     assert "git clone --shared" not in script

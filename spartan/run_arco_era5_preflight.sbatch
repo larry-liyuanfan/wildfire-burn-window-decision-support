@@ -9,14 +9,14 @@
 #SBATCH --output=/data/gpfs/projects/punim2936/portfolio_20260818/flare-artifacts/logs/%x-%j.out
 set -euo pipefail
 
-SOURCE_REPO="${REPO_DIR:-/data/gpfs/projects/punim2936/portfolio_20260818/flare-tools}"
-FLARE_GIT_COMMIT="${FLARE_GIT_COMMIT:-$(git -C "${SOURCE_REPO}" rev-parse HEAD)}"
-git -C "${SOURCE_REPO}" cat-file -e "${FLARE_GIT_COMMIT}^{commit}"
+: "${FLARE_GIT_COMMIT:?set the exact pushed commit to execute}"
+FLARE_REMOTE_URL="${FLARE_REMOTE_URL:-https://github.com/larry-liyuanfan/wildfire-burn-window-decision-support.git}"
 CODE_ROOT="${SLURM_TMPDIR:-/tmp}/flare-code-${SLURM_JOB_ID:?}"
-# SOURCE_REPO can itself be a linked worktree.  A shared clone would write an
-# alternates path through its .git indirection and can then fail to read trees.
-git clone --no-local --no-checkout "${SOURCE_REPO}" "${CODE_ROOT}"
+# Fetch from the public remote so a damaged/stale project-storage object store
+# cannot make the compute-node worktree unreadable.
+git clone --filter=blob:none --no-checkout "${FLARE_REMOTE_URL}" "${CODE_ROOT}"
 git -C "${CODE_ROOT}" checkout --detach "${FLARE_GIT_COMMIT}"
+[[ "$(git -C "${CODE_ROOT}" rev-parse HEAD)" == "${FLARE_GIT_COMMIT}" ]]
 cd "${CODE_ROOT}"
 OUTPUT_DIR="${OUTPUT_DIR:-/data/gpfs/projects/punim2936/portfolio_20260818/flare-artifacts/arco-era5-preflight-${FLARE_GIT_COMMIT:0:7}}"
 VENV="${SLURM_TMPDIR:-/tmp}/flare-arco-venv-${SLURM_JOB_ID:?}"
