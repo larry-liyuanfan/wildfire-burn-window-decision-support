@@ -17,6 +17,7 @@ from .io import (
     inspect_dataset,
     normalise_dataset,
     open_climate_dataset,
+    open_vicclim6_period,
     parse_chunks,
 )
 from .manifest import make_manifest, write_json, write_run_artifacts
@@ -52,7 +53,21 @@ def command_analyse(args: argparse.Namespace) -> int:
     started = time.perf_counter()
     prescriptions = load_prescriptions(args.prescriptions)
     prescription = _select(prescriptions, args.burn_class)
-    dataset = open_climate_dataset(args.input, backend=args.backend, chunks=parse_chunks(args.chunks))
+    if args.backend == "vicclim6":
+        if not args.start or not args.end:
+            raise ValueError("vicclim6 backend requires --start and --end")
+        dataset = open_vicclim6_period(
+            args.input,
+            start=args.start,
+            end=args.end,
+            chunks=parse_chunks(args.chunks),
+        )
+    else:
+        dataset = open_climate_dataset(
+            args.input,
+            backend=args.backend,
+            chunks=parse_chunks(args.chunks),
+        )
     dataset, unit_warnings = normalise_dataset(dataset)
     if args.start or args.end:
         dataset = dataset.sel(time=slice(args.start, args.end))
@@ -65,10 +80,41 @@ def command_analyse(args: argparse.Namespace) -> int:
         missing_policy=MissingPolicy(args.missing_policy),
         include_unmapped=args.include_unmapped,
     )
+    excluded_unmapped = sum(
+        condition.operational_status == "unmapped" and not args.include_unmapped
+        for condition in prescription.conditions
+    )
+    prescription_complete = excluded_unmapped == 0 and not prescription.unresolved
+    scope_warning = (
+        []
+        if prescription_complete
+        else [
+            (
+                "partial prescription: unmapped conditions and unresolved source values are "
+                "not evaluated; pass counts are not operational burn windows or safety evidence"
+            )
+        ]
+    )
     metrics: dict[str, Any] = {
-        "evidence_status": f"verified-{args.data_kind}-by-this-run",
+        "evidence_status": (
+            f"verified-{args.data_kind}-complete-prescription-by-this-run"
+            if prescription_complete
+            else f"verified-{args.data_kind}-partial-prescription-by-this-run"
+        ),
         "data_kind": args.data_kind,
         "burn_class": args.burn_class,
+        "prescription_scope": {
+            "complete": prescription_complete,
+            "compiled_condition_count": len(prescription.conditions),
+            "evaluated_condition_count": len(masks),
+            "excluded_unmapped_condition_count": excluded_unmapped,
+            "unresolved_value_count": len(prescription.unresolved),
+        },
+        "interpretation": (
+            "complete compiled prescription evaluation"
+            if prescription_complete
+            else "provisional mapped-condition screen; not an operational burn window"
+        ),
         "suitable_space_time_cells": int(suitable.sum().compute()),
         "evaluated_space_time_cells": int(suitable.count().compute()),
         "suitable_rate": float(suitable.mean().compute()),
@@ -76,7 +122,7 @@ def command_analyse(args: argparse.Namespace) -> int:
             key: float((~mask).mean().compute()) for key, mask in masks.items()
         },
         "minimum_duration_endpoints": {},
-        "warnings": [*unit_warnings, *rule_warnings],
+        "warnings": [*unit_warnings, *rule_warnings, *scope_warning],
     }
     for duration in args.durations:
         endpoints = suitable.rolling(time=duration, min_periods=duration).sum() == duration
@@ -210,7 +256,11 @@ def build_parser() -> argparse.ArgumentParser:
     analyse.add_argument("--input", type=str, required=True)
     analyse.add_argument("--burn-class", required=True)
     analyse.add_argument("--output-dir", type=Path, required=True)
-    analyse.add_argument("--backend", choices=["netcdf", "zarr", "kerchunk"], default="netcdf")
+    analyse.add_argument(
+        "--backend",
+        choices=["netcdf", "zarr", "kerchunk", "vicclim6"],
+        default="netcdf",
+    )
     analyse.add_argument("--chunks")
     analyse.add_argument("--durations", nargs="+", type=int, default=[2, 4, 6])
     analyse.add_argument("--missing-policy", choices=[item.value for item in MissingPolicy], default="error")
