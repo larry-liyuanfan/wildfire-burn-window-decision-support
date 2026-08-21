@@ -4,7 +4,7 @@
 #SBATCH --partition=sapphire
 #SBATCH --array=1973-2023%4
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=6G
+#SBATCH --mem=8G
 #SBATCH --time=00:20:00
 #SBATCH --output=logs/%x-%A_%a.out
 #SBATCH --error=logs/%x-%A_%a.err
