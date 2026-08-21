@@ -18,7 +18,7 @@ motivates this repository's typed rule AST, explicit unresolved values and
   <https://doi.org/10.1016/j.agrformet.2019.03.005>.
 - Code: `src/burnwindows/rules.py`, `src/burnwindows/tools.py`.
 - Evidence: 43 workbook rows compile into typed or explicitly unresolved
-  fields; boundary and threshold-scenario tests are part of the 59-test suite.
+  fields; boundary and threshold-scenario tests are part of the 61-test suite.
 - Hiring signal: converts policy spreadsheets into versionable, testable domain
   logic and makes sensitivity auditable.
 - Boundary: workbook thresholds remain private, and no public-data weather pass

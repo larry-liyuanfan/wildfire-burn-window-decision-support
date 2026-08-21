@@ -1,0 +1,59 @@
+{
+  "artifact_type": "vicclim6_spatial_scope_performance_comparison",
+  "evidence_status": "verified-derived-from-public-real-run-records",
+  "inputs": {
+    "statewide_sha256": "3c7c7a99030e1d56ee848a02baaee56db6f0ceffa67e462a5429aac930d11af2",
+    "regional_sha256": "da6aecb0b9cd169ed52369028dc8930fbad24a60164fe45c17e75d6c1611f22a"
+  },
+  "comparison_contract": {
+    "year_start": 1973,
+    "year_end": 2023,
+    "year_count": 51,
+    "annual_tasks_each": 51,
+    "burn_class": "Murray Goldfields - Box ironbark forest",
+    "evaluated_mapped_conditions": 6,
+    "unmapped_conditions": [
+      "FMCSurfaceInside",
+      "WindSpeedGround"
+    ]
+  },
+  "observed": {
+    "statewide": {
+      "evaluated_space_time_cells": 16142930688,
+      "array_elapsed_total_seconds": 19005.0,
+      "array_max_rss_kib": 7423104,
+      "throughput_cells_per_second": 849404.4034727704,
+      "git_sha": "2949d5ebd836a207114e096184cffc141d610d2b"
+    },
+    "regional": {
+      "evaluated_space_time_cells": 992840304,
+      "array_elapsed_total_seconds": 3091.0,
+      "array_max_rss_kib": 883708,
+      "throughput_cells_per_second": 321203.59236493043,
+      "git_sha": "cbc044cfa35f37c1f352583d9bb8ac776e7aba13"
+    }
+  },
+  "derived": {
+    "regional_cell_fraction": 0.061503101462117855,
+    "regional_elapsed_fraction": 0.16264141015522232,
+    "regional_max_rss_fraction": 0.11904831186522512,
+    "observed_elapsed_reduction": 0.8373585898447777,
+    "observed_max_rss_reduction": 0.8809516881347749,
+    "regional_vs_statewide_throughput_ratio": 0.3781515507238919,
+    "elapsed_fraction_divided_by_cell_fraction": 2.6444424149146277
+  },
+  "quality_gate": {
+    "same_year_range": true,
+    "same_annual_task_count": true,
+    "same_partial_prescription_contract": true,
+    "both_real_data_quality_gates_passed": true,
+    "different_spatial_contracts_disclosed": true,
+    "different_git_shas_disclosed": true
+  },
+  "boundaries": [
+    "This is an observed comparison between completed statewide and official-district chains, not a 1-to-4 worker scaling benchmark.",
+    "The chains use different spatial contracts and Git SHAs; the comparison cannot isolate a causal code-level speedup.",
+    "Lower regional throughput per cell is consistent with fixed file-opening, alignment and aggregation overhead, but this record does not estimate an Amdahl serial fraction.",
+    "No result is a burn approval, complete prescription, safe-hour, treated-area, fire-risk or economic-value claim."
+  ]
+}
