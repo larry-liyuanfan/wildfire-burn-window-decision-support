@@ -19,6 +19,22 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _load_run(path: Path, workers: int) -> tuple[dict, dict]:
+    manifest_path = path.with_name("run_manifest.json")
+    if not manifest_path.is_file():
+        raise FileNotFoundError(f"missing sibling run manifest for workers={workers}")
+    metrics = json.loads(path.read_text(encoding="utf-8"))
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    metrics["git_sha"] = manifest.get("git_sha")
+    return metrics, {
+        "dask_thread_workers": workers,
+        "metrics_file": path.name,
+        "metrics_sha256": _sha256(path),
+        "manifest_file": manifest_path.name,
+        "manifest_sha256": _sha256(manifest_path),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -38,14 +54,8 @@ def main() -> int:
             parser.error(f"invalid --run {raw!r}; expected WORKERS=METRICS_JSON")
         path = Path(path_text)
         workers = int(worker_text)
-        records[workers] = json.loads(path.read_text(encoding="utf-8"))
-        inputs.append(
-            {
-                "dask_thread_workers": workers,
-                "metrics_file": path.name,
-                "sha256": _sha256(path),
-            }
-        )
+        records[workers], input_record = _load_run(path, workers)
+        inputs.append(input_record)
 
     result = compare_real_worker_scaling(records)
     result["comparator_git_sha"] = git_sha()

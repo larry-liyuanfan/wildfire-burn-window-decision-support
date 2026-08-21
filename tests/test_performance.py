@@ -8,6 +8,7 @@ from burnwindows.performance import (
     compare_real_worker_scaling,
     compare_spatial_scope_performance,
 )
+from scripts.compare_real_worker_scaling import _load_run
 
 
 def _record(*, cells: int, seconds: int, rss: int, regional: bool) -> dict:
@@ -116,3 +117,25 @@ def test_real_worker_scaling_requires_equal_semantics() -> None:
     }
     with pytest.raises(ValueError, match="known run git SHA"):
         compare_real_worker_scaling(unknown_sha)
+
+
+def test_scaling_record_binds_metrics_to_sibling_manifest(tmp_path) -> None:
+    metrics_path = tmp_path / "metrics.json"
+    metrics_path.write_text('{"data_kind":"real"}', encoding="utf-8")
+    (tmp_path / "run_manifest.json").write_text(
+        '{"git_sha":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}',
+        encoding="utf-8",
+    )
+
+    metrics, provenance = _load_run(metrics_path, 2)
+
+    assert metrics["git_sha"] == "b" * 40
+    assert provenance["metrics_file"] == "metrics.json"
+    assert provenance["manifest_file"] == "run_manifest.json"
+    assert set(provenance) == {
+        "dask_thread_workers",
+        "metrics_file",
+        "metrics_sha256",
+        "manifest_file",
+        "manifest_sha256",
+    }
