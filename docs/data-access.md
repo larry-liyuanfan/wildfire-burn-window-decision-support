@@ -15,9 +15,14 @@ Sample file:   .../WRFV6_TSFC1972-2024/2020/01/IDV71000_VIC_T_SFC.nc
 The current automated SSH identity is `yzhang3504`, whose observed group list
 contains `punim2936` but not `punim1257`. Read-only `stat`, `find` and sample-file
 checks against the Group44 path all returned `Permission denied`. The private
-GitHub team repository is reachable with write permission, but cloning code
-cannot grant GPFS data access. No raw file was copied, no alternate identity was
-guessed and no credential was read.
+GitHub team repository is reachable with write permission. Because Spartan has
+no GitHub SSH key, it was transferred without credentials as a Git bundle and
+cloned at
+`/data/gpfs/projects/punim2936/portfolio_20260818/Group44-2026-capstone-project`
+at commit `8724a295`; its `origin` points back to the private GitHub repository.
+This makes the code available on Spartan but cannot grant GPFS data access. No
+raw file was copied, no alternate identity was guessed and no credential was
+read; the temporary transfer bundle was removed after the clone was verified.
 
 The minimum external fix is therefore one of:
 
@@ -51,10 +56,15 @@ The team guide's `~/flare_env` workflow is supported by
 in `spartan/run_real_preflight.sbatch`. The venv job imports the pinned runtime,
 checks the canonical NetCDF before starting, loads this repository through
 `PYTHONPATH`, and writes only a three-file metadata inventory. On the current
-`yzhang3504` SSH identity, both `/home/yzhang3504/flare_env` and
-`/home/yzhang3504/Group44-2026-capstone-project` were absent during the latest
-read-only check. This does not contradict the user's setup guide: it shows that
-the guide applies to a different or not-yet-configured Spartan identity.
+`yzhang3504` SSH identity, `/home/yzhang3504/flare_env` is absent and the home
+quota is exhausted, so creating the guide's home-scoped venv failed before any
+package install. The code checkout therefore uses approved project storage.
+Creating another project-scoped venv was intentionally avoided because the
+shared project filesystem had only about 1.4 GiB free; the already verified
+168,099,840-byte `flare-tools.sif` remains the reproducible runtime. This does
+not contradict the setup guide: the venv route remains supported when the
+authorised identity has home quota, while the container route avoids another
+large duplicate environment.
 
 The original environment list is sufficient to open a NetCDF notebook, but the
 portfolio pipeline also imports Dask and Pydantic. On an interactive compute
