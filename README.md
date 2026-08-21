@@ -129,6 +129,15 @@ former verifies feasibility; only the latter can support an optimality claim.
 
 ## Spartan execution
 
+The confirmed team source is
+`/data/gpfs/projects/punim1257/Group44/data/raw/VicClim6`; the canonical access
+probe is
+`WRFV6_TSFC1972-2024/2020/01/IDV71000_VIC_T_SFC.nc`. The current automation
+identity `yzhang3504` is not a `punim1257` member, so this path is located but
+not yet readable. `spartan/run_real_preflight.sbatch` now requests the Group44
+account and refuses to proceed unless that sample is readable. This prevents a
+job from silently falling back to ERA5 or a different climate product.
+
 `spartan/` contains an Apptainer definition and restartable Slurm jobs:
 
 - `build_image.sbatch` builds the versioned runtime;

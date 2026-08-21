@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=burn-preflight
-#SBATCH --account=punim2936
+#SBATCH --account=punim1257
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=8G
 #SBATCH --time=00:15:00
@@ -16,6 +16,8 @@ module load GCCcore/13.3.0 Apptainer/1.4.5
 
 [[ -d "${VICCLIM_ROOT}" ]] || { echo "VicClim6 path is not a directory: ${VICCLIM_ROOT}" >&2; exit 2; }
 [[ -r "${VICCLIM_ROOT}" ]] || { echo "VicClim6 path is not readable: ${VICCLIM_ROOT}" >&2; exit 2; }
+SAMPLE_FILE="${VICCLIM_ROOT}/WRFV6_TSFC1972-2024/2020/01/IDV71000_VIC_T_SFC.nc"
+[[ -r "${SAMPLE_FILE}" ]] || { echo "Canonical Group44 sample is not readable: ${SAMPLE_FILE}" >&2; exit 2; }
 mkdir -p "${PROJECT_ROOT}/logs" "${OUTPUT_ROOT}"
 
 cd "${PROJECT_ROOT}"
