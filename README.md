@@ -193,6 +193,9 @@ publishes hashes and boundaries without copying the workbook or climate data.
   evidence-producing 2026 array;
 - `run_scaling_benchmark.sbatch` compares 1/2/4 workers on a clearly labelled
   deterministic synthetic benchmark.
+- `run_vicclim6_real_scaling.sbatch` runs a checkpointed 1/2/4-thread comparison
+  on one pinned real region/year/rule workload; the comparator rejects semantic
+  drift, mixed or unknown run SHAs and restricted source paths.
 - `run_arco_era5_preflight.sbatch` reads a bounded Victoria slice from the
   anonymous public ARCO-ERA5 Zarr store and verifies the real-data I/O and
   meteorological-derivation path without copying the source collection.
@@ -287,6 +290,26 @@ See the [compact public record](artifacts/public/vicclim6_murray_goldfields_51y_
 the workbook, NetCDF payloads and annual outputs remain on authorised Spartan
 storage.
 
+### Verified real 1/2/4-thread scaling boundary
+
+Spartan jobs `29492033` and `29492055` repeated the same 2020 Murray Goldfields
+workload at exact run commit `4dcabfd`: **19,509,264** real region-cell-hours,
+the same six mapped conditions, seven threshold scenarios and identical
+baseline/scenario outputs in all three runs. Dask wall time for 1/2/4 thread
+workers was **169.61 / 140.40 / 142.39 seconds**. Two threads achieved a
+**1.208x** speedup and **60.40%** parallel efficiency; four threads achieved
+only **1.191x** and **29.78%**.
+
+The pre-registered 4-worker efficiency target was therefore **not met**. Four
+threads were slightly slower than two, consistent with this file-backed graph
+becoming limited by file opening, alignment, storage and scheduler overhead
+rather than scalable rule arithmetic. This is a useful capacity boundary, not
+a speedup claim. Slurm elapsed/MaxRSS for 1/2/4 were **191/147/148 seconds** and
+**2,082,252 / 1,995,744 / 2,020,444 KiB**. The
+[compact comparison record](artifacts/public/vicclim6_murray_goldfields_worker_scaling_20260822.json)
+binds all six metrics/manifest hashes, exact run/comparator SHAs and the public
+region summary without restricted paths.
+
 Spartan job `29461166` completed the public-data preflight from exact commit
 `9f2401f8`: 24 hourly steps over a 23 x 41 Victoria grid were read from the
 official ARCO-ERA5 store, temperature/RH/wind/precipitation fields were derived,
@@ -354,7 +377,7 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 61 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
+- 69 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
   and full-year 2024 weather-only screen jobs on Spartan with exact commits and
   hashes;
 - a remote controlled exit-75/checkpoint/resume gate whose uninterrupted and
@@ -378,7 +401,7 @@ Not verified or not eligible for promotion:
 - an operational burn-window rate, safety/treated-area outcome, financial
   value, or a complete prescription that includes fuel moisture and ground
   wind;
-- a 1→4 worker scaling result or real-candidate optimisation value.
+- a real-candidate optimisation value.
 
 These values are historical project records only and must not be presented as
 reproduced results until an artifact contains the exact data range, rule version,

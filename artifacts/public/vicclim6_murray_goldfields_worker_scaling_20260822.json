@@ -1,0 +1,109 @@
+{
+  "comparison_contract": {
+    "scheduler": "threads",
+    "workers": [
+      1,
+      2,
+      4
+    ],
+    "data_kind": "real",
+    "same_workload": true,
+    "semantic_results_equal": true,
+    "evaluated_space_time_cells": 19509264,
+    "burn_class": "Murray Goldfields - Box ironbark forest",
+    "run_git_sha": "4dcabfd26acf46ffb12367c7f02225e8191373fd",
+    "region_scope": {
+      "geometry_type": "Polygon",
+      "selected_grid_cells": 2221,
+      "total_grid_cells": 36112,
+      "coverage_fraction_of_source_grid": 0.061503101462117855,
+      "feature_properties": {
+        "DISTRICT_NAME": "MURRAY GOLDFIELDS",
+        "REGION_NAME": "LODDON MALLEE"
+      },
+      "coordinate_reference_system": "EPSG:4326 grid-cell centres",
+      "boundary_inclusion_rule": "even-odd point-in-polygon at cell centre",
+      "label": "Murray Goldfields FFMVic district"
+    }
+  },
+  "observed": [
+    {
+      "dask_thread_workers": 1,
+      "wall_seconds": 169.60738087631762,
+      "speedup_vs_one": 1.0,
+      "parallel_efficiency": 1.0
+    },
+    {
+      "dask_thread_workers": 2,
+      "wall_seconds": 140.39980664290488,
+      "speedup_vs_one": 1.208031442006895,
+      "parallel_efficiency": 0.6040157210034475
+    },
+    {
+      "dask_thread_workers": 4,
+      "wall_seconds": 142.39227597322315,
+      "speedup_vs_one": 1.1911276768145223,
+      "parallel_efficiency": 0.29778191920363056
+    }
+  ],
+  "derived": {
+    "one_to_four_speedup": 1.1911276768145223,
+    "one_to_four_parallel_efficiency": 0.29778191920363056
+  },
+  "quality_gate": {
+    "exact_worker_set": true,
+    "all_real_data": true,
+    "same_semantic_results": true,
+    "single_exact_git_sha": true,
+    "positive_wall_times": true
+  },
+  "boundaries": [
+    "This measures one process using Dask's threaded scheduler with 1, 2 and 4 thread workers; it is not multi-node distributed scaling.",
+    "The result applies only to the pinned data, rule, region, time range and storage state of these runs.",
+    "No timing result is burn approval, safety, treated-area, risk-reduction or economic evidence."
+  ],
+  "comparator_git_sha": "0d30b65c9102a9e3ce6ba84733cb3ba032db481b",
+  "inputs": [
+    {
+      "dask_thread_workers": 1,
+      "metrics_file": "metrics.json",
+      "metrics_sha256": "f818985b9c8e3290c0cf3f7a840d0fcdb04b27fe6f7c554dd78fe7f93bc5aae2",
+      "manifest_file": "run_manifest.json",
+      "manifest_sha256": "6fc61d4ad8a68bd449c216abb5bfb5d7a12fa8c0f3cec9c31a56685115c37232"
+    },
+    {
+      "dask_thread_workers": 2,
+      "metrics_file": "metrics.json",
+      "metrics_sha256": "2c8ad4d9dcc67a96d237038de14538f52b6e16e8ac607e1d66ce2aab9c6075f5",
+      "manifest_file": "run_manifest.json",
+      "manifest_sha256": "71c138ececd27f493d7d16a8c9da6bf5c2f3d0e7ba702cd4fd42ea572b555c43"
+    },
+    {
+      "dask_thread_workers": 4,
+      "metrics_file": "metrics.json",
+      "metrics_sha256": "8df569589a426c60337a4974f6601cc7a7513863b5991b9fb5fce8f9fe3f5e46",
+      "manifest_file": "run_manifest.json",
+      "manifest_sha256": "55aa130e4cf6bc79a4b2fe0fc26888e4a2d37990fca434eb6d5efff7903c35bc"
+    }
+  ],
+  "slurm_accounting": [
+    {
+      "dask_thread_workers": 1,
+      "job_id": "29492033_0",
+      "elapsed_seconds": 191,
+      "max_rss_kib": 2082252
+    },
+    {
+      "dask_thread_workers": 2,
+      "job_id": "29492055_1",
+      "elapsed_seconds": 147,
+      "max_rss_kib": 1995744
+    },
+    {
+      "dask_thread_workers": 4,
+      "job_id": "29492055_2",
+      "elapsed_seconds": 148,
+      "max_rss_kib": 2020444
+    }
+  ]
+}
