@@ -37,7 +37,9 @@ average.
 - Code: `src/burnwindows/trend.py`, `src/burnwindows/engine.py`,
   `src/burnwindows/tools.py`.
 - Evidence: deterministic fixtures cover trend grouping, continuous-window
-  extraction and limiting factors. The official-district 51-year array
+  extraction and limiting factors. The statewide 51-year array
+  `29484660`/`29484661` completed 51/51 years over 16,142,930,688 space-time
+  cells, while the official-district 51-year array
   `29486334` and aggregate `29486336` completed 51/51 years and produced a
   Theil–Sen pass-rate change of +0.331 percentage points/decade with a seeded
   five-year moving-block-bootstrap 95% interval of +0.012 to +0.613.

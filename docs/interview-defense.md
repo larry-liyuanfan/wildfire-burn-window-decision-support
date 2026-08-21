@@ -23,7 +23,9 @@ safety evidence. The controlled exit-75 plus resume job `29467567` stopped at
 exactly over 316,848 cell-hours (semantic SHA `6e13387b...205a`). This verifies
 one bounded restart path, not recovery from every infrastructure failure. The
 real 2020 VicClim6 pilot evaluated 317,207,808 statewide space-time cells. The
-data directory had no regional mask, so I fetched and hashed the official
+completed statewide 1973–2023 chain then evaluated 16,142,930,688 cells with
+51/51 exact-SHA annual checkpoints and a strict aggregation gate. The data
+directory had no regional mask, so I fetched and hashed the official
 Murray Goldfields fire-management-district polygon and made spatial scope part
 of the aggregation contract. Exact-SHA jobs `29486334`/`29486336` then completed
 51/51 years over 992,840,304 regional cells. Six mapped conditions retained
@@ -44,7 +46,7 @@ non-causal; historical 6.49% and 9.04% values remain unverified.
 | What happens when a variable is missing? | explicit `MissingPolicy` and warning envelope |
 | How is a continuous operational window defined? | `extract_windows`; irregular gaps split runs |
 | How do you scale beyond memory? | `io.py`, Kerchunk builder and Spartan Slurm array |
-| What real-data path was actually executed? | `io.py`, `spatial.py`, `evaluate_vicclim6_year.py`, the compact VicClim6 inventory/2020 and 51-year district records plus Slurm accounting; `public_reanalysis.py` remains an independently reproducible public preflight |
+| What real-data path was actually executed? | `io.py`, `spatial.py`, `evaluate_vicclim6_year.py`, the compact VicClim6 inventory/2020, 51-year statewide and 51-year district records plus Slurm accounting; `public_reanalysis.py` remains an independently reproducible public preflight |
 | How is regional scope prevented from being mixed across years? | `spatial.py`, region hash/properties in every manifest, and `aggregate_vicclim6_years` single-spatial-contract gate |
 | How do you prove restart does not alter results? | local property tests plus remote job `29467567`: controlled exit 75 at 168/336 hours, resume from checkpoint and exact semantic hash match against an uninterrupted 316,848-cell-hour run |
 | How do you know optimisation output is valid? | MILP constraints plus independent `validate_selection` |

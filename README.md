@@ -213,6 +213,33 @@ Set the required environment variables shown at the top of each script. Raw
 climate data, source prescriptions, Kerchunk paths and analysis outputs stay on
 restricted project storage.
 
+### Verified 51-year statewide grid screen
+
+Spartan array `29484660` and dependent aggregate `29484661` completed all
+**51 file-backed years (1973–2023)** at exact commit `2949d5e`. The aggregate
+quality gate verified one Git SHA, one prescription contract, real data, all
+expected years and no raw paths. Across the complete 148 x 244 grid it evaluated
+**16,142,930,688 space-time cells** under six mapped conditions for the
+`Murray Goldfields - Box ironbark forest` workbook class; surface fuel moisture
+and ground wind remain explicitly unmapped. The partial screen retained
+**546,834,850 cells (3.3875%)**; 2/4/6-hour continuous-window endpoints were
+**312,292,203 / 100,055,299 / 32,758,474**.
+
+The 51 one-CPU annual tasks completed in 276–625 seconds, with 19,005 seconds of
+summed task runtime and 7,423,104 KiB maximum observed RSS; aggregation took
+eight seconds. A Theil–Sen descriptive trend with a seeded five-year
+moving-block residual bootstrap estimated **+0.208 percentage points per
+decade** (95% interval **+0.015 to +0.390**). This is a descriptive association
+for one partial rule and statewide grid contract, not causal attribution. It is
+also not a Murray Goldfields result: the workbook class was evaluated across
+every grid cell without a burn-unit, tenure, access or treatable-area mask.
+
+The [compact public record](artifacts/public/vicclim6_statewide_51y_29484660.json)
+contains the exact code/input/summary hashes and Slurm accounting without the
+restricted workbook, NetCDF payloads, raw paths or annual artifacts. Passes are
+not burn approvals, complete prescriptions, safe hours, treated area,
+fire-risk reduction or economic value.
+
 ### Verified 51-year Murray Goldfields district screen
 
 The official Victorian Government *Land and Fire District Major* ArcGIS layer
@@ -324,6 +351,9 @@ Verified locally in this repository:
   real 2020 mapped-condition screen over 317,207,808 space-time cells. The
   screen evaluated six of eight compiled conditions and excluded two unmapped
   fuel/ground-wind fields rather than guessing them.
+- a completed statewide 1973–2023 VicClim6 array over 16,142,930,688
+  space-time cells, with 51/51 exact-SHA annual checkpoints, measured resource
+  records and a non-causal block-bootstrap descriptive trend;
 - an official district-scoped 1973–2023 VicClim6 array over 992,840,304
   regional space-time cells, with one exact Git SHA/spatial/rule contract,
   51/51 annual checkpoints, measured resource records and a non-causal

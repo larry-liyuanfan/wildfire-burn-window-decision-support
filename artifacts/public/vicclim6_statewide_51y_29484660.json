@@ -1,0 +1,87 @@
+{
+  "artifact_type": "vicclim6_statewide_partial_prescription_screen",
+  "evidence_status": "verified-real-partial-prescription-by-this-run",
+  "jobs": {
+    "year_array": "29484660",
+    "aggregate": "29484661",
+    "aggregate_exit_code": "0:0",
+    "aggregate_elapsed_seconds": 8,
+    "array_task_count": 51,
+    "array_elapsed_total_seconds": 19005,
+    "array_task_elapsed_min_seconds": 276,
+    "array_task_elapsed_max_seconds": 625,
+    "array_max_rss_kib": 7423104
+  },
+  "code_and_inputs": {
+    "git_sha": "2949d5ebd836a207114e096184cffc141d610d2b",
+    "workbook_sha256": "e063ffda8c003b4fb5e9c9506072cbc6edf78364b358acfb84c13f91aa22feb1a",
+    "aggregate_summary_sha256": "ae07dabca8e12c12b029e994c7fcedb2a9a6f22d0a8148854115c28a0b1055a3",
+    "vicclim6_inventory": {
+      "families": 6,
+      "monthly_files": 3672,
+      "bytes": 263698792008,
+      "actual_year_start": 1973,
+      "actual_year_end": 2023
+    }
+  },
+  "spatial_scope": {
+    "label": "all VicClim6 grid cells",
+    "grid_shape": [148, 244],
+    "grid_cells": 36112,
+    "interpretation": "Statewide grid exposure screen; no burn-unit, land-tenure, access or treatable-area mask was applied."
+  },
+  "prescription_contract": {
+    "burn_class": "Murray Goldfields - Box ironbark forest",
+    "workbook_classes": 43,
+    "compiled_conditions_for_class": 8,
+    "evaluated_mapped_conditions": 6,
+    "unmapped_conditions": ["FMCSurfaceInside", "WindSpeedGround"],
+    "interpretation": "Provisional mapped-condition weather exposure screen, not an operational burn window."
+  },
+  "result": {
+    "year_start": 1973,
+    "year_end": 2023,
+    "year_count": 51,
+    "evaluated_space_time_cells": 16142930688,
+    "provisional_pass_cells": 546834850,
+    "provisional_pass_rate": 0.033874570892291254,
+    "minimum_duration_endpoints": {
+      "2_hours": 312292203,
+      "4_hours": 100055299,
+      "6_hours": 32758474
+    },
+    "condition_failure_counts": {
+      "FDIIgnitionDay1": 14811719986,
+      "KBDI_lower_bound": 0,
+      "KBDI_upper_bound": 0,
+      "RelativeHumidity": 1027842567,
+      "Temperature": 458944266,
+      "WindSpeed": 2803764973
+    },
+    "descriptive_theil_sen": {
+      "pass_rate_percentage_point_change_per_decade": 0.2076372763712165,
+      "moving_block_bootstrap_95_interval_percentage_points_per_decade": [
+        0.014918363754484946,
+        0.38995828722718055
+      ],
+      "block_years": 5,
+      "bootstrap_samples": 2000,
+      "seed": 20260821,
+      "causal_interpretation": false
+    }
+  },
+  "quality_gate": {
+    "complete_expected_year_set": true,
+    "single_exact_git_sha": true,
+    "single_prescription_contract": true,
+    "all_real_data": true,
+    "raw_paths_omitted": true
+  },
+  "boundaries": [
+    "The pass count evaluates six mapped conditions while two fuel-moisture/ground-wind conditions remain explicitly unmapped.",
+    "The statewide grid is an exposure screen and is not a Murray Goldfields regional estimate.",
+    "Results are not burn approval, complete prescription, safe hours, treated area, fire-risk reduction or economic value.",
+    "The trend is a descriptive association for this data/rule/spatial contract, not a causal climate attribution.",
+    "The workbook, VicClim6 payloads, full annual artifacts and raw paths remain on authorised Spartan project storage."
+  ]
+}

@@ -70,7 +70,12 @@ and 245.59 GiB. File-backed years are 1973–2023 even though directory names sa
    five-year moving-block residual bootstrap, with no causal interpretation.
 
 The authorised data area does not contain a region polygon or burn-unit mask.
-The statewide 2020 run is therefore retained only as a temporal/rule reference.
+The statewide 2020 run is retained as the initial temporal/rule reference. The
+same annual contract subsequently completed all 51 file-backed years over
+16,142,930,688 statewide space-time cells (jobs `29484660`/`29484661`). That
+chain establishes scale, restartability and a descriptive trend only; it does
+not turn the Murray Goldfields workbook class into a statewide operational
+prescription.
 For the regional chain, the system fetches the official Victorian Government
 Murray Goldfields fire-management-district feature by exact name, records its
 hash/licence/properties, selects 2,221 grid-cell centres and refuses to aggregate
