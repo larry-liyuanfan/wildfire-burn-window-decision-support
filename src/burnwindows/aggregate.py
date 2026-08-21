@@ -53,57 +53,132 @@ def aggregate_vicclim6_years(
     git_shas = {records[year][0].get("git_sha") for year in expected}
     burn_classes = {records[year][1].get("burn_class") for year in expected}
     scopes = {
-        json.dumps(records[year][1].get("prescription_scope"), sort_keys=True)
-        for year in expected
+        json.dumps(records[year][1].get("prescription_scope"), sort_keys=True) for year in expected
     }
     statuses = {records[year][1].get("evidence_status") for year in expected}
     region_scopes = {
-        json.dumps(records[year][1].get("region_scope"), sort_keys=True)
-        for year in expected
+        json.dumps(records[year][1].get("region_scope"), sort_keys=True) for year in expected
     }
     if len(git_shas) != 1 or "unknown" in git_shas:
         raise ValueError(f"annual runs do not share one known git SHA: {sorted(git_shas)}")
-    if (
-        len(burn_classes) != 1
-        or len(scopes) != 1
-        or len(statuses) != 1
-        or len(region_scopes) != 1
-    ):
+    if len(burn_classes) != 1 or len(scopes) != 1 or len(statuses) != 1 or len(region_scopes) != 1:
         raise ValueError("annual runs do not share one prescription/evidence/spatial contract")
     if any(records[year][0].get("data_kind") != "real" for year in expected):
         raise ValueError("all annual runs must use data_kind=real")
 
-    evaluated = sum(
-        int(records[year][1]["evaluated_space_time_cells"]) for year in expected
-    )
-    screened = sum(
-        int(records[year][1]["suitable_space_time_cells"]) for year in expected
-    )
+    evaluated = sum(int(records[year][1]["evaluated_space_time_cells"]) for year in expected)
+    screened = sum(int(records[year][1]["suitable_space_time_cells"]) for year in expected)
     condition_names = set(records[expected[0]][1]["condition_failure_counts"])
     if any(
-        set(records[year][1]["condition_failure_counts"]) != condition_names
-        for year in expected
+        set(records[year][1]["condition_failure_counts"]) != condition_names for year in expected
     ):
         raise ValueError("condition names changed across annual runs")
     condition_failures = {
-        name: sum(
-            int(records[year][1]["condition_failure_counts"][name]) for year in expected
-        )
+        name: sum(int(records[year][1]["condition_failure_counts"][name]) for year in expected)
         for name in sorted(condition_names)
     }
     duration_names = set(records[expected[0]][1]["minimum_duration_endpoints"])
     if any(
-        set(records[year][1]["minimum_duration_endpoints"]) != duration_names
-        for year in expected
+        set(records[year][1]["minimum_duration_endpoints"]) != duration_names for year in expected
     ):
         raise ValueError("duration contract changed across annual runs")
     duration_endpoints = {
         duration: sum(
-            int(records[year][1]["minimum_duration_endpoints"][duration])
-            for year in expected
+            int(records[year][1]["minimum_duration_endpoints"][duration]) for year in expected
         )
         for duration in sorted(duration_names, key=int)
     }
+
+    sensitivity_payloads = [records[year][1].get("threshold_sensitivity") for year in expected]
+    if any(payload is not None for payload in sensitivity_payloads) and not all(
+        payload is not None for payload in sensitivity_payloads
+    ):
+        raise ValueError("threshold sensitivity is missing from some annual runs")
+    threshold_sensitivity: dict[str, Any] | None = None
+    if all(payload is not None for payload in sensitivity_payloads):
+        payloads = [payload for payload in sensitivity_payloads if payload is not None]
+        contracts = {
+            json.dumps(
+                {
+                    "semantics": payload.get("semantics"),
+                    "scenarios": [
+                        {
+                            "scenario": item.get("scenario"),
+                            "overrides": item.get("overrides"),
+                            "durations": sorted(
+                                item.get("minimum_duration_endpoints", {}), key=int
+                            ),
+                        }
+                        for item in payload.get("scenarios", [])
+                    ],
+                },
+                sort_keys=True,
+            )
+            for payload in payloads
+        }
+        if len(contracts) != 1:
+            raise ValueError("annual runs do not share one threshold-sensitivity contract")
+        for year, payload in zip(expected, payloads, strict=True):
+            metrics = records[year][1]
+            baseline = payload.get("baseline", {})
+            if int(baseline.get("provisional_pass_cells", -1)) != int(
+                metrics["suitable_space_time_cells"]
+            ):
+                raise ValueError("threshold baseline does not match annual suitable cells")
+            if baseline.get("minimum_duration_endpoints") != metrics.get(
+                "minimum_duration_endpoints"
+            ):
+                raise ValueError("threshold baseline does not match annual duration endpoints")
+
+        first_scenarios = payloads[0].get("scenarios", [])
+        aggregate_scenarios: list[dict[str, Any]] = []
+        baseline_rate = screened / evaluated if evaluated else 0.0
+        for position, first in enumerate(first_scenarios):
+            scenario_cells = sum(
+                int(payload["scenarios"][position]["provisional_pass_cells"])
+                for payload in payloads
+            )
+            scenario_rate = scenario_cells / evaluated if evaluated else 0.0
+            aggregate_scenarios.append(
+                {
+                    "scenario": first["scenario"],
+                    "overrides": first["overrides"],
+                    "provisional_pass_cells": scenario_cells,
+                    "provisional_pass_rate": scenario_rate,
+                    "absolute_rate_change": scenario_rate - baseline_rate,
+                    "relative_rate_change": (
+                        (scenario_rate - baseline_rate) / baseline_rate if baseline_rate else None
+                    ),
+                    "minimum_duration_endpoints": {
+                        duration: sum(
+                            int(
+                                payload["scenarios"][position]["minimum_duration_endpoints"][
+                                    duration
+                                ]
+                            )
+                            for payload in payloads
+                        )
+                        for duration in sorted(duration_names, key=int)
+                    },
+                    "warnings": sorted(
+                        {
+                            warning
+                            for payload in payloads
+                            for warning in payload["scenarios"][position].get("warnings", [])
+                        }
+                    ),
+                }
+            )
+        threshold_sensitivity = {
+            "semantics": payloads[0]["semantics"],
+            "baseline": {
+                "provisional_pass_cells": screened,
+                "provisional_pass_rate": baseline_rate,
+                "minimum_duration_endpoints": duration_endpoints,
+            },
+            "scenarios": aggregate_scenarios,
+            "constraints": payloads[0].get("constraints", []),
+        }
 
     annual = []
     for year in expected:
@@ -129,7 +204,7 @@ def aggregate_vicclim6_years(
         seed=20260821,
     )
 
-    return {
+    result = {
         "evidence_status": next(iter(statuses)),
         "interpretation": "provisional mapped-condition screen; not operational burn windows",
         "git_sha": next(iter(git_shas)),
@@ -163,7 +238,11 @@ def aggregate_vicclim6_years(
             "single_exact_git_sha": True,
             "single_prescription_contract": True,
             "single_spatial_contract": True,
+            "single_threshold_sensitivity_contract": True,
             "all_real_data": True,
             "raw_paths_omitted": True,
         },
     }
+    if threshold_sensitivity is not None:
+        result["threshold_sensitivity"] = threshold_sensitivity
+    return result

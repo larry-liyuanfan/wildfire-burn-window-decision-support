@@ -4,7 +4,10 @@ from copy import deepcopy
 
 import pytest
 
-from burnwindows.performance import compare_spatial_scope_performance
+from burnwindows.performance import (
+    compare_real_worker_scaling,
+    compare_spatial_scope_performance,
+)
 
 
 def _record(*, cells: int, seconds: int, rss: int, regional: bool) -> dict:
@@ -59,3 +62,43 @@ def test_spatial_comparison_rejects_mixed_contract_or_failed_gate() -> None:
     failed["quality_gate"]["all_real_data"] = False
     with pytest.raises(ValueError, match="quality gate"):
         compare_spatial_scope_performance(statewide, failed)
+
+
+def _scaling_record(*, workers: int, seconds: float) -> dict:
+    return {
+        "evidence_status": "verified-real-partial-prescription-by-this-run",
+        "data_kind": "real",
+        "burn_class": "fixture",
+        "prescription_scope": {"complete": False},
+        "region_scope": {"label": "fixture district"},
+        "time_coverage": {"dask_workers": workers},
+        "suitable_space_time_cells": 10,
+        "evaluated_space_time_cells": 100,
+        "condition_failure_counts": {"temperature": 20},
+        "minimum_duration_endpoints": {"2": 5},
+        "threshold_sensitivity": {"scenarios": []},
+        "wall_seconds": seconds,
+    }
+
+
+def test_real_worker_scaling_requires_equal_semantics() -> None:
+    result = compare_real_worker_scaling(
+        {
+            1: _scaling_record(workers=1, seconds=40),
+            2: _scaling_record(workers=2, seconds=24),
+            4: _scaling_record(workers=4, seconds=16),
+        }
+    )
+    assert result["derived"]["one_to_four_speedup"] == pytest.approx(2.5)
+    assert result["derived"]["one_to_four_parallel_efficiency"] == pytest.approx(0.625)
+
+    changed = _scaling_record(workers=4, seconds=16)
+    changed["suitable_space_time_cells"] = 9
+    with pytest.raises(ValueError, match="semantic result"):
+        compare_real_worker_scaling(
+            {
+                1: _scaling_record(workers=1, seconds=40),
+                2: _scaling_record(workers=2, seconds=24),
+                4: changed,
+            }
+        )

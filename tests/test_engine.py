@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from burnwindows.engine import (
+    apply_threshold_scenario,
     evaluate_condition,
     evaluate_prescription,
     extract_windows,
@@ -14,8 +15,12 @@ from burnwindows.models import Bound, Condition, MissingPolicy, Prescription
 
 
 def test_inclusive_and_exclusive_boundaries() -> None:
-    inclusive = Condition(field="x", variable="x", lower=Bound(value=1), upper=Bound(value=2), source_text="1-2")
-    strict = Condition(field="x", variable="x", upper=Bound(value=2, inclusive=False), source_text="<2")
+    inclusive = Condition(
+        field="x", variable="x", lower=Bound(value=1), upper=Bound(value=2), source_text="1-2"
+    )
+    strict = Condition(
+        field="x", variable="x", upper=Bound(value=2, inclusive=False), source_text="<2"
+    )
     values = np.array([1, 2, np.nan])
     assert evaluate_condition(values, inclusive).tolist() == [True, True, False]
     assert evaluate_condition(values, strict).tolist() == [True, False, False]
@@ -26,7 +31,9 @@ def test_missing_variable_policies(core_prescription: Prescription) -> None:
     with pytest.raises(KeyError):
         evaluate_prescription(data, core_prescription)
     failed, _, _ = evaluate_prescription(data, core_prescription, missing_policy=MissingPolicy.FAIL)
-    ignored, _, _ = evaluate_prescription(data, core_prescription, missing_policy=MissingPolicy.IGNORE)
+    ignored, _, _ = evaluate_prescription(
+        data, core_prescription, missing_policy=MissingPolicy.IGNORE
+    )
     assert not failed[0]
     assert ignored[0]
 
@@ -35,7 +42,13 @@ def test_seasonal_rule_is_neutral_outside_season() -> None:
     prescription = Prescription(
         burn_class="seasonal",
         conditions=[
-            Condition(field="KBDI", variable="KBDI", upper=Bound(value=20), season="spring", source_text="<=20")
+            Condition(
+                field="KBDI",
+                variable="KBDI",
+                upper=Bound(value=20),
+                season="spring",
+                source_text="<=20",
+            )
         ],
     )
     result, _, _ = evaluate_prescription(
@@ -49,13 +62,22 @@ def test_seasonal_rule_is_neutral_outside_season() -> None:
 def test_continuous_windows_extract_two_four_and_six_hours() -> None:
     times = pd.date_range("2026-01-01", periods=10, freq="h")
     mask = [False, True, True, True, True, True, True, False, True, True]
-    assert [item.duration_hours for item in extract_windows(mask, times, min_duration_hours=2)] == [6, 2]
-    assert [item.duration_hours for item in extract_windows(mask, times, min_duration_hours=4)] == [6]
-    assert [item.duration_hours for item in extract_windows(mask, times, min_duration_hours=6)] == [6]
+    assert [item.duration_hours for item in extract_windows(mask, times, min_duration_hours=2)] == [
+        6,
+        2,
+    ]
+    assert [item.duration_hours for item in extract_windows(mask, times, min_duration_hours=4)] == [
+        6
+    ]
+    assert [item.duration_hours for item in extract_windows(mask, times, min_duration_hours=6)] == [
+        6
+    ]
 
 
 def test_irregular_time_gap_splits_window() -> None:
-    times = pd.to_datetime(["2026-01-01T00:00", "2026-01-01T01:00", "2026-01-01T03:00", "2026-01-01T04:00"])
+    times = pd.to_datetime(
+        ["2026-01-01T00:00", "2026-01-01T01:00", "2026-01-01T03:00", "2026-01-01T04:00"]
+    )
     windows = extract_windows([True] * 4, times, min_duration_hours=2)
     assert [item.duration_hours for item in windows] == [2, 2]
 
@@ -70,3 +92,33 @@ def test_limiting_factor_reports_exclusive_failures() -> None:
     assert result[0]["constraint"] == "temperature"
     assert result[0]["exclusive_failure_count"] == 1
 
+
+def test_threshold_scenario_is_unit_specific_and_rejects_unmapped() -> None:
+    prescription = Prescription(
+        burn_class="scenario",
+        conditions=[
+            Condition(
+                field="Temperature",
+                variable="temperature_c",
+                lower=Bound(value=10),
+                upper=Bound(value=20),
+                source_text="10-20",
+            ),
+            Condition(
+                field="FMCSurfaceInside",
+                variable="fmc_surface_inside_pct",
+                upper=Bound(value=18),
+                source_text="<=18",
+                operational_status="unmapped",
+            ),
+        ],
+    )
+
+    widened = apply_threshold_scenario(prescription, {"Temperature": 2})
+    assert widened.conditions[0].lower.value == 8
+    assert widened.conditions[0].upper.value == 22
+    assert widened.conditions[1] == prescription.conditions[1]
+    assert prescription.conditions[0].lower.value == 10
+
+    with pytest.raises(ValueError, match="not mapped rule fields"):
+        apply_threshold_scenario(prescription, {"FMCSurfaceInside": 1})

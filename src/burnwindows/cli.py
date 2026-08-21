@@ -13,6 +13,7 @@ from typing import Any
 import numpy as np
 
 from .aggregate import aggregate_vicclim6_years
+from .engine import apply_threshold_scenario
 from .io import (
     ensure_hourly_grid,
     evaluate_xarray,
@@ -23,12 +24,12 @@ from .io import (
     parse_chunks,
 )
 from .manifest import make_manifest, write_json, write_run_artifacts
-from .models import MissingPolicy
+from .models import MissingPolicy, Prescription
 from .rules import compilation_summary, load_prescriptions
 from .spatial import subset_rectilinear_geojson
 
 
-def _select(prescriptions: list[object], name: str) -> object:
+def _select(prescriptions: list[Prescription], name: str) -> Prescription:
     matches = [item for item in prescriptions if item.burn_class == name]
     if not matches:
         options = [item.burn_class for item in prescriptions]
@@ -36,11 +37,51 @@ def _select(prescriptions: list[object], name: str) -> object:
     return matches[0]
 
 
+def _load_threshold_scenarios(
+    path: Path,
+    prescription: Prescription,
+) -> dict[str, dict[str, float]]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or not payload:
+        raise ValueError("threshold-scenarios must be a non-empty JSON object")
+    if len(payload) > 16:
+        raise ValueError("threshold-scenarios is limited to 16 scenarios per run")
+
+    result: dict[str, dict[str, float]] = {}
+    for raw_name, raw_overrides in payload.items():
+        if not isinstance(raw_name, str) or not raw_name.strip():
+            raise ValueError("threshold scenario names must be non-empty strings")
+        name = raw_name.strip()
+        if name == "baseline":
+            raise ValueError("baseline is reserved and must not be supplied")
+        if not isinstance(raw_overrides, dict) or not raw_overrides:
+            raise ValueError(f"threshold scenario {name!r} needs field deltas")
+        overrides: dict[str, float] = {}
+        for field, raw_delta in raw_overrides.items():
+            if not isinstance(field, str) or isinstance(raw_delta, bool):
+                raise TypeError(f"invalid threshold override in scenario {name!r}")
+            try:
+                delta = float(raw_delta)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"threshold delta for {field!r} in {name!r} is not numeric"
+                ) from exc
+            if not np.isfinite(delta):
+                raise ValueError(f"threshold delta for {field!r} in {name!r} is not finite")
+            overrides[field] = delta
+        # Validate mapped fields and range inversion before building any Dask graph.
+        apply_threshold_scenario(prescription, overrides)
+        result[name] = overrides
+    return dict(sorted(result.items()))
+
+
 def command_inspect(args: argparse.Namespace) -> int:
     prescriptions = load_prescriptions(args.prescriptions)
     report: dict[str, Any] = {"prescriptions": compilation_summary(prescriptions)}
     if args.input:
-        dataset = open_climate_dataset(args.input, backend=args.backend, chunks=parse_chunks(args.chunks))
+        dataset = open_climate_dataset(
+            args.input, backend=args.backend, chunks=parse_chunks(args.chunks)
+        )
         dataset, warnings = normalise_dataset(dataset)
         report["climate"] = inspect_dataset(dataset)
         report["warnings"] = warnings
@@ -62,6 +103,11 @@ def command_analyse(args: argparse.Namespace) -> int:
     started = time.perf_counter()
     prescriptions = load_prescriptions(args.prescriptions)
     prescription = _select(prescriptions, args.burn_class)
+    threshold_scenarios = (
+        _load_threshold_scenarios(args.threshold_scenarios, prescription)
+        if args.threshold_scenarios
+        else {}
+    )
     if args.backend == "vicclim6":
         if not args.start or not args.end:
             raise ValueError("vicclim6 backend requires --start and --end")
@@ -100,6 +146,20 @@ def command_analyse(args: argparse.Namespace) -> int:
         key: value.sel(time=slice(metric_start, metric_end))
         for key, value in masks_with_context.items()
     }
+    scenario_suitable: dict[str, object] = {}
+    scenario_suitable_with_context: dict[str, object] = {}
+    scenario_warnings: dict[str, list[str]] = {}
+    for name, overrides in threshold_scenarios.items():
+        scenario_rule = apply_threshold_scenario(prescription, overrides)
+        scenario_with_context, _, warnings = evaluate_xarray(
+            dataset,
+            scenario_rule,
+            missing_policy=MissingPolicy(args.missing_policy),
+            include_unmapped=args.include_unmapped,
+        )
+        scenario_suitable_with_context[name] = scenario_with_context
+        scenario_suitable[name] = scenario_with_context.sel(time=slice(metric_start, metric_end))
+        scenario_warnings[name] = warnings
     if suitable.sizes.get("time", 0) == 0:
         raise ValueError("metric time selection produced an empty dataset")
     excluded_unmapped = sum(
@@ -120,19 +180,32 @@ def command_analyse(args: argparse.Namespace) -> int:
     condition_names = list(masks)
     duration_names = [str(duration) for duration in args.durations]
     endpoint_tasks = [
-        (
-            suitable_with_context.rolling(time=duration, min_periods=duration).sum()
-            == duration
-        )
+        (suitable_with_context.rolling(time=duration, min_periods=duration).sum() == duration)
         .sel(time=slice(metric_start, metric_end))
         .sum()
         for duration in args.durations
     ]
+    sensitivity_tasks: list[object] = []
+    for name in threshold_scenarios:
+        values = scenario_suitable[name]
+        sensitivity_tasks.append(values.sum())
+        sensitivity_tasks.extend(
+            (
+                scenario_suitable_with_context[name]
+                .rolling(time=duration, min_periods=duration)
+                .sum()
+                == duration
+            )
+            .sel(time=slice(metric_start, metric_end))
+            .sum()
+            for duration in args.durations
+        )
     computed = dask.compute(
         suitable.sum(),
         suitable.count(),
         *((~masks[name]).sum() for name in condition_names),
         *endpoint_tasks,
+        *sensitivity_tasks,
     )
     screened_cells = int(computed[0])
     evaluated_cells = int(computed[1])
@@ -144,6 +217,36 @@ def command_analyse(args: argparse.Namespace) -> int:
     duration_endpoints = {
         name: int(value) for name, value in zip(duration_names, duration_values, strict=True)
     }
+    sensitivity_cursor = 2 + len(condition_names) + len(duration_names)
+    sensitivity_results: list[dict[str, Any]] = []
+    for name, overrides in threshold_scenarios.items():
+        scenario_cells = int(computed[sensitivity_cursor])
+        sensitivity_cursor += 1
+        scenario_endpoints = {
+            duration: int(value)
+            for duration, value in zip(
+                duration_names,
+                computed[sensitivity_cursor : sensitivity_cursor + len(duration_names)],
+                strict=True,
+            )
+        }
+        sensitivity_cursor += len(duration_names)
+        scenario_rate = scenario_cells / evaluated_cells if evaluated_cells else 0.0
+        baseline_rate = screened_cells / evaluated_cells if evaluated_cells else 0.0
+        sensitivity_results.append(
+            {
+                "scenario": name,
+                "overrides": overrides,
+                "provisional_pass_cells": scenario_cells,
+                "provisional_pass_rate": scenario_rate,
+                "absolute_rate_change": scenario_rate - baseline_rate,
+                "relative_rate_change": (
+                    (scenario_rate - baseline_rate) / baseline_rate if baseline_rate else None
+                ),
+                "minimum_duration_endpoints": scenario_endpoints,
+                "warnings": scenario_warnings[name],
+            }
+        )
     metrics: dict[str, Any] = {
         "evidence_status": (
             f"verified-{args.data_kind}-complete-prescription-by-this-run"
@@ -185,10 +288,31 @@ def command_analyse(args: argparse.Namespace) -> int:
         "minimum_duration_endpoints": duration_endpoints,
         "warnings": [*unit_warnings, *rule_warnings, *scope_warning],
     }
+    if sensitivity_results:
+        metrics["threshold_sensitivity"] = {
+            "semantics": (
+                "field-specific absolute deltas in each rule's declared unit; "
+                "positive widens and negative narrows the admissible interval"
+            ),
+            "source": str(args.threshold_scenarios),
+            "baseline": {
+                "provisional_pass_cells": screened_cells,
+                "provisional_pass_rate": screened_cells / evaluated_cells,
+                "minimum_duration_endpoints": duration_endpoints,
+            },
+            "scenarios": sensitivity_results,
+            "constraints": [
+                "scenario changes are descriptive threshold sensitivity, not forecasts",
+                "unmapped fuel-moisture and ground-wind conditions remain excluded",
+                "pass counts are not operational burn approvals or safety evidence",
+            ],
+        }
     metrics["wall_seconds"] = time.perf_counter() - started
     input_paths = [args.prescriptions, args.input]
     if args.region_geojson:
         input_paths.append(args.region_geojson)
+    if args.threshold_scenarios:
+        input_paths.append(args.threshold_scenarios)
     manifest = make_manifest(
         command=sys.argv,
         input_paths=input_paths,
@@ -204,6 +328,9 @@ def command_analyse(args: argparse.Namespace) -> int:
             "metric_end": metric_end,
             "region_geojson": str(args.region_geojson) if args.region_geojson else None,
             "region_label": args.region_label,
+            "threshold_scenarios": (
+                str(args.threshold_scenarios) if args.threshold_scenarios else None
+            ),
         },
         data_kind=args.data_kind,
     )
@@ -221,7 +348,13 @@ def command_benchmark(args: argparse.Namespace) -> int:
     humidity = rng.normal(50.0, 15.0, size=shape).astype("float32")
     wind = rng.gamma(2.0, 5.0, size=shape).astype("float32")
     started = time.perf_counter()
-    numpy_result = ((temperature >= 15) & (temperature <= 25) & (humidity >= 35) & (humidity <= 60) & (wind <= 20)).mean()
+    numpy_result = (
+        (temperature >= 15)
+        & (temperature <= 25)
+        & (humidity >= 35)
+        & (humidity <= 60)
+        & (wind <= 20)
+    ).mean()
     numpy_seconds = time.perf_counter() - started
     started = time.perf_counter()
     chunk = (min(args.chunk_hours, args.hours), min(args.chunk_cells, args.cells))
@@ -308,10 +441,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="burn-window")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    inspect_parser = subparsers.add_parser("inspect", help="validate prescriptions and optional climate data")
+    inspect_parser = subparsers.add_parser(
+        "inspect", help="validate prescriptions and optional climate data"
+    )
     inspect_parser.add_argument("--prescriptions", type=Path, required=True)
     inspect_parser.add_argument("--input", type=str)
-    inspect_parser.add_argument("--backend", choices=["netcdf", "zarr", "kerchunk"], default="netcdf")
+    inspect_parser.add_argument(
+        "--backend", choices=["netcdf", "zarr", "kerchunk"], default="netcdf"
+    )
     inspect_parser.add_argument("--chunks", help='JSON, for example {"time":168,"lat":64,"lon":64}')
     inspect_parser.add_argument("--output", type=Path)
     inspect_parser.set_defaults(handler=command_inspect)
@@ -342,7 +479,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     analyse.add_argument("--dask-workers", type=int)
     analyse.add_argument("--durations", nargs="+", type=int, default=[2, 4, 6])
-    analyse.add_argument("--missing-policy", choices=[item.value for item in MissingPolicy], default="error")
+    analyse.add_argument(
+        "--missing-policy", choices=[item.value for item in MissingPolicy], default="error"
+    )
     analyse.add_argument("--include-unmapped", action="store_true")
     analyse.add_argument("--data-kind", choices=["real", "synthetic"], required=True)
     analyse.add_argument("--start", help="inclusive ISO time bound")
@@ -364,6 +503,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--region-label",
         help="human-readable region label recorded with the spatial evidence scope",
     )
+    analyse.add_argument(
+        "--threshold-scenarios",
+        type=Path,
+        help=(
+            "JSON object mapping scenario names to workbook-field absolute deltas; "
+            "positive widens and negative narrows each declared-unit interval"
+        ),
+    )
     analyse.set_defaults(handler=command_analyse)
 
     aggregate = subparsers.add_parser(
@@ -376,7 +523,9 @@ def build_parser() -> argparse.ArgumentParser:
     aggregate.add_argument("--output", type=Path, required=True)
     aggregate.set_defaults(handler=command_aggregate_vicclim6)
 
-    benchmark = subparsers.add_parser("benchmark", help="compare NumPy and Dask on fixed synthetic data")
+    benchmark = subparsers.add_parser(
+        "benchmark", help="compare NumPy and Dask on fixed synthetic data"
+    )
     benchmark.add_argument("--hours", type=int, default=8760)
     benchmark.add_argument("--cells", type=int, default=512)
     benchmark.add_argument("--chunk-hours", type=int, default=168)

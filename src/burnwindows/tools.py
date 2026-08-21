@@ -12,7 +12,7 @@ from typing import Any
 import numpy as np
 
 from .engine import (
-    apply_threshold_override,
+    apply_threshold_scenario,
     evaluate_prescription,
     extract_windows,
     limiting_factors,
@@ -56,7 +56,11 @@ def find_burn_windows(
     missing_policy: MissingPolicy = MissingPolicy.ERROR,
     data_version: str = "unknown",
 ) -> ToolEnvelope:
-    rule = prescription if isinstance(prescription, Prescription) else Prescription.model_validate(prescription)
+    rule = (
+        prescription
+        if isinstance(prescription, Prescription)
+        else Prescription.model_validate(prescription)
+    )
     arrays = {key: np.asarray(value) for key, value in data.items()}
     suitable, _, warnings = evaluate_prescription(
         arrays, rule, times=times, missing_policy=missing_policy
@@ -75,7 +79,10 @@ def find_burn_windows(
         data_version=data_version,
         source=rule.source,
         constraints=[f"minimum continuous duration: {min_duration_hours}h"],
-        warnings=[*warnings, *[f"unresolved {key}: {value}" for key, value in rule.unresolved.items()]],
+        warnings=[
+            *warnings,
+            *[f"unresolved {key}: {value}" for key, value in rule.unresolved.items()],
+        ],
         result={
             "windows": [item.model_dump(mode="json") for item in windows],
             "suitable_hours": int(suitable.sum()),
@@ -93,7 +100,11 @@ def explain_limiting_factors(
     missing_policy: MissingPolicy = MissingPolicy.ERROR,
     data_version: str = "unknown",
 ) -> ToolEnvelope:
-    rule = prescription if isinstance(prescription, Prescription) else Prescription.model_validate(prescription)
+    rule = (
+        prescription
+        if isinstance(prescription, Prescription)
+        else Prescription.model_validate(prescription)
+    )
     arrays = {key: np.asarray(value) for key, value in data.items()}
     _, masks, warnings = evaluate_prescription(
         arrays, rule, times=times, missing_policy=missing_policy
@@ -119,17 +130,17 @@ def compare_threshold_scenarios(
 ) -> ToolEnvelope:
     """Compare field-specific widening deltas against an unchanged baseline."""
 
-    rule = prescription if isinstance(prescription, Prescription) else Prescription.model_validate(prescription)
+    rule = (
+        prescription
+        if isinstance(prescription, Prescription)
+        else Prescription.model_validate(prescription)
+    )
     arrays = {key: np.asarray(value) for key, value in data.items()}
     outcomes: list[dict[str, Any]] = []
     all_scenarios = {"baseline": {}, **dict(scenarios)}
     for name in sorted(all_scenarios):
         overrides = all_scenarios[name]
-        scenario_rule = rule.model_copy(deep=True)
-        scenario_rule.conditions = [
-            apply_threshold_override(condition, float(overrides.get(condition.field, 0.0)))
-            for condition in scenario_rule.conditions
-        ]
+        scenario_rule = apply_threshold_scenario(rule, overrides)
         suitable, _, warnings = evaluate_prescription(
             arrays, scenario_rule, times=times, missing_policy=missing_policy
         )
