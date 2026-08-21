@@ -310,6 +310,44 @@ a speedup claim. Slurm elapsed/MaxRSS for 1/2/4 were **191/147/148 seconds** and
 binds all six metrics/manifest hashes, exact run/comparator SHAs and the public
 region summary without restricted paths.
 
+### Verified 51-year threshold sensitivity
+
+Spartan array `29492066` and dependent aggregate `29492149` reran the same
+official-district, partial-prescription contract for all **51 file-backed years
+(1973–2023)** while evaluating seven pre-declared perturbations. The annual
+artifacts share exact run SHA `1309060`; aggregation used exact SHA `566cf8c`.
+All real-data, year-completeness, Git, rule, spatial and raw-path quality gates
+passed across **992,840,304 region-cell-hours**. The baseline exactly reproduced
+**48,143,687 provisional pass cells (4.8491%)** and **27,971,450 / 9,440,163 /
+3,190,224** 2/4/6-hour endpoints.
+
+Changing all five mapped numeric bounds together produced the largest response:
+the narrower scenario retained **3,825,268 cells (0.3853%, -92.05% relative to
+baseline)**, while the wider scenario retained **129,427,701 (13.0361%, +168.84%)**.
+In isolated one-factor tests, widening FFDI by 2 units changed the pass rate by
+**+83.23%** relative to baseline, humidity by 5 percentage points **+40.85%**,
+wind by 5 km/h **+16.54%**, temperature by 2 C **+6.06%**, and KBDI by 5 units
+**0.00%**. The zero KBDI response is itself diagnostic evidence that KBDI was
+not the active limiting bound under this fixed contract; it is not evidence
+that KBDI is generally irrelevant.
+
+Paired annual effects were summarised with seeded five-year moving-block
+bootstrap intervals. The all-narrower mean change was **-4.464 percentage
+points** (95% interval **-4.992 to -4.030**; negative in 51/51 years), and the
+all-wider mean was **+8.187 points** (95% interval **+7.633 to +8.788**; positive
+in 51/51 years). FFDI, humidity, temperature and wind effects were also positive
+in 51/51 years; KBDI was zero in 51/51. These are paired descriptive threshold
+effects, not causal forecasts or operational validation.
+
+The 51 one-CPU annual tasks took **84–133 seconds each**, **5,021 seconds** in
+summed elapsed time and at most **1,989,956 KiB RSS**; the enhanced aggregation
+took eight seconds and 51,444 KiB RSS. The
+[redacted public record](artifacts/public/vicclim6_murray_goldfields_threshold_sensitivity_51y_20260822.json)
+binds the source-summary hash, exact run/aggregation/record-builder SHAs and
+Slurm accounting. Surface fuel moisture and ground wind remain unmapped, and
+the district is not a burn unit, so none of these results is a burn approval,
+safety, treatable-area, fire-risk or economic-value claim.
+
 Spartan job `29461166` completed the public-data preflight from exact commit
 `9f2401f8`: 24 hourly steps over a 23 x 41 Victoria grid were read from the
 official ARCO-ERA5 store, temperature/RH/wind/precipitation fields were derived,
@@ -377,7 +415,7 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 69 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
+- 71 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
   and full-year 2024 weather-only screen jobs on Spartan with exact commits and
   hashes;
 - a remote controlled exit-75/checkpoint/resume gate whose uninterrupted and
@@ -393,6 +431,9 @@ Verified locally in this repository:
   regional space-time cells, with one exact Git SHA/spatial/rule contract,
   51/51 annual checkpoints, measured resource records and a non-causal
   block-bootstrap descriptive trend.
+- a second 51/51 exact-SHA district array that reproduced the baseline, evaluated
+  seven explicit threshold scenarios and reported paired annual effects with
+  seeded five-year moving-block bootstrap intervals.
 
 Not verified or not eligible for promotion:
 

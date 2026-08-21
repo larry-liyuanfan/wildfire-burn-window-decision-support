@@ -1,0 +1,292 @@
+{
+  "artifact_type": "vicclim6_murray_goldfields_51y_threshold_sensitivity",
+  "evidence_status": "verified-real-partial-prescription-by-this-run",
+  "input_summary": {
+    "file": "vicclim6_murray_goldfields_sensitivity_51y_summary_v2.json",
+    "sha256": "9575f666ecc64a73890192e11810ed55590046201112e0ef999c28632b62e761"
+  },
+  "annual_run_git_sha": "13090607d77589c8a95b123f2e5cbf0489839ff2",
+  "aggregation_git_sha": "566cf8c98d18270656175e527657702f2be49b32",
+  "record_builder_git_sha": "ae6c61f5a9d02dc4a0f7713d6f5a6ccfe8acb2de",
+  "scope": {
+    "burn_class": "Murray Goldfields - Box ironbark forest",
+    "region": {
+      "geometry_type": "Polygon",
+      "selected_grid_cells": 2221,
+      "total_grid_cells": 36112,
+      "coverage_fraction_of_source_grid": 0.061503101462117855,
+      "feature_properties": {
+        "DISTRICT_NAME": "MURRAY GOLDFIELDS",
+        "REGION_NAME": "LODDON MALLEE"
+      },
+      "coordinate_reference_system": "EPSG:4326 grid-cell centres",
+      "boundary_inclusion_rule": "even-odd point-in-polygon at cell centre",
+      "label": "Murray Goldfields FFMVic district"
+    },
+    "year_start": 1973,
+    "year_end": 2023,
+    "year_count": 51,
+    "evaluated_space_time_cells": 992840304
+  },
+  "baseline": {
+    "provisional_pass_cells": 48143687,
+    "provisional_pass_rate": 0.048490866865533694,
+    "minimum_duration_endpoints": {
+      "2": 27971450,
+      "4": 9440163,
+      "6": 3190224
+    }
+  },
+  "threshold_sensitivity": {
+    "semantics": "field-specific absolute deltas in each rule's declared unit; positive widens and negative narrows the admissible interval",
+    "scenarios": [
+      {
+        "scenario": "all_mapped_narrower",
+        "overrides": {
+          "FDIIgnitionDay1": -2.0,
+          "KBDI": -5.0,
+          "RelativeHumidity": -5.0,
+          "Temperature": -2.0,
+          "WindSpeed": -5.0
+        },
+        "provisional_pass_cells": 3825268,
+        "provisional_pass_rate": 0.0038528532580603216,
+        "absolute_rate_change": -0.044638013607473374,
+        "relative_rate_change": -0.9205447642595384,
+        "minimum_duration_endpoints": {
+          "2": 816405,
+          "4": 94031,
+          "6": 9205
+        },
+        "annual_effect_summary": {
+          "mean_absolute_rate_change": -0.04463781972216143,
+          "median_absolute_rate_change": -0.04364451818363114,
+          "moving_block_bootstrap_95pct_ci_mean_absolute_rate_change": [
+            -0.04991507091762474,
+            -0.0402987316849167
+          ],
+          "positive_year_count": 0,
+          "zero_year_count": 0,
+          "negative_year_count": 51,
+          "bootstrap_block_years": 5,
+          "bootstrap_samples": 2000,
+          "seed": 20260821,
+          "causal_interpretation": false
+        }
+      },
+      {
+        "scenario": "all_mapped_wider",
+        "overrides": {
+          "FDIIgnitionDay1": 2.0,
+          "KBDI": 5.0,
+          "RelativeHumidity": 5.0,
+          "Temperature": 2.0,
+          "WindSpeed": 5.0
+        },
+        "provisional_pass_cells": 129427701,
+        "provisional_pass_rate": 0.13036104646291635,
+        "absolute_rate_change": 0.08187017959738266,
+        "relative_rate_change": 1.6883628792285892,
+        "minimum_duration_endpoints": {
+          "2": 101695958,
+          "4": 58701850,
+          "6": 31754658
+        },
+        "annual_effect_summary": {
+          "mean_absolute_rate_change": 0.0818703287844557,
+          "median_absolute_rate_change": 0.08059119159373272,
+          "moving_block_bootstrap_95pct_ci_mean_absolute_rate_change": [
+            0.07632894951816413,
+            0.08787898192788855
+          ],
+          "positive_year_count": 51,
+          "zero_year_count": 0,
+          "negative_year_count": 0,
+          "bootstrap_block_years": 5,
+          "bootstrap_samples": 2000,
+          "seed": 20260822,
+          "causal_interpretation": false
+        }
+      },
+      {
+        "scenario": "ffdi_upper_plus_2",
+        "overrides": {
+          "FDIIgnitionDay1": 2.0
+        },
+        "provisional_pass_cells": 88215133,
+        "provisional_pass_rate": 0.08885128116233283,
+        "absolute_rate_change": 0.04036041429679914,
+        "relative_rate_change": 0.832330228467961,
+        "minimum_duration_endpoints": {
+          "2": 60546456,
+          "4": 26348466,
+          "6": 11243133
+        },
+        "annual_effect_summary": {
+          "mean_absolute_rate_change": 0.040360608467887416,
+          "median_absolute_rate_change": 0.04030271443814647,
+          "moving_block_bootstrap_95pct_ci_mean_absolute_rate_change": [
+            0.03849700883088307,
+            0.04241558213270848
+          ],
+          "positive_year_count": 51,
+          "zero_year_count": 0,
+          "negative_year_count": 0,
+          "bootstrap_block_years": 5,
+          "bootstrap_samples": 2000,
+          "seed": 20260823,
+          "causal_interpretation": false
+        }
+      },
+      {
+        "scenario": "humidity_range_plus_5pct",
+        "overrides": {
+          "RelativeHumidity": 5.0
+        },
+        "provisional_pass_cells": 67809823,
+        "provisional_pass_rate": 0.06829882180125516,
+        "absolute_rate_change": 0.01980795493572146,
+        "relative_rate_change": 0.4084883652554487,
+        "minimum_duration_endpoints": {
+          "2": 46224480,
+          "4": 20173195,
+          "6": 8382050
+        },
+        "annual_effect_summary": {
+          "mean_absolute_rate_change": 0.01980739349988866,
+          "median_absolute_rate_change": 0.019062539191075645,
+          "moving_block_bootstrap_95pct_ci_mean_absolute_rate_change": [
+            0.01778785277078426,
+            0.021639601817781
+          ],
+          "positive_year_count": 51,
+          "zero_year_count": 0,
+          "negative_year_count": 0,
+          "bootstrap_block_years": 5,
+          "bootstrap_samples": 2000,
+          "seed": 20260824,
+          "causal_interpretation": false
+        }
+      },
+      {
+        "scenario": "kbdi_upper_plus_5",
+        "overrides": {
+          "KBDI": 5.0
+        },
+        "provisional_pass_cells": 48143687,
+        "provisional_pass_rate": 0.048490866865533694,
+        "absolute_rate_change": 0.0,
+        "relative_rate_change": 0.0,
+        "minimum_duration_endpoints": {
+          "2": 27971450,
+          "4": 9440163,
+          "6": 3190224
+        },
+        "annual_effect_summary": {
+          "mean_absolute_rate_change": 0.0,
+          "median_absolute_rate_change": 0.0,
+          "moving_block_bootstrap_95pct_ci_mean_absolute_rate_change": [
+            0.0,
+            0.0
+          ],
+          "positive_year_count": 0,
+          "zero_year_count": 51,
+          "negative_year_count": 0,
+          "bootstrap_block_years": 5,
+          "bootstrap_samples": 2000,
+          "seed": 20260825,
+          "causal_interpretation": false
+        }
+      },
+      {
+        "scenario": "temperature_range_plus_2c",
+        "overrides": {
+          "Temperature": 2.0
+        },
+        "provisional_pass_cells": 51062408,
+        "provisional_pass_rate": 0.05143063571681917,
+        "absolute_rate_change": 0.002939768851285475,
+        "relative_rate_change": 0.06062520720525625,
+        "minimum_duration_endpoints": {
+          "2": 30483870,
+          "4": 10762796,
+          "6": 3787583
+        },
+        "annual_effect_summary": {
+          "mean_absolute_rate_change": 0.002940159638119301,
+          "median_absolute_rate_change": 0.00277323760945232,
+          "moving_block_bootstrap_95pct_ci_mean_absolute_rate_change": [
+            0.002628405654886506,
+            0.003376402222284659
+          ],
+          "positive_year_count": 51,
+          "zero_year_count": 0,
+          "negative_year_count": 0,
+          "bootstrap_block_years": 5,
+          "bootstrap_samples": 2000,
+          "seed": 20260826,
+          "causal_interpretation": false
+        }
+      },
+      {
+        "scenario": "wind_upper_plus_5kmh",
+        "overrides": {
+          "WindSpeed": 5.0
+        },
+        "provisional_pass_cells": 56106651,
+        "provisional_pass_rate": 0.05651125440209768,
+        "absolute_rate_change": 0.008020387536563985,
+        "relative_rate_change": 0.16539996199293996,
+        "minimum_duration_endpoints": {
+          "2": 34219864,
+          "4": 12494002,
+          "6": 4633030
+        },
+        "annual_effect_summary": {
+          "mean_absolute_rate_change": 0.00802028198227289,
+          "median_absolute_rate_change": 0.007474830334766314,
+          "moving_block_bootstrap_95pct_ci_mean_absolute_rate_change": [
+            0.007007153376887219,
+            0.009266038723189736
+          ],
+          "positive_year_count": 51,
+          "zero_year_count": 0,
+          "negative_year_count": 0,
+          "bootstrap_block_years": 5,
+          "bootstrap_samples": 2000,
+          "seed": 20260827,
+          "causal_interpretation": false
+        }
+      }
+    ],
+    "annual_effect_interpretation": "paired year-level descriptive differences with a moving-block bootstrap mean interval; not causal or operational validation",
+    "constraints": [
+      "scenario changes are descriptive threshold sensitivity, not forecasts",
+      "unmapped fuel-moisture and ground-wind conditions remain excluded",
+      "pass counts are not operational burn approvals or safety evidence"
+    ]
+  },
+  "quality_gate": {
+    "complete_expected_year_set": true,
+    "single_exact_git_sha": true,
+    "single_prescription_contract": true,
+    "single_spatial_contract": true,
+    "single_threshold_sensitivity_contract": true,
+    "all_real_data": true,
+    "raw_paths_omitted": true
+  },
+  "boundaries": [
+    "The screen evaluates mapped weather conditions only; surface fuel moisture and ground wind remain unmapped.",
+    "The official district is not a burn unit, tenure, access or treatable-area mask.",
+    "Threshold effects and block-bootstrap intervals are descriptive, not causal forecasts or operational validation.",
+    "No count or rate is a burn approval, safety, treated-area, fire-risk or economic-value result."
+  ],
+  "slurm_accounting": {
+    "array_job_id": "29492066",
+    "aggregate_job_id": "29492149",
+    "array_elapsed_total_seconds": 5021,
+    "array_max_rss_kib": 1989956,
+    "aggregate_elapsed_seconds": 8,
+    "aggregate_max_rss_kib": 51444
+  }
+}
