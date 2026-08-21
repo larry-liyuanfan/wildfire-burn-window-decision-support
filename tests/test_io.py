@@ -76,6 +76,7 @@ def test_vicclim6_period_loader_uses_previous_daily_value_without_lookahead(tmp_
         "WRFV6_TSFC1972-2024": ("T_SFC", "C", 20.0),
         "WRFV6_RHSFC1972-2024": ("RH_SFC", "%", 50.0),
         "WRFV6_WMAG1972-2024": ("Wind_Mag_SFC", "kts", 10.0),
+        "WRFV6_FFDI1972-2024": ("FFDI", "", 15.0),
     }
     for family, (variable, unit, value) in hourly_families.items():
         target = tmp_path / family / "2026" / "01"
@@ -92,8 +93,7 @@ def test_vicclim6_period_loader_uses_previous_daily_value_without_lookahead(tmp_
         ).to_netcdf(target / f"{variable}.nc")
 
     daily_families = {
-        "WRFV6_FFDI1972-2024": "FFDI",
-        "WRFV6_KBDI1972-2024": "KBDI",
+        "WRFV6_KBDI1972-2024": "KBDI-AWAP",
         "WRFV6_DF1972-2024": "DF",
     }
     for family, variable in daily_families.items():
@@ -124,6 +124,7 @@ def test_vicclim6_period_loader_uses_previous_daily_value_without_lookahead(tmp_
     assert not warnings
     assert result.sizes == {"time": 3, "latitude": 1, "longitude": 1}
     assert result.KBDI.compute().values[:, 0, 0].tolist() == [10.0, 10.0, 10.0]
+    assert result.FFDI.compute().values[:, 0, 0].tolist() == [15.0, 15.0, 15.0]
     assert np.allclose(result.wind_speed_kmh.compute().values, 18.52)
 
 

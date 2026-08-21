@@ -18,6 +18,7 @@ VARIABLE_ALIASES = {
     "Wind_Mag_SFC": "wind_speed_kmh",
     "WMAG": "wind_speed_kmh",
     "FFDI": "FFDI",
+    "KBDI-AWAP": "KBDI",
     "KBDI": "KBDI",
     "DF": "drought_factor",
 }
@@ -26,8 +27,8 @@ VICCLIM6_FAMILIES: dict[str, tuple[str, str, str]] = {
     "T_SFC": ("WRFV6_TSFC1972-2024", "T_SFC", "hourly"),
     "RH_SFC": ("WRFV6_RHSFC1972-2024", "RH_SFC", "hourly"),
     "Wind_Mag_SFC": ("WRFV6_WMAG1972-2024", "Wind_Mag_SFC", "hourly"),
-    "FFDI": ("WRFV6_FFDI1972-2024", "FFDI", "daily"),
-    "KBDI": ("WRFV6_KBDI1972-2024", "KBDI", "daily"),
+    "FFDI": ("WRFV6_FFDI1972-2024", "FFDI", "hourly"),
+    "KBDI": ("WRFV6_KBDI1972-2024", "KBDI-AWAP", "daily"),
     "DF": ("WRFV6_DF1972-2024", "DF", "daily"),
 }
 
