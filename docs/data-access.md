@@ -46,6 +46,33 @@ This is an access preflight, not a real-data result. The first compute job must
 still inventory files, bytes, time coverage, variables, units and calendar
 before applying any burn rule.
 
+The team guide's `~/flare_env` workflow is supported by
+`spartan/run_real_preflight_venv.sbatch`; the Apptainer route remains available
+in `spartan/run_real_preflight.sbatch`. The venv job imports the pinned runtime,
+checks the canonical NetCDF before starting, loads this repository through
+`PYTHONPATH`, and writes only a three-file metadata inventory. On the current
+`yzhang3504` SSH identity, both `/home/yzhang3504/flare_env` and
+`/home/yzhang3504/Group44-2026-capstone-project` were absent during the latest
+read-only check. This does not contradict the user's setup guide: it shows that
+the guide applies to a different or not-yet-configured Spartan identity.
+
+The original environment list is sufficient to open a NetCDF notebook, but the
+portfolio pipeline also imports Dask and Pydantic. On an interactive compute
+node, install the repository once into that same venv with
+`python -m pip install -e ".[milp,kerchunk]"`; do not run package installation on
+the login node. The preflight deliberately fails if this runtime is incomplete.
+
+Example after ACL/account access is restored:
+
+```bash
+export PROJECT_ROOT="$HOME/Group44-2026-capstone-project"
+export FLARE_PYTHON="$HOME/flare_env/bin/python"
+export VICCLIM_ROOT=/data/gpfs/projects/punim1257/Group44/data/raw/VicClim6
+export OUTPUT_ROOT=/data/gpfs/projects/punim1257/Group44/outputs/preflight
+sbatch --test-only spartan/run_real_preflight_venv.sbatch
+sbatch spartan/run_real_preflight_venv.sbatch
+```
+
 ## Observed through 21 August 2026
 
 - The local project materials contain the FMS workbook and Week 1–2 documents.
