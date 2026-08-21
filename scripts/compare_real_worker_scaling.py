@@ -7,7 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from burnwindows.manifest import write_json
+from burnwindows.manifest import git_sha, write_json
 from burnwindows.performance import compare_real_worker_scaling
 
 
@@ -42,12 +42,13 @@ def main() -> int:
         inputs.append(
             {
                 "dask_thread_workers": workers,
-                "path": str(path),
+                "metrics_file": path.name,
                 "sha256": _sha256(path),
             }
         )
 
     result = compare_real_worker_scaling(records)
+    result["comparator_git_sha"] = git_sha()
     result["inputs"] = sorted(inputs, key=lambda item: item["dask_thread_workers"])
     write_json(args.output, result)
     print(json.dumps(result, indent=2))

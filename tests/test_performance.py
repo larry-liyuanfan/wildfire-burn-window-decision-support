@@ -66,11 +66,16 @@ def test_spatial_comparison_rejects_mixed_contract_or_failed_gate() -> None:
 
 def _scaling_record(*, workers: int, seconds: float) -> dict:
     return {
+        "git_sha": "a" * 40,
         "evidence_status": "verified-real-partial-prescription-by-this-run",
         "data_kind": "real",
         "burn_class": "fixture",
         "prescription_scope": {"complete": False},
-        "region_scope": {"label": "fixture district"},
+        "region_scope": {
+            "label": "fixture district",
+            "selected_grid_cells": 10,
+            "source_path": "/restricted/boundary.geojson",
+        },
         "time_coverage": {"dask_workers": workers},
         "suitable_space_time_cells": 10,
         "evaluated_space_time_cells": 100,
@@ -91,6 +96,8 @@ def test_real_worker_scaling_requires_equal_semantics() -> None:
     )
     assert result["derived"]["one_to_four_speedup"] == pytest.approx(2.5)
     assert result["derived"]["one_to_four_parallel_efficiency"] == pytest.approx(0.625)
+    assert result["quality_gate"]["single_exact_git_sha"] is True
+    assert "source_path" not in result["comparison_contract"]["region_scope"]
 
     changed = _scaling_record(workers=4, seconds=16)
     changed["suitable_space_time_cells"] = 9
@@ -102,3 +109,10 @@ def test_real_worker_scaling_requires_equal_semantics() -> None:
                 4: changed,
             }
         )
+
+    unknown_sha = {
+        workers: {**_scaling_record(workers=workers, seconds=seconds), "git_sha": "unknown"}
+        for workers, seconds in ((1, 40), (2, 24), (4, 16))
+    }
+    with pytest.raises(ValueError, match="known run git SHA"):
+        compare_real_worker_scaling(unknown_sha)

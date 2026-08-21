@@ -140,6 +140,7 @@ def compare_real_worker_scaling(
         raise ValueError(f"worker scaling requires exactly {sorted(required)}")
     reference = records[1]
     comparable_fields = (
+        "git_sha",
         "evidence_status",
         "data_kind",
         "burn_class",
@@ -161,6 +162,24 @@ def compare_real_worker_scaling(
                 raise ValueError(f"workers={workers} changed the semantic result field {field}")
         if float(payload.get("wall_seconds", 0.0)) <= 0:
             raise ValueError(f"workers={workers} has no positive wall time")
+    if reference.get("git_sha") in {None, "", "unknown"}:
+        raise ValueError("worker scaling requires one known run git SHA")
+
+    raw_region_scope = reference.get("region_scope") or {}
+    public_region_scope = {
+        key: raw_region_scope.get(key)
+        for key in (
+            "geometry_type",
+            "selected_grid_cells",
+            "total_grid_cells",
+            "coverage_fraction_of_source_grid",
+            "feature_properties",
+            "coordinate_reference_system",
+            "boundary_inclusion_rule",
+            "label",
+        )
+        if raw_region_scope.get(key) is not None
+    }
 
     one_worker_seconds = float(reference["wall_seconds"])
     observations = []
@@ -185,7 +204,8 @@ def compare_real_worker_scaling(
             "semantic_results_equal": True,
             "evaluated_space_time_cells": int(reference["evaluated_space_time_cells"]),
             "burn_class": reference["burn_class"],
-            "region_scope": reference.get("region_scope"),
+            "run_git_sha": reference["git_sha"],
+            "region_scope": public_region_scope,
         },
         "observed": observations,
         "derived": {
@@ -196,6 +216,7 @@ def compare_real_worker_scaling(
             "exact_worker_set": True,
             "all_real_data": True,
             "same_semantic_results": True,
+            "single_exact_git_sha": True,
             "positive_wall_times": True,
         },
         "boundaries": [
