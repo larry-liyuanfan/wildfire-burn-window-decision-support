@@ -150,7 +150,7 @@ def test_vicclim6_year_array_is_pilot_sized_and_boundary_explicit() -> None:
 
     assert "#SBATCH --array=1973-2023%4" in script
     assert "#SBATCH --cpus-per-task=1" in script
-    assert "#SBATCH --mem=4G" in script
+    assert "#SBATCH --mem=6G" in script
     assert "--scheduler synchronous" in script
     assert "--dask-workers 1" in script
     assert "--metric-start" in script
