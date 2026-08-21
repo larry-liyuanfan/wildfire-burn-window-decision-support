@@ -28,6 +28,10 @@ def _annual(root: Path, year: int, *, sha: str = "abc123") -> None:
                     "complete": False,
                     "evaluated_condition_count": 2,
                 },
+                "region_scope": {
+                    "label": "fixture district",
+                    "selected_grid_cells": 5,
+                },
                 "time_coverage": {
                     "metric_start": f"{year}-01-01T00:00:00",
                     "metric_hours": 2,
@@ -59,6 +63,8 @@ def test_annual_aggregation_is_weighted_and_quality_gated(tmp_path: Path) -> Non
     assert result["descriptive_trend"]["slope_rate_per_year"] == 0.1
     assert result["descriptive_trend"]["causal_interpretation"] is False
     assert result["quality_gate"]["complete_expected_year_set"] is True
+    assert result["quality_gate"]["single_spatial_contract"] is True
+    assert result["region_scope"]["selected_grid_cells"] == 5
 
 
 def test_annual_aggregation_rejects_missing_or_mixed_sha(tmp_path: Path) -> None:

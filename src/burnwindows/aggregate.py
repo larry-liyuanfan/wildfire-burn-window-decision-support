@@ -57,10 +57,19 @@ def aggregate_vicclim6_years(
         for year in expected
     }
     statuses = {records[year][1].get("evidence_status") for year in expected}
+    region_scopes = {
+        json.dumps(records[year][1].get("region_scope"), sort_keys=True)
+        for year in expected
+    }
     if len(git_shas) != 1 or "unknown" in git_shas:
         raise ValueError(f"annual runs do not share one known git SHA: {sorted(git_shas)}")
-    if len(burn_classes) != 1 or len(scopes) != 1 or len(statuses) != 1:
-        raise ValueError("annual runs do not share one prescription/evidence contract")
+    if (
+        len(burn_classes) != 1
+        or len(scopes) != 1
+        or len(statuses) != 1
+        or len(region_scopes) != 1
+    ):
+        raise ValueError("annual runs do not share one prescription/evidence/spatial contract")
     if any(records[year][0].get("data_kind") != "real" for year in expected):
         raise ValueError("all annual runs must use data_kind=real")
 
@@ -125,6 +134,7 @@ def aggregate_vicclim6_years(
         "interpretation": "provisional mapped-condition screen; not operational burn windows",
         "git_sha": next(iter(git_shas)),
         "burn_class": next(iter(burn_classes)),
+        "region_scope": records[expected[0]][1].get("region_scope"),
         "year_start": expected[0],
         "year_end": expected[-1],
         "year_count": len(expected),
@@ -152,6 +162,7 @@ def aggregate_vicclim6_years(
             "complete_expected_year_set": True,
             "single_exact_git_sha": True,
             "single_prescription_contract": True,
+            "single_spatial_contract": True,
             "all_real_data": True,
             "raw_paths_omitted": True,
         },

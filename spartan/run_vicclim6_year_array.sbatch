@@ -59,6 +59,15 @@ mkdir -p "${PROJECT_ROOT}/logs" "${OUTPUT_ROOT}"
 cd "${PROJECT_ROOT}"
 export PYTHONPATH="${PROJECT_ROOT}/src:${PYTHONPATH:-}"
 
+REGION_ARGS=()
+if [[ -n "${REGION_GEOJSON:-}" ]]; then
+  [[ -r "${REGION_GEOJSON}" ]] || { echo "region GeoJSON is not readable" >&2; exit 2; }
+  REGION_ARGS=(
+    --region-geojson "${REGION_GEOJSON}"
+    --region-label "${REGION_LABEL:-Murray Goldfields FFMVic district}"
+  )
+fi
+
 srun "${FLARE_PYTHON}" -c \
   'from burnwindows.cli import main; raise SystemExit(main())' \
   analyse \
@@ -76,4 +85,5 @@ srun "${FLARE_PYTHON}" -c \
   --durations 2 4 6 \
   --missing-policy error \
   --data-kind real \
+  "${REGION_ARGS[@]}" \
   --output-dir "${RUN_DIR}"

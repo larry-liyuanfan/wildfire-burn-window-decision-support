@@ -10,9 +10,10 @@ evaluation with NetCDF/Zarr/Kerchunk adapters, continuous-window extraction,
 limiting-factor and sensitivity tools, and a binary scheduling layer validated
 against greedy baselines. I compared nominal, max-min and lower-tail CVaR
 formulations, keeping planning scenarios independent from held-out evaluation.
-Tests currently verify the engineering behavior on
-golden synthetic fixtures. Because authorised VicClim6 access is unavailable,
-I also built an anonymous ARCO-ERA5 fallback with explicit source boundaries.
+Fifty-six local tests verify the engineering behavior on golden fixtures. I
+also built an anonymous ARCO-ERA5 preflight with explicit source boundaries,
+then used an authorised team identity to inventory and process the restricted
+VicClim6 collection without copying its payloads.
 A full-year 2024 Spartan run processed 8,283,312 cell-hours and found 1,391,401
 passes of temperature/RH/wind necessary conditions (16.7976%), with 2/4/6-hour
 run counts of 243,967/160,691/96,270. Missing FFDI, FFFI, rain history, fuel
@@ -20,9 +21,12 @@ moisture, site and burn-plan constraints mean these are not burn windows or
 safety evidence. The controlled exit-75 plus resume job `29467567` stopped at
 168/336 hours, restored its checkpoint, and matched the uninterrupted summary
 exactly over 316,848 cell-hours (semantic SHA `6e13387b...205a`). This verifies
-one bounded restart path, not recovery from every infrastructure failure. Full
-VicClim6 metrics remain access-blocked, so historical 6.49% and 9.04% values are
-not claimed as reproduced.
+one bounded restart path, not recovery from every infrastructure failure. The
+real 2020 VicClim6 pilot evaluated 317,207,808 space-time cells and produced a
+3.381596% mapped-condition pass rate, but two fuel/ground-wind conditions remain
+unmapped. It is therefore a provisional screen, not a burn approval, complete
+prescription, safety result or economic claim; historical 6.49% and 9.04%
+values remain unverified.
 
 ## Code evidence map
 
@@ -34,7 +38,7 @@ not claimed as reproduced.
 | What happens when a variable is missing? | explicit `MissingPolicy` and warning envelope |
 | How is a continuous operational window defined? | `extract_windows`; irregular gaps split runs |
 | How do you scale beyond memory? | `io.py`, Kerchunk builder and Spartan Slurm array |
-| What real-data path was actually executed? | `public_reanalysis.py`, `evaluate_public_weather_screen.py`, public run records and Slurm accounting |
+| What real-data path was actually executed? | `io.py`, `evaluate_vicclim6_year.py`, the compact VicClim6 inventory/2020 record and Slurm accounting; `public_reanalysis.py` remains an independently reproducible public preflight |
 | How do you prove restart does not alter results? | local property tests plus remote job `29467567`: controlled exit 75 at 168/336 hours, resume from checkpoint and exact semantic hash match against an uninterrupted 316,848-cell-hour run |
 | How do you know optimisation output is valid? | MILP constraints plus independent `validate_selection` |
 | Why was a candidate rejected, and what would another crew buy? | `explain_selection` plus the typed tool's discrete crew-capacity counterfactuals; both carry non-dual/non-financial boundaries |

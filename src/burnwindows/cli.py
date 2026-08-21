@@ -25,6 +25,7 @@ from .io import (
 from .manifest import make_manifest, write_json, write_run_artifacts
 from .models import MissingPolicy
 from .rules import compilation_summary, load_prescriptions
+from .spatial import subset_rectilinear_geojson
 
 
 def _select(prescriptions: list[object], name: str) -> object:
@@ -76,6 +77,10 @@ def command_analyse(args: argparse.Namespace) -> int:
             backend=args.backend,
             chunks=parse_chunks(args.chunks),
         )
+    region_scope = None
+    if args.region_geojson:
+        dataset, region_scope = subset_rectilinear_geojson(dataset, args.region_geojson)
+        region_scope["label"] = args.region_label
     dataset, unit_warnings = normalise_dataset(dataset)
     if args.start or args.end:
         dataset = dataset.sel(time=slice(args.start, args.end))
@@ -159,6 +164,7 @@ def command_analyse(args: argparse.Namespace) -> int:
             if prescription_complete
             else "provisional mapped-condition screen; not an operational burn window"
         ),
+        "region_scope": region_scope,
         "time_coverage": {
             "load_start": args.start,
             "load_end": args.end,
@@ -180,9 +186,12 @@ def command_analyse(args: argparse.Namespace) -> int:
         "warnings": [*unit_warnings, *rule_warnings, *scope_warning],
     }
     metrics["wall_seconds"] = time.perf_counter() - started
+    input_paths = [args.prescriptions, args.input]
+    if args.region_geojson:
+        input_paths.append(args.region_geojson)
     manifest = make_manifest(
         command=sys.argv,
-        input_paths=[args.prescriptions, args.input],
+        input_paths=input_paths,
         config={
             "backend": args.backend,
             "chunks": parse_chunks(args.chunks),
@@ -193,6 +202,8 @@ def command_analyse(args: argparse.Namespace) -> int:
             "end": args.end,
             "metric_start": metric_start,
             "metric_end": metric_end,
+            "region_geojson": str(args.region_geojson) if args.region_geojson else None,
+            "region_label": args.region_label,
         },
         data_kind=args.data_kind,
     )
@@ -344,6 +355,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--metric-end",
         help="inclusive metric bound; later loaded hours are context only",
     )
+    analyse.add_argument(
+        "--region-geojson",
+        type=Path,
+        help="single-feature EPSG:4326 Polygon/MultiPolygon used to select grid-cell centres",
+    )
+    analyse.add_argument(
+        "--region-label",
+        help="human-readable region label recorded with the spatial evidence scope",
+    )
     analyse.set_defaults(handler=command_analyse)
 
     aggregate = subparsers.add_parser(
@@ -389,7 +409,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.handler(args))
-    except (FileNotFoundError, KeyError, ValueError, RuntimeError) as exc:
+    except (FileNotFoundError, KeyError, TypeError, ValueError, RuntimeError) as exc:
         parser.error(str(exc))
         return 2
 

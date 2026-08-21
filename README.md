@@ -11,12 +11,41 @@ rules, bypass missing-data policy or return an infeasible schedule.
 The research question is how often suitable prescribed-burning conditions occur
 in Victoria, how availability changes across space and time, and how sensitive
 the result is to the definition of a window. The engineering question is how to
-make that analysis reproducible at VicClim6 scale (1972–2024, approximately
+make that analysis reproducible at the file-backed VicClim6 scale (1973–2023, approximately
 4 km) and safe to call from an Agentic AI application.
 
 This repository complements a multimodal-search/Agent portfolio by demonstrating
 the part that must remain deterministic: typed tools, explicit constraints,
 large-array execution, provenance and refusal to guess unresolved semantics.
+
+```mermaid
+flowchart LR
+  W[Private FMS workbook] --> A[Typed rule AST]
+  V[Six VicClim6 families] --> T[Leakage-safe time alignment]
+  B[Official FFMVic district polygon] --> S[Grid-centre spatial mask]
+  A --> D[Xarray/Dask rule graph]
+  T --> S --> D
+  D --> R[2/4/6 h endpoint extraction]
+  R --> E[Limiting factors and sensitivity]
+  E --> O[Validated nominal / max-min / CVaR MILP]
+  O --> C[Feasibility certificate and Agent tool envelope]
+```
+
+The difficult part is not reading a NetCDF file. It is preserving the meaning
+of daily and hourly state across 51 annual checkpoints while keeping every
+omitted rule and failed assumption visible. A year is publishable only when its
+data kind, Git SHA, workbook hash, coverage, warnings and output hashes pass the
+same aggregation gate.
+
+The authorised Group44 data area contains the six climate/index families but
+no region polygon, burn-unit geometry or raster mask. The first full-grid array
+therefore labels all 148 x 244-cell results as a **statewide exposure screen
+under that partial rule set**, not a Murray Goldfields estimate. A separate,
+official Victorian Government `LF_DISTRICT` ArcGIS layer is now fetched by an
+exact district-name query and applied at VicClim6 grid-cell centres. Regional
+and statewide artifacts are never mixed by the aggregation quality gate. The
+district mask still is not a burn-unit boundary and cannot support treated-area
+or operational-approval claims. See [boundary provenance](docs/boundary-data.md).
 
 ## Stable tool contracts
 
@@ -50,6 +79,10 @@ models used by a calling service.
   unless the caller explicitly includes them.
 - **Scale:** Xarray/Dask evaluation stays lazy until metrics are computed.
   NetCDF, Zarr and Kerchunk references share one input adapter.
+- **Spatial scope:** an optional, single-feature EPSG:4326 GeoJSON polygon is
+  converted to a selected `spatial_cell` axis before evaluation. The exact file
+  hash, official feature properties, simplification tolerance and inclusion
+  rule are retained; empty or ambiguous scopes fail closed.
 - **Scheduling:** candidate windows are binary variables with resource and daily
   capacity constraints. The decision layer now compares nominal, max-min and
   lower-tail CVaR formulations; every solver output is independently validated.
@@ -89,7 +122,10 @@ Run one real-data slice only after confirming field semantics and units:
 burn-window analyse \
   --prescriptions /restricted/FMS-Prescriptions_2.xlsx \
   --input /restricted/VicClim6 \
+  --backend vicclim6 \
   --burn-class "<exact class name>" \
+  --start 2020-01-01T00:00:00 \
+  --end 2020-12-31T23:00:00 \
   --durations 2 4 6 \
   --missing-policy error \
   --data-kind real \
@@ -132,11 +168,14 @@ former verifies feasibility; only the latter can support an optimality claim.
 The confirmed team source is
 `/data/gpfs/projects/punim1257/Group44/data/raw/VicClim6`; the canonical access
 probe is
-`WRFV6_TSFC1972-2024/2020/01/IDV71000_VIC_T_SFC.nc`. The current automation
-identity `yzhang3504` is not a `punim1257` member, so this path is located but
-not yet readable. `spartan/run_real_preflight.sbatch` now requests the Group44
-account and refuses to proceed unless that sample is readable. This prevents a
-job from silently falling back to ERA5 or a different climate product.
+`WRFV6_TSFC1972-2024/2020/01/IDV71000_VIC_T_SFC.nc`. An authorised `punim1257`
+team identity passed the read gate on 21 August 2026. Exact-SHA inventory job
+`29483795` found six families, 3,672 monthly NetCDF files and
+263,698,792,008 bytes (245.59 GiB). All families contain 51 actual year
+directories, **1973–2023**; the `1972-2024` strings are directory labels rather
+than this GPFS copy's coverage. The compact
+[inventory/2020 pilot record](artifacts/public/vicclim6_inventory_2020_pilot_20260821.json)
+publishes hashes and boundaries without copying the workbook or climate data.
 
 `spartan/` contains an Apptainer definition and restartable Slurm jobs:
 
@@ -144,7 +183,14 @@ job from silently falling back to ERA5 or a different climate product.
 - `run_real_preflight.sbatch` inventories collection scale and three
   representative NetCDF headers in a 15-minute, 2-CPU gate;
 - `build_kerchunk.sbatch` creates references without copying climate payloads;
-- `run_full_pipeline.sbatch` runs a 1972–2024 array with one checkpoint per year;
+- `run_vicclim6_year_array.sbatch` runs the real 1973–2023 collection with one
+  exact-SHA checkpoint per year, five hours of prior context at normal year
+  boundaries and an explicit 24-hour left-censor in 1973;
+- `aggregate_vicclim6_years.sbatch` refuses to merge incomplete, mixed-commit,
+  mixed-prescription or non-real annual artifacts and adds a seeded Theil–Sen /
+  moving-block-bootstrap descriptive trend;
+- `run_full_pipeline.sbatch` remains the older Apptainer template and is not the
+  evidence-producing 2026 array;
 - `run_scaling_benchmark.sbatch` compares 1/2/4 workers on a clearly labelled
   deterministic synthetic benchmark.
 - `run_arco_era5_preflight.sbatch` reads a bounded Victoria slice from the
@@ -207,6 +253,20 @@ so `16.7976%` is not a burn-window rate or an operational/economic finding.
 The [paper-to-hiring map](docs/PAPER_TO_HIRING.md) connects the rule-sensitivity,
 spatiotemporal analysis, CVaR optimisation and cloud-array design to primary
 sources, code paths, measured evidence and explicit non-claims.
+The complementary [2025–2026 research-to-system map](docs/RESEARCH_TO_SYSTEM_2026.md)
+records how official FFDI semantics, RxFire-style predictive–prescriptive design
+and recent Victorian fuel-moisture work changed the implementation or caused a
+feature to remain deliberately unmapped.
+
+## Failure-driven engineering evidence
+
+| Observed failure or ambiguity | Implemented control | Evidence |
+|---|---|---|
+| A forced `h5netcdf` pilot could not open the collection's classic NetCDF years | Use automatic backend selection and test representative families/years | failed job `29484324`; mixed-format loader tests |
+| Four Dask processes each inherited the physical 128-core node shape, producing nondeterministic NetCDF `SIGSEGV`/`SIGBUS` failures | One synchronous Dask worker per annual task; Slurm array supplies bounded outer concurrency | failed array `29484258`; successful sequential pilot `29484375` |
+| A fused annual graph exceeded a 4-GiB request | Preserve the graph fusion, measure its 6,015,508-KiB peak, and request 8 GiB with margin | OOM job `29484605`; completed pilot `29484629` |
+| Calendar-year partitioning would truncate windows at 1 January | Load five hours of prior context for later years; explicitly left-censor the first 24 hours of 1973 | boundary tests and annual manifest fields |
+| Partial/mixed retries could silently yield a plausible aggregate | Reject missing years, duplicate years, mixed commits, mixed workbook hashes and non-real artifacts | `aggregate_vicclim6_years` plus tamper/incompleteness tests |
 
 ## Evidence status
 
@@ -219,17 +279,24 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 49 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
+- 56 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
   and full-year 2024 weather-only screen jobs on Spartan with exact commits and
   hashes;
 - a remote controlled exit-75/checkpoint/resume gate whose uninterrupted and
   resumed 336-hour summaries have an exact semantic hash match.
+- an authorised VicClim6 inventory over 3,672 monthly files (245.59 GiB) and a
+  real 2020 mapped-condition screen over 317,207,808 space-time cells. The
+  screen evaluated six of eight compiled conditions and excluded two unmapped
+  fuel/ground-wind fields rather than guessing them.
 
-Not yet verified from accessible real VicClim6 data:
+Not verified or not eligible for promotion:
 
 - the prior 2024 values **6.49%** and **9.04%**;
-- prior scale, runtime, completeness or speedup claims;
-- 1972–2024 trend, 1→4 worker scaling, and real-candidate optimisation value.
+- prior speedup claims;
+- an operational burn-window rate, safety/treated-area outcome, financial
+  value, or a complete prescription that includes fuel moisture and ground
+  wind;
+- a 1→4 worker scaling result or real-candidate optimisation value.
 
 These values are historical project records only and must not be presented as
 reproduced results until an artifact contains the exact data range, rule version,

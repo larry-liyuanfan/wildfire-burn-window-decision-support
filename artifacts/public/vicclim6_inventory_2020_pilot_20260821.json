@@ -20,6 +20,7 @@
   },
   "prescription": {
     "burn_class": "Murray Goldfields - Box ironbark forest",
+    "spatial_scope": "all 148 x 244 VicClim6 grid cells; no Murray Goldfields or burn-unit mask was available",
     "workbook_sha256": "e063ffda8c003b4fb5e9c9506072cbc6edf78364b358acfb84c13f91a22feb1a",
     "compiled_condition_count": 8,
     "evaluated_condition_count": 6,
@@ -52,6 +53,7 @@
   },
   "publication_boundary": [
     "The two unmapped prescription fields are excluded rather than guessed.",
+    "No region or burn-unit geometry was present in the authorised Group44 data area, so the statewide grid screen is not a Murray Goldfields regional estimate.",
     "Pass cells and duration endpoints are not burn approvals, safety evidence or treated area.",
     "No fire-risk reduction, field outcome or financial return is inferred.",
     "Restricted workbook and NetCDF payloads remain on Spartan project storage."

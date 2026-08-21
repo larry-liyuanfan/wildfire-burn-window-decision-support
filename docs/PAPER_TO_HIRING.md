@@ -18,7 +18,7 @@ motivates this repository's typed rule AST, explicit unresolved values and
   <https://doi.org/10.1016/j.agrformet.2019.03.005>.
 - Code: `src/burnwindows/rules.py`, `src/burnwindows/tools.py`.
 - Evidence: 43 workbook rows compile into typed or explicitly unresolved
-  fields; boundary and threshold-scenario tests are part of the 49-test suite.
+  fields; boundary and threshold-scenario tests are part of the 56-test suite.
 - Hiring signal: converts policy spreadsheets into versionable, testable domain
   logic and makes sensitivity auditable.
 - Boundary: workbook thresholds remain private, and no public-data weather pass
@@ -40,8 +40,9 @@ average.
   extraction and limiting factors.
 - Hiring signal: turns a large climate cube into explainable regional decision
   features rather than a single descriptive statistic.
-- Boundary: a 1972–2024 VicClim6 trend is not claimed until the Group44 ACL and a
-  complete exact-SHA run artifact exist.
+- Boundary: the authorised file-backed collection covers 1973–2023. A complete
+  trend is not claimed until all 51 exact-SHA annual artifacts and the dependent
+  aggregation quality gate complete successfully.
 
 ## 3. Tail-risk scheduling should remain a solvable, auditable programme
 

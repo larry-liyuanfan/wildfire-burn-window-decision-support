@@ -12,25 +12,11 @@ VicClim6 root: /data/gpfs/projects/punim1257/Group44/data/raw/VicClim6
 Sample file:   .../WRFV6_TSFC1972-2024/2020/01/IDV71000_VIC_T_SFC.nc
 ```
 
-The current automated SSH identity is `yzhang3504`, whose observed group list
-contains `punim2936` but not `punim1257`. Read-only `stat`, `find` and sample-file
-checks against the Group44 path all returned `Permission denied`. The private
-GitHub team repository is reachable with write permission. Because Spartan has
-no GitHub SSH key, it was transferred without credentials as a Git bundle and
-cloned at
-`/data/gpfs/projects/punim2936/portfolio_20260818/Group44-2026-capstone-project`
-at commit `8724a295`; its `origin` points back to the private GitHub repository.
-This makes the code available on Spartan but cannot grant GPFS data access. No
-raw file was copied, no alternate identity was guessed and no credential was
-read; the temporary transfer bundle was removed after the clone was verified.
-
-The minimum external fix is therefore one of:
-
-1. add `yzhang3504` to the `punim1257`/Group44 ACL; or
-2. provide the already-authorised Spartan username as a separate SSH host.
-
-After that single access change, run the exact read-only gate below. Do not
-download or duplicate the collection into home or `punim2936`.
+An authorised `punim1257` team identity was used on 21 August 2026. Credentials
+were entered only into the interactive SSH prompt and were not written to this
+repository, an SSH config, a job script or an artifact. Read-only access to the
+canonical file and project account was verified before any compute submission.
+Raw NetCDF files were not copied to home, GitHub, OneDrive or `punim2936`.
 
 ```bash
 VICCLIM_ROOT=/data/gpfs/projects/punim1257/Group44/data/raw/VicClim6
@@ -47,24 +33,20 @@ with xr.open_dataset(path, decode_times=False) as dataset:
 PY
 ```
 
-This is an access preflight, not a real-data result. The first compute job must
-still inventory files, bytes, time coverage, variables, units and calendar
-before applying any burn rule.
+The exact-SHA inventory job `29483795` then recorded six variable families,
+3,672 NetCDF files and 263,698,792,008 bytes (245.59 GiB). All six families have
+612 monthly files and 51 file-backed year directories: **1973–2023**. The
+`1972-2024` strings are collection directory labels, not the available year
+range in this GPFS copy. Representative DF, RH and wind headers were opened;
+the inventory artifact contains no climate payload.
 
 The team guide's `~/flare_env` workflow is supported by
 `spartan/run_real_preflight_venv.sbatch`; the Apptainer route remains available
-in `spartan/run_real_preflight.sbatch`. The venv job imports the pinned runtime,
-checks the canonical NetCDF before starting, loads this repository through
-`PYTHONPATH`, and writes only a three-file metadata inventory. On the current
-`yzhang3504` SSH identity, `/home/yzhang3504/flare_env` is absent and the home
-quota is exhausted, so creating the guide's home-scoped venv failed before any
-package install. The code checkout therefore uses approved project storage.
-Creating another project-scoped venv was intentionally avoided because the
-shared project filesystem had only about 1.4 GiB free; the already verified
-168,099,840-byte `flare-tools.sif` remains the reproducible runtime. This does
-not contradict the setup guide: the venv route remains supported when the
-authorised identity has home quota, while the container route avoids another
-large duplicate environment.
+in `spartan/run_real_preflight.sbatch`. On a short interactive compute
+allocation, the authorised identity created `flare_env` with Python 3.11.3,
+Xarray 2024.11.0, Dask 2024.12.1, netCDF4 1.7.4 and the editable package. Batch
+scripts explicitly load `Python/3.11.3`; omitting that module previously caused
+the venv interpreter to fail on `libpython3.11.so.1.0` before data access.
 
 The original environment list is sufficient to open a NetCDF notebook, but the
 portfolio pipeline also imports Dask and Pydantic. On an interactive compute
@@ -72,7 +54,7 @@ node, install the repository once into that same venv with
 `python -m pip install -e ".[milp,kerchunk]"`; do not run package installation on
 the login node. The preflight deliberately fails if this runtime is incomplete.
 
-Example after ACL/account access is restored:
+Example with an authorised project identity:
 
 ```bash
 export PROJECT_ROOT="$HOME/Group44-2026-capstone-project"
@@ -88,11 +70,12 @@ sbatch spartan/run_real_preflight_venv.sbatch
 - The local project materials contain the FMS workbook and Week 1–2 documents.
 - No `.nc`, `.nc4` or Zarr input was found in the local project/search paths.
 - The workbook opens successfully and contains 43 burn-class rows and 25 columns.
-- Spartan Open OnDemand login was verified as `yzhang3504`; the `punim2936`
-  account and `/data/gpfs/projects/punim2936` project storage are accessible.
-- The team later supplied the authoritative `punim1257/Group44` GPFS path. It
-  exists but is inaccessible to the current `yzhang3504` SSH identity because
-  that identity is not a member of `punim1257`.
+- The authoritative `punim1257/Group44` GPFS path and canonical 2020
+  temperature file are readable under an authorised team identity.
+- The local GPFS copy contains 1973–2023, not the full public-product date range.
+- VicClim6 mixes classic NetCDF and HDF5-era files across years; forcing one
+  backend fails. The loader therefore uses automatic backend selection and
+  serial file opening inside each annual process.
 - Spartan provides both `unimelb-mf-clients` (credential-config based) and
   `mediaflux-data-mover` (shareable-token based). Neither a client config nor a
   shareable token was present in the SSH environment. The currently logged-in
@@ -111,9 +94,13 @@ sbatch spartan/run_real_preflight_venv.sbatch
   confirmation. Supplying those personal fields and creating the external
   account is therefore an explicit user-authorisation step, not an automated
   data-download fallback. No form fields were filled or submitted.
-- `/data/gpfs/projects/punim2936` had only about 2.5 GiB free, so the full
-  collection must not be copied there blindly. First inventory collection size,
-  then select restricted scratch or another approved compute-visible location.
+- The 245.59-GiB collection remains in Group44 project storage. Only compact
+  JSON results are written; no duplicate corpus is created.
+- Group44 storage did not include a district/burn-unit mask. A separate public
+  Victorian Government `LF_DISTRICT` ArcGIS service was therefore queried for
+  the exact `MURRAY GOLDFIELDS` feature. The fetch/query, geometry
+  simplification and grid-centre mask are documented in `boundary-data.md`;
+  this is a district reporting scope, not a burn-unit or treatable-area layer.
 - An earlier team record says one real January 1972 temperature file opened as
   744 hourly timestamps on a 148 x 244 grid. That record has no retained file
   hash or run artifact and is therefore **project-record-only**, not a reproduced
@@ -167,13 +154,15 @@ the first/middle/last NetCDF headers without copying payload data. Then submit
 `spartan/run_real_preflight.sbatch`; run `sbatch --test-only` before the real
 submission. Do not copy raw data into Git, OneDrive or home storage.
 
-## Preconditions for the 1972–2024 array
+## Preconditions for the 1973–2023 array
 
-1. Confirm `yzhang3504` (or a separately configured authorised SSH identity)
-   can read the Group44 sample file.
+1. Confirm the executing identity is an authorised `punim1257` member and can
+   read the Group44 sample file.
 2. Confirm the `punim1257` account, default partition/QOS and project storage quota.
 3. Confirm NetCDF variable names, dimensions, time coverage, calendar and units.
 4. Obtain written decisions for window duration, wind semantics, KBDI seasonal
    labels and missing/unmapped constraints.
 5. Build the Apptainer image and run one year/burn class before scaling the array.
 6. Store outputs under project GPFS and retain the Slurm job ID in each manifest.
+7. For a district run, fetch the official boundary to project storage and pin
+   its hash; never reuse a statewide annual directory as regional evidence.
