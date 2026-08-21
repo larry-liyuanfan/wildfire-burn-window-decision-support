@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable
 from pathlib import Path
+from statistics import median
 from typing import Any
 
-from .trend import block_bootstrap_ci, theil_sen_slope
+from .trend import block_bootstrap_ci, moving_block_bootstrap_mean_ci, theil_sen_slope
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -133,12 +134,45 @@ def aggregate_vicclim6_years(
         first_scenarios = payloads[0].get("scenarios", [])
         aggregate_scenarios: list[dict[str, Any]] = []
         baseline_rate = screened / evaluated if evaluated else 0.0
+        sensitivity_block_years = min(5, len(expected))
+        sensitivity_bootstrap_samples = 2000
         for position, first in enumerate(first_scenarios):
             scenario_cells = sum(
                 int(payload["scenarios"][position]["provisional_pass_cells"])
                 for payload in payloads
             )
             scenario_rate = scenario_cells / evaluated if evaluated else 0.0
+            annual_effects = []
+            for year, payload in zip(expected, payloads, strict=True):
+                annual_evaluated = int(records[year][1]["evaluated_space_time_cells"])
+                annual_baseline_rate = float(payload["baseline"]["provisional_pass_rate"])
+                annual_scenario_rate = (
+                    int(payload["scenarios"][position]["provisional_pass_cells"]) / annual_evaluated
+                    if annual_evaluated
+                    else 0.0
+                )
+                annual_effects.append(
+                    {
+                        "year": year,
+                        "baseline_rate": annual_baseline_rate,
+                        "scenario_rate": annual_scenario_rate,
+                        "absolute_rate_change": annual_scenario_rate - annual_baseline_rate,
+                        "relative_rate_change": (
+                            (annual_scenario_rate - annual_baseline_rate) / annual_baseline_rate
+                            if annual_baseline_rate
+                            else None
+                        ),
+                    }
+                )
+            annual_absolute_changes = [
+                float(item["absolute_rate_change"]) for item in annual_effects
+            ]
+            annual_change_interval = moving_block_bootstrap_mean_ci(
+                annual_absolute_changes,
+                block_size=sensitivity_block_years,
+                samples=sensitivity_bootstrap_samples,
+                seed=20260821 + position,
+            )
             aggregate_scenarios.append(
                 {
                     "scenario": first["scenario"],
@@ -160,6 +194,26 @@ def aggregate_vicclim6_years(
                         )
                         for duration in sorted(duration_names, key=int)
                     },
+                    "annual_effects": annual_effects,
+                    "annual_effect_summary": {
+                        "mean_absolute_rate_change": sum(annual_absolute_changes)
+                        / len(annual_absolute_changes),
+                        "median_absolute_rate_change": float(median(annual_absolute_changes)),
+                        "moving_block_bootstrap_95pct_ci_mean_absolute_rate_change": list(
+                            annual_change_interval
+                        ),
+                        "positive_year_count": sum(
+                            change > 0 for change in annual_absolute_changes
+                        ),
+                        "zero_year_count": sum(change == 0 for change in annual_absolute_changes),
+                        "negative_year_count": sum(
+                            change < 0 for change in annual_absolute_changes
+                        ),
+                        "bootstrap_block_years": sensitivity_block_years,
+                        "bootstrap_samples": sensitivity_bootstrap_samples,
+                        "seed": 20260821 + position,
+                        "causal_interpretation": False,
+                    },
                     "warnings": sorted(
                         {
                             warning
@@ -178,6 +232,10 @@ def aggregate_vicclim6_years(
             },
             "scenarios": aggregate_scenarios,
             "constraints": payloads[0].get("constraints", []),
+            "annual_effect_interpretation": (
+                "paired year-level descriptive differences with a moving-block bootstrap mean "
+                "interval; not causal or operational validation"
+            ),
         }
 
     annual = []

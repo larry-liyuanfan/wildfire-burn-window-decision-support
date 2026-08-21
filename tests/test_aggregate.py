@@ -114,4 +114,11 @@ def test_annual_aggregation_combines_one_sensitivity_contract(tmp_path: Path) ->
         "2": 4,
         "4": 2,
     }
+    effects = sensitivity["scenarios"][0]["annual_effects"]
+    assert [item["absolute_rate_change"] for item in effects] == pytest.approx([0.1, 0.1])
+    effect_summary = sensitivity["scenarios"][0]["annual_effect_summary"]
+    assert effect_summary["positive_year_count"] == 2
+    assert effect_summary[
+        "moving_block_bootstrap_95pct_ci_mean_absolute_rate_change"
+    ] == pytest.approx([0.1, 0.1])
     assert result["quality_gate"]["single_threshold_sensitivity_contract"] is True
