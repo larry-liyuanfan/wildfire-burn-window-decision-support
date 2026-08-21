@@ -75,6 +75,31 @@ def _load_threshold_scenarios(
     return dict(sorted(result.items()))
 
 
+def _decode_baseline_reductions(
+    computed: tuple[object, ...],
+    condition_names: list[str],
+    duration_names: list[str],
+) -> tuple[int, int, dict[str, int], dict[str, int]]:
+    """Decode only baseline reductions even when scenario values follow them."""
+
+    baseline_size = 2 + len(condition_names) + len(duration_names)
+    if len(computed) < baseline_size:
+        raise ValueError("Dask reduction result is shorter than the baseline contract")
+    screened_cells = int(computed[0])
+    evaluated_cells = int(computed[1])
+    condition_start = 2
+    duration_start = condition_start + len(condition_names)
+    condition_values = computed[condition_start:duration_start]
+    duration_values = computed[duration_start:baseline_size]
+    condition_failure_counts = {
+        name: int(value) for name, value in zip(condition_names, condition_values, strict=True)
+    }
+    duration_endpoints = {
+        name: int(value) for name, value in zip(duration_names, duration_values, strict=True)
+    }
+    return screened_cells, evaluated_cells, condition_failure_counts, duration_endpoints
+
+
 def command_inspect(args: argparse.Namespace) -> int:
     prescriptions = load_prescriptions(args.prescriptions)
     report: dict[str, Any] = {"prescriptions": compilation_summary(prescriptions)}
@@ -207,16 +232,12 @@ def command_analyse(args: argparse.Namespace) -> int:
         *endpoint_tasks,
         *sensitivity_tasks,
     )
-    screened_cells = int(computed[0])
-    evaluated_cells = int(computed[1])
-    condition_values = computed[2 : 2 + len(condition_names)]
-    duration_values = computed[2 + len(condition_names) :]
-    condition_failure_counts = {
-        name: int(value) for name, value in zip(condition_names, condition_values, strict=True)
-    }
-    duration_endpoints = {
-        name: int(value) for name, value in zip(duration_names, duration_values, strict=True)
-    }
+    (
+        screened_cells,
+        evaluated_cells,
+        condition_failure_counts,
+        duration_endpoints,
+    ) = _decode_baseline_reductions(computed, condition_names, duration_names)
     sensitivity_cursor = 2 + len(condition_names) + len(duration_names)
     sensitivity_results: list[dict[str, Any]] = []
     for name, overrides in threshold_scenarios.items():

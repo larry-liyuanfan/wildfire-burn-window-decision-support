@@ -4,7 +4,22 @@ import json
 
 import pytest
 
-from burnwindows.cli import _load_threshold_scenarios
+from burnwindows.cli import _decode_baseline_reductions, _load_threshold_scenarios
+
+
+def test_baseline_reductions_ignore_following_sensitivity_values() -> None:
+    result = _decode_baseline_reductions(
+        (10, 100, 7, 8, 9, 50, 40, 30, 999, 998, 997, 996),
+        ["temperature", "humidity", "wind"],
+        ["2", "4", "6"],
+    )
+
+    assert result == (
+        10,
+        100,
+        {"temperature": 7, "humidity": 8, "wind": 9},
+        {"2": 50, "4": 40, "6": 30},
+    )
 
 
 def test_threshold_scenario_file_is_sorted_and_validated(tmp_path, core_prescription) -> None:

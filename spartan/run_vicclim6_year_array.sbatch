@@ -10,12 +10,14 @@
 #SBATCH --error=logs/%x-%A_%a.err
 
 set -euo pipefail
+module purge
 module load "${FLARE_TOOLCHAIN_MODULE:-GCCcore/11.3.0}"
 module load "${FLARE_PYTHON_MODULE:-Python/3.11.3}"
 export OMP_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
+export PYTHONUNBUFFERED=1
 
 : "${PROJECT_ROOT:?Set the exact FLARE repository checkout}"
 : "${FLARE_GIT_SHA:?Pin the pushed commit to execute}"
