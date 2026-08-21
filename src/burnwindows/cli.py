@@ -112,6 +112,33 @@ def command_analyse(args: argparse.Namespace) -> int:
             )
         ]
     )
+    condition_names = list(masks)
+    duration_names = [str(duration) for duration in args.durations]
+    endpoint_tasks = [
+        (
+            suitable_with_context.rolling(time=duration, min_periods=duration).sum()
+            == duration
+        )
+        .sel(time=slice(metric_start, metric_end))
+        .sum()
+        for duration in args.durations
+    ]
+    computed = dask.compute(
+        suitable.sum(),
+        suitable.count(),
+        *((~masks[name]).sum() for name in condition_names),
+        *endpoint_tasks,
+    )
+    screened_cells = int(computed[0])
+    evaluated_cells = int(computed[1])
+    condition_values = computed[2 : 2 + len(condition_names)]
+    duration_values = computed[2 + len(condition_names) :]
+    condition_failure_counts = {
+        name: int(value) for name, value in zip(condition_names, condition_values, strict=True)
+    }
+    duration_endpoints = {
+        name: int(value) for name, value in zip(duration_names, duration_values, strict=True)
+    }
     metrics: dict[str, Any] = {
         "evidence_status": (
             f"verified-{args.data_kind}-complete-prescription-by-this-run"
@@ -142,24 +169,16 @@ def command_analyse(args: argparse.Namespace) -> int:
             "metric_hours": int(suitable.sizes["time"]),
             "left_censored": bool(metric_start == args.start),
         },
-        "suitable_space_time_cells": int(suitable.sum().compute()),
-        "evaluated_space_time_cells": int(suitable.count().compute()),
-        "suitable_rate": float(suitable.mean().compute()),
-        "condition_failure_counts": {
-            key: int((~mask).sum().compute()) for key, mask in masks.items()
-        },
+        "suitable_space_time_cells": screened_cells,
+        "evaluated_space_time_cells": evaluated_cells,
+        "suitable_rate": screened_cells / evaluated_cells,
+        "condition_failure_counts": condition_failure_counts,
         "condition_failure_rates": {
-            key: float((~mask).mean().compute()) for key, mask in masks.items()
+            key: count / evaluated_cells for key, count in condition_failure_counts.items()
         },
-        "minimum_duration_endpoints": {},
+        "minimum_duration_endpoints": duration_endpoints,
         "warnings": [*unit_warnings, *rule_warnings, *scope_warning],
     }
-    for duration in args.durations:
-        endpoints = (
-            suitable_with_context.rolling(time=duration, min_periods=duration).sum()
-            == duration
-        ).sel(time=slice(metric_start, metric_end))
-        metrics["minimum_duration_endpoints"][str(duration)] = int(endpoints.sum().compute())
     metrics["wall_seconds"] = time.perf_counter() - started
     manifest = make_manifest(
         command=sys.argv,
