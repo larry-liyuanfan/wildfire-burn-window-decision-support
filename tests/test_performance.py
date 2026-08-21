@@ -8,7 +8,7 @@ from burnwindows.performance import (
     compare_real_worker_scaling,
     compare_spatial_scope_performance,
 )
-from scripts.compare_real_worker_scaling import _load_run
+from scripts.compare_real_worker_scaling import _load_run, _parse_slurm_accounting
 
 
 def _record(*, cells: int, seconds: int, rss: int, regional: bool) -> dict:
@@ -139,3 +139,19 @@ def test_scaling_record_binds_metrics_to_sibling_manifest(tmp_path) -> None:
         "manifest_file",
         "manifest_sha256",
     }
+
+
+def test_scaling_slurm_accounting_requires_exact_worker_set() -> None:
+    records = _parse_slurm_accounting(
+        ["1=100_0,191,2082252", "2=101_1,147,1995744", "4=101_2,148,2020444"],
+        {1, 2, 4},
+    )
+    assert records[-1] == {
+        "dask_thread_workers": 4,
+        "job_id": "101_2",
+        "elapsed_seconds": 148,
+        "max_rss_kib": 2020444,
+    }
+
+    with pytest.raises(ValueError, match="same worker set"):
+        _parse_slurm_accounting(["1=100_0,191,2082252"], {1, 2, 4})

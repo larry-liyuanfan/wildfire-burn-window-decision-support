@@ -35,6 +35,33 @@ def _load_run(path: Path, workers: int) -> tuple[dict, dict]:
     }
 
 
+def _parse_slurm_accounting(values: list[str], workers: set[int]) -> list[dict]:
+    records = []
+    for raw in values:
+        worker_text, separator, payload = raw.partition("=")
+        fields = payload.split(",") if separator else []
+        if len(fields) != 3:
+            raise ValueError(
+                f"invalid --slurm {raw!r}; expected WORKERS=JOB_ID,ELAPSED_SECONDS,MAXRSS_KIB"
+            )
+        worker_count = int(worker_text)
+        elapsed_seconds = int(fields[1])
+        max_rss_kib = int(fields[2])
+        if elapsed_seconds <= 0 or max_rss_kib <= 0:
+            raise ValueError("Slurm elapsed time and MaxRSS must be positive")
+        records.append(
+            {
+                "dask_thread_workers": worker_count,
+                "job_id": fields[0],
+                "elapsed_seconds": elapsed_seconds,
+                "max_rss_kib": max_rss_kib,
+            }
+        )
+    if records and {record["dask_thread_workers"] for record in records} != workers:
+        raise ValueError("Slurm accounting must cover the same worker set as metrics")
+    return sorted(records, key=lambda item: item["dask_thread_workers"])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -44,6 +71,12 @@ def main() -> int:
         metavar="WORKERS=METRICS_JSON",
     )
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--slurm",
+        action="append",
+        default=[],
+        metavar="WORKERS=JOB_ID,ELAPSED_SECONDS,MAXRSS_KIB",
+    )
     args = parser.parse_args()
 
     records = {}
@@ -60,6 +93,8 @@ def main() -> int:
     result = compare_real_worker_scaling(records)
     result["comparator_git_sha"] = git_sha()
     result["inputs"] = sorted(inputs, key=lambda item: item["dask_thread_workers"])
+    if args.slurm:
+        result["slurm_accounting"] = _parse_slurm_accounting(args.slurm, set(records))
     write_json(args.output, result)
     print(json.dumps(result, indent=2))
     return 0
