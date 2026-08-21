@@ -23,7 +23,7 @@ from .io import (
     open_vicclim6_period,
     parse_chunks,
 )
-from .manifest import make_manifest, write_json, write_run_artifacts
+from .manifest import git_sha, make_manifest, write_json, write_run_artifacts
 from .models import MissingPolicy, Prescription
 from .rules import compilation_summary, load_prescriptions
 from .spatial import subset_rectilinear_geojson
@@ -418,6 +418,7 @@ def command_benchmark(args: argparse.Namespace) -> int:
 def command_aggregate_vicclim6(args: argparse.Namespace) -> int:
     years = range(args.year_start, args.year_end + 1)
     summary = aggregate_vicclim6_years(args.input, expected_years=years)
+    summary["aggregation_git_sha"] = git_sha()
     write_json(args.output, summary)
     print(json.dumps(summary, indent=2, default=str))
     return 0
