@@ -204,6 +204,10 @@ This larger run improves scale and provenance evidence only. It still omits
 FFDI/FFFI, validated rain history, fuel moisture, site and burn-plan constraints,
 so `16.7976%` is not a burn-window rate or an operational/economic finding.
 
+The [paper-to-hiring map](docs/PAPER_TO_HIRING.md) connects the rule-sensitivity,
+spatiotemporal analysis, CVaR optimisation and cloud-array design to primary
+sources, code paths, measured evidence and explicit non-claims.
+
 ## Evidence status
 
 Verified locally in this repository:
