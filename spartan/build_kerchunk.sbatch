@@ -11,7 +11,7 @@ module load GCCcore/13.3.0 Apptainer/1.4.5
 
 : "${PROJECT_ROOT:?Set repository path on project GPFS}"
 : "${IMAGE_PATH:?Set reviewed Apptainer image path}"
-: "${VICCLIM_ROOT:=/Volumes/proj-6600_prescribed_burn_windows-1128.4.1443/data/climate/VicClim6}"
+: "${VICCLIM_ROOT:?Set the confirmed compute-visible VicClim6 path; no macOS default}"
 : "${REFERENCE_PATH:?Keep references on restricted project storage until paths are reviewed}"
 
 mkdir -p "${PROJECT_ROOT}/logs" "$(dirname "${REFERENCE_PATH}")"

@@ -150,6 +150,41 @@ def command_benchmark(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_inventory(args: argparse.Namespace) -> int:
+    from .inventory import inventory_netcdf
+
+    report = inventory_netcdf(args.input, sample_count=args.sample_count)
+    manifest = make_manifest(
+        command=sys.argv,
+        input_paths=[args.input],
+        config={"sample_count": args.sample_count},
+        data_kind="real-data-metadata-inventory",
+    )
+    write_run_artifacts(args.output_dir, manifest=manifest, metrics=report)
+    print(json.dumps(report, indent=2, default=str))
+    return 0
+
+
+def command_decision_benchmark(args: argparse.Namespace) -> int:
+    from .decision_benchmark import run_decision_benchmark_suite
+
+    metrics = run_decision_benchmark_suite(
+        seed=args.seed,
+        repetitions=args.repetitions,
+        held_out_scenarios=args.held_out_scenarios,
+        crew_capacity=args.crew_capacity,
+        daily_capacity=args.daily_capacity,
+    )
+    manifest = make_manifest(
+        command=sys.argv,
+        config=vars(args),
+        data_kind="deterministic-synthetic-operations-benchmark",
+    )
+    write_run_artifacts(args.output_dir, manifest=manifest, metrics=metrics)
+    print(json.dumps(metrics, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="burn-window")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -161,6 +196,14 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_parser.add_argument("--chunks", help='JSON, for example {"time":168,"lat":64,"lon":64}')
     inspect_parser.add_argument("--output", type=Path)
     inspect_parser.set_defaults(handler=command_inspect)
+
+    inventory = subparsers.add_parser(
+        "inventory", help="record scale and representative headers without copying payload data"
+    )
+    inventory.add_argument("--input", type=Path, required=True)
+    inventory.add_argument("--sample-count", type=int, default=3)
+    inventory.add_argument("--output-dir", type=Path, required=True)
+    inventory.set_defaults(handler=command_inventory)
 
     analyse = subparsers.add_parser("analyse", help="run one burn-class analysis with provenance")
     analyse.add_argument("--prescriptions", type=Path, required=True)
@@ -190,6 +233,18 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--seed", type=int, default=20260818)
     benchmark.add_argument("--output-dir", type=Path, required=True)
     benchmark.set_defaults(handler=command_benchmark)
+
+    decision = subparsers.add_parser(
+        "decision-benchmark",
+        help="compare greedy, nominal MILP and robust MILP on fixed synthetic operations scenarios",
+    )
+    decision.add_argument("--seed", type=int, default=20260819)
+    decision.add_argument("--repetitions", type=int, default=30)
+    decision.add_argument("--held-out-scenarios", type=int, default=200)
+    decision.add_argument("--crew-capacity", type=int, default=2)
+    decision.add_argument("--daily-capacity", type=int, default=3)
+    decision.add_argument("--output-dir", type=Path, required=True)
+    decision.set_defaults(handler=command_decision_benchmark)
     return parser
 
 

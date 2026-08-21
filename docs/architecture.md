@@ -73,3 +73,22 @@ small tests use an exact enumerative fallback when SciPy is absent. The selected
 set is revalidated independently. Objective units are scenario utility, never
 reported as realised money or risk reduction.
 
+For Agent explanations, rejected candidates are classified as minimum-duration,
+crew-capacity, daily-capacity or global-objective trade-offs. Capacity-conflict
+records identify the selected blockers and a local replacement gap. The typed
+tool also resolves the neighbouring integer crew capacities and reports their
+objective deltas. These are discrete counterfactual diagnostics around the
+model, not LP dual prices, causal estimates or currency.
+
+The robust extension adds one continuous lower-bound variable `z` and one row
+per planning scenario: `z <= Σ utility[scenario,candidate] × selected[candidate]`.
+Maximising `z` produces a max-min schedule. Held-out simulations evaluate the
+fixed selections; they do not turn scenario utility into a forecast or currency.
+
+The CVaR extension uses a free quantile variable plus one non-negative shortfall
+variable per scenario. At `alpha=0.8`, the objective maximises empirical mean
+utility in the worst 20% of 40 independently sampled planning scenarios. Its
+fixed selection is then evaluated on 200 separately seeded scenarios per run.
+This reduces single-worst-case conservatism while preserving a visible risk
+parameter and an auditable linear formulation.
+

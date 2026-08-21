@@ -28,7 +28,7 @@ from .models import (
     ThresholdScenarioRequest,
     ToolEnvelope,
 )
-from .optimizer import greedy_schedule, solve_schedule
+from .optimizer import explain_selection, greedy_schedule, solve_schedule
 from .trend import block_bootstrap_ci, theil_sen_slope
 
 
@@ -214,6 +214,29 @@ def optimize_burn_schedule(
     )
     best_greedy = max(earliest.objective_value, highest.objective_value)
     lift = (optimum.objective_value - best_greedy) / best_greedy if best_greedy > 0 else 0.0
+    capacity_levels = sorted({max(1, crew_capacity - 1), crew_capacity, crew_capacity + 1})
+    capacity_frontier = []
+    previous_objective: float | None = None
+    for capacity in capacity_levels:
+        counterfactual = solve_schedule(
+            parsed,
+            crew_capacity=capacity,
+            min_duration_hours=min_duration_hours,
+            daily_capacity=daily_capacity,
+        )
+        capacity_frontier.append(
+            {
+                "crew_capacity": capacity,
+                "objective_value": counterfactual.objective_value,
+                "selected_ids": counterfactual.selected_ids,
+                "marginal_utility_vs_previous_level": (
+                    None
+                    if previous_objective is None
+                    else counterfactual.objective_value - previous_objective
+                ),
+            }
+        )
+        previous_objective = counterfactual.objective_value
     return ToolEnvelope(
         status="ok",
         data_version=data_version,
@@ -222,6 +245,8 @@ def optimize_burn_schedule(
             f"crew capacity: {crew_capacity}",
             f"minimum duration: {min_duration_hours}h",
             "objective units are scenario utility, not realised financial return",
+            "capacity frontier is a discrete counterfactual, not an LP shadow price",
+            "rejection replacement gaps are local diagnostics, not causal values",
         ],
         result={
             "optimum": optimum.model_dump(mode="json"),
@@ -230,5 +255,12 @@ def optimize_burn_schedule(
                 "highest_score": highest.model_dump(mode="json"),
             },
             "lift_over_best_greedy": lift,
+            "selection_explanations": explain_selection(
+                parsed,
+                optimum,
+                crew_capacity=crew_capacity,
+                daily_capacity=daily_capacity,
+            ),
+            "crew_capacity_counterfactuals": capacity_frontier,
         },
     )

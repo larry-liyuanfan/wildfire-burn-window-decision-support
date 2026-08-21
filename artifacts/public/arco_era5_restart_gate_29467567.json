@@ -1,0 +1,52 @@
+{
+  "evidence_status": "verified-real-public-reanalysis",
+  "gate_kind": "controlled-stop-resume-semantic-equivalence",
+  "slurm_job_id": "29467567",
+  "git_sha": "6eb8c5f2ed532531c18c0f9037a901a8c0521be0",
+  "source": "https://github.com/google-research/arco-era5",
+  "store": "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3",
+  "selection": {
+    "time": ["2024-03-01T00:00:00", "2024-03-14T23:00:00"],
+    "latitude": [-39.5, -34.0],
+    "longitude": [140.5, 150.5]
+  },
+  "dimensions": {
+    "time": 336,
+    "latitude": 23,
+    "longitude": 41,
+    "evaluated_cell_hours": 316848
+  },
+  "gate": {
+    "restart_semantic_equivalence": true,
+    "semantic_sha256": "6e13387b99cf228f05365f000080a53c3969ddf4057c65e36558330fd8c3205a",
+    "baseline_resumed_from_hours": 0,
+    "controlled_exit_code": 75,
+    "controlled_stop_after_hours": 168,
+    "controlled_run_resumed_from_hours": 168,
+    "baseline_elapsed_seconds": 491.067,
+    "resumed_segment_elapsed_seconds": 235.517
+  },
+  "summary": {
+    "screened_cell_hours": 80052,
+    "screen_rate": 0.2526511134676564,
+    "maximal_run_counts_at_least_hours": {
+      "2": 13659,
+      "4": 8600,
+      "6": 5611
+    }
+  },
+  "runtime": {
+    "state": "COMPLETED",
+    "exit_code": "0:0",
+    "elapsed": "00:16:38",
+    "allocation": "2 CPU, 8 GB",
+    "slurm_max_rss_kib": 763468,
+    "total_cpu": "01:27.486"
+  },
+  "hashes": {
+    "baseline_metrics_sha256": "13599ac57c27cfb5e9ef6bad428f069a94cfe189b9c6b1ae98f017dcd3313689",
+    "resumed_metrics_sha256": "135fecb47f86eff38c394ea62ad9f4efd82dbd960628032877d37376ae10c732",
+    "gate_metrics_sha256": "0e30e1df6951f9adfb9b021dce539c8415b49d3597419603bd6361a7dafe95f7"
+  },
+  "boundary": "This proves exact semantic equivalence after one controlled exit-75 and restart on a bounded public ERA5 weather-only screen. It does not validate VicClim6, burn suitability, safety, treated area, economic value, or recovery from every failure mode."
+}

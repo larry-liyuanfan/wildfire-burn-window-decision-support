@@ -1,0 +1,51 @@
+{
+  "evidence_status": "verified-real-public-reanalysis",
+  "screen_kind": "historical-public-weather-only-necessary-condition-screen",
+  "job_id": "29462231",
+  "job_state": "COMPLETED",
+  "exit_code": "0:0",
+  "git_sha": "51db417ce0886393f1af1b57d2e526c561b57762",
+  "source": "https://github.com/google-research/arco-era5",
+  "store": "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3",
+  "rule_source": "https://www.ffm.vic.gov.au/__data/assets/pdf_file/0015/531222/Report-of-the-Inquiry-into-the-2002-2003-Victorian-Bushfires.pdf",
+  "selection": {
+    "start": "2024-03-01T00:00:00",
+    "end": "2024-03-07T23:00:00",
+    "hours": 168,
+    "latitude_count": 23,
+    "longitude_count": 41
+  },
+  "summary": {
+    "evaluated_cell_hours": 158424,
+    "necessary_condition_pass_cell_hours": 43690,
+    "necessary_condition_pass_rate": 0.27577892238549717,
+    "maximal_run_counts_at_least_hours": {
+      "2": 7642,
+      "4": 4798,
+      "6": 2937
+    },
+    "limiting_factors": {
+      "relative_humidity_failure_count": 85611,
+      "temperature_failure_count": 51495,
+      "wind_speed_failure_count": 35344
+    }
+  },
+  "engineering": {
+    "pipeline_elapsed_seconds": 243.841,
+    "slurm_elapsed": "00:04:49",
+    "batch_max_rss_kib": 762940
+  },
+  "provenance": {
+    "metrics_sha256": "5405d125941df48c6bd6d1a086b0c549a43b67094e4be2c1b877b93e7c0eb1b5",
+    "run_manifest_sha256": "dc59b34bca8df3b360a3d43b75461a3fcb924639da6f5c09c4aae5df75369d9b"
+  },
+  "unresolved": [
+    "FFDI",
+    "next-day FFDI",
+    "FFFI",
+    "validated rain-history accumulation semantics",
+    "fuel moisture",
+    "site and burn-plan constraints"
+  ],
+  "boundary": "This is an upper-bound historical weather-only necessary-condition screen. Passes are not burn windows, safe days, operational recommendations, treated area or economic value; ERA5 at 0.25 degrees is not VicClim6."
+}

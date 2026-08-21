@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from datetime import datetime
 from itertools import combinations
 
@@ -42,6 +42,157 @@ def validate_selection(
             if count > daily_capacity:
                 errors.append(f"daily capacity exceeded on {day}: {count}>{daily_capacity}")
     return not errors, errors
+
+
+def build_feasibility_certificate(
+    candidates: Iterable[ScheduleCandidate],
+    selected_ids: Iterable[str],
+    *,
+    crew_capacity: int,
+    daily_capacity: int | None = None,
+    reported_objective: float | None = None,
+) -> dict[str, object]:
+    """Build a machine-checkable certificate for a returned schedule.
+
+    This independently recomputes the objective and every resource constraint
+    from the selected candidate IDs. It verifies a proposed solution; it does
+    not by itself prove global optimality.
+    """
+
+    pool = list(candidates)
+    selected_set = set(selected_ids)
+    selected = [item for item in pool if item.id in selected_set]
+    feasible, errors = validate_selection(
+        pool,
+        selected_set,
+        crew_capacity=crew_capacity,
+        daily_capacity=daily_capacity,
+    )
+    points = sorted({item.start for item in selected} | {item.end for item in selected})
+    crew_loads = [
+        {
+            "timestamp": point.isoformat(),
+            "crew_demand": sum(item.crew_demand for item in selected if _active(item, point)),
+        }
+        for point in points
+    ]
+    tight_crew_points = [
+        row["timestamp"] for row in crew_loads if row["crew_demand"] == crew_capacity
+    ]
+    per_day: dict[object, int] = defaultdict(int)
+    for item in selected:
+        per_day[item.start.date()] += 1
+    tight_days = (
+        [day.isoformat() for day, count in sorted(per_day.items()) if count == daily_capacity]
+        if daily_capacity is not None
+        else []
+    )
+    recomputed = sum(item.objective_value for item in selected)
+    residual = None if reported_objective is None else recomputed - reported_objective
+    return {
+        "feasible": feasible,
+        "errors": errors,
+        "selected_count": len(selected),
+        "recomputed_objective": recomputed,
+        "reported_objective": reported_objective,
+        "objective_residual": residual,
+        "max_crew_demand": max((int(row["crew_demand"]) for row in crew_loads), default=0),
+        "crew_capacity": crew_capacity,
+        "tight_crew_timestamps": tight_crew_points,
+        "daily_capacity": daily_capacity,
+        "tight_daily_dates": tight_days,
+        "scope": "independent primal-feasibility and objective-recomputation certificate; not an optimality proof",
+    }
+
+
+def _solver_proof(result: object) -> dict[str, object]:
+    """Normalize SciPy/HiGHS branch-and-bound evidence for JSON output."""
+
+    gap = getattr(result, "mip_gap", None)
+    dual_bound = getattr(result, "mip_dual_bound", None)
+    nodes = getattr(result, "mip_node_count", None)
+    return {
+        "optimality_proven": getattr(result, "status", None) == 0,
+        "relative_mip_gap": None if gap is None else float(gap),
+        "objective_upper_bound": None if dual_bound is None else -float(dual_bound),
+        "branch_and_bound_nodes": None if nodes is None else int(nodes),
+        "solver_success": bool(getattr(result, "success", False)),
+    }
+
+
+def explain_selection(
+    candidates: Iterable[ScheduleCandidate],
+    result: ScheduleResult,
+    *,
+    crew_capacity: int,
+    daily_capacity: int | None = None,
+) -> dict[str, dict[str, object]]:
+    """Return deterministic, local explanations for selected/rejected candidates.
+
+    The replacement gap is a diagnostic around the returned solution. It is not
+    an LP dual, a causal estimate or a financial marginal value.
+    """
+
+    candidates = list(candidates)
+    selected_ids = set(result.selected_ids)
+    selected = [item for item in candidates if item.id in selected_ids]
+    explanations: dict[str, dict[str, object]] = {}
+    for item in candidates:
+        if item.id in selected_ids:
+            explanations[item.id] = {
+                "status": "selected",
+                "reason_code": "optimal_feasible_schedule",
+                "candidate_objective_value": item.objective_value,
+                "blocking_selected_ids": [],
+                "local_replacement_gap": None,
+            }
+            continue
+        recorded = result.rejected.get(item.id, "not selected")
+        if recorded == "shorter than minimum duration":
+            explanations[item.id] = {
+                "status": "rejected",
+                "reason_code": "minimum_duration",
+                "candidate_objective_value": item.objective_value,
+                "blocking_selected_ids": [],
+                "local_replacement_gap": None,
+            }
+            continue
+        blockers: set[str] = set()
+        for point in sorted(
+            {item.start, item.end}
+            | {candidate.start for candidate in selected}
+            | {candidate.end for candidate in selected}
+        ):
+            if not _active(item, point):
+                continue
+            active_selected = [candidate for candidate in selected if _active(candidate, point)]
+            demand = item.crew_demand + sum(candidate.crew_demand for candidate in active_selected)
+            if demand > crew_capacity:
+                blockers.update(candidate.id for candidate in active_selected)
+        daily_blocked = False
+        if daily_capacity is not None:
+            same_day = [candidate for candidate in selected if candidate.start.date() == item.start.date()]
+            if len(same_day) >= daily_capacity:
+                blockers.update(candidate.id for candidate in same_day)
+                daily_blocked = True
+        blocking_value = sum(
+            candidate.objective_value for candidate in selected if candidate.id in blockers
+        )
+        explanations[item.id] = {
+            "status": "rejected",
+            "reason_code": (
+                "daily_capacity_conflict"
+                if daily_blocked
+                else "crew_capacity_conflict"
+                if blockers
+                else "global_objective_tradeoff"
+            ),
+            "candidate_objective_value": item.objective_value,
+            "blocking_selected_ids": sorted(blockers),
+            "blocking_objective_value": blocking_value if blockers else None,
+            "local_replacement_gap": blocking_value - item.objective_value if blockers else None,
+        }
+    return explanations
 
 
 def greedy_schedule(
@@ -129,6 +280,7 @@ def solve_schedule(
     selected: list[str]
     method = "milp"
     status = ""
+    solver_proof: dict[str, object]
     try:
         from scipy.optimize import Bounds, LinearConstraint, milp
 
@@ -147,6 +299,7 @@ def solve_schedule(
             raise RuntimeError(result.message)
         selected = [item.id for item, value in zip(pool, result.x, strict=True) if value >= 0.5]
         status = f"scipy-status-{result.status}: {result.message}"
+        solver_proof = _solver_proof(result)
     except (ImportError, RuntimeError):
         if len(pool) > 24:
             raise RuntimeError("SciPy MILP unavailable and exact fallback is limited to 24 candidates")
@@ -167,6 +320,13 @@ def solve_schedule(
                     best_value = value
                     selected = ids
         status = "enumerated-optimum"
+        solver_proof = {
+            "optimality_proven": True,
+            "relative_mip_gap": 0.0,
+            "objective_upper_bound": best_value,
+            "branch_and_bound_nodes": None,
+            "solver_success": True,
+        }
     feasible, errors = validate_selection(
         pool,
         selected,
@@ -179,10 +339,11 @@ def solve_schedule(
     for item in pool:
         if item.id not in selected:
             rejected[item.id] = "not selected by objective/constraints"
+    objective_value = sum(item.objective_value for item in pool if item.id in selected)
     return ScheduleResult(
         method=method,
         selected_ids=selected,
-        objective_value=sum(item.objective_value for item in pool if item.id in selected),
+        objective_value=objective_value,
         feasible=True,
         rejected=rejected,
         solver_status=status,
@@ -190,6 +351,352 @@ def solve_schedule(
             "formulation": "binary linear programme",
             "candidate_count": len(pool),
             "constraint_count": len(rows),
+            "solver_proof": solver_proof,
+            "feasibility_certificate": build_feasibility_certificate(
+                pool,
+                selected,
+                crew_capacity=crew_capacity,
+                daily_capacity=daily_capacity,
+                reported_objective=objective_value,
+            ),
+        },
+    )
+
+
+def solve_robust_schedule(
+    candidates: Iterable[ScheduleCandidate],
+    scenario_utilities: Mapping[str, Mapping[str, float]],
+    *,
+    crew_capacity: int,
+    min_duration_hours: float = 1.0,
+    daily_capacity: int | None = None,
+) -> ScheduleResult:
+    """Maximise the minimum total utility across explicit scenarios.
+
+    The auxiliary variable ``z`` is constrained below every scenario total and
+    maximised. Scenario utilities are caller-supplied planning assumptions, not
+    realised financial returns.
+    """
+
+    if crew_capacity < 1:
+        raise ValueError("crew_capacity must be positive")
+    if not scenario_utilities:
+        raise ValueError("at least one scenario is required")
+    candidates = list(candidates)
+    short = {
+        item.id: "shorter than minimum duration"
+        for item in candidates
+        if item.duration_hours < min_duration_hours
+    }
+    pool = [item for item in candidates if item.id not in short]
+    scenario_names = sorted(scenario_utilities)
+    for scenario in scenario_names:
+        missing = [item.id for item in pool if item.id not in scenario_utilities[scenario]]
+        if missing:
+            raise ValueError(f"scenario {scenario!r} lacks candidate utilities: {missing}")
+        values = np.asarray([scenario_utilities[scenario][item.id] for item in pool], dtype=float)
+        if not np.isfinite(values).all():
+            raise ValueError(f"scenario {scenario!r} contains non-finite utility")
+    if not pool:
+        return ScheduleResult(
+            method="robust-exact-fallback",
+            selected_ids=[],
+            objective_value=0.0,
+            feasible=True,
+            rejected=short,
+            solver_status="empty-feasible-set",
+            metadata={"scenario_totals": {name: 0.0 for name in scenario_names}},
+        )
+
+    capacity_rows, capacity_limits = _constraint_rows(pool, crew_capacity, daily_capacity)
+    selected: list[str]
+    method = "robust-milp"
+    status = ""
+    solver_proof: dict[str, object]
+    try:
+        from scipy.optimize import Bounds, LinearConstraint, milp
+
+        rows = [row + [0.0] for row in capacity_rows]
+        limits = list(capacity_limits)
+        for scenario in scenario_names:
+            utilities = [float(scenario_utilities[scenario][item.id]) for item in pool]
+            rows.append([-value for value in utilities] + [1.0])
+            limits.append(0.0)
+        objective = np.zeros(len(pool) + 1, dtype=float)
+        objective[-1] = -1.0
+        lower = np.concatenate([np.zeros(len(pool)), np.asarray([-np.inf])])
+        upper = np.concatenate([np.ones(len(pool)), np.asarray([np.inf])])
+        result = milp(
+            c=objective,
+            integrality=np.concatenate([np.ones(len(pool)), np.zeros(1)]),
+            bounds=Bounds(lower, upper),
+            constraints=LinearConstraint(
+                np.asarray(rows, dtype=float),
+                -np.inf,
+                np.asarray(limits, dtype=float),
+            ),
+            options={"time_limit": 60.0},
+        )
+        if result.x is None:
+            raise RuntimeError(result.message)
+        selected = [item.id for item, value in zip(pool, result.x[:-1], strict=True) if value >= 0.5]
+        status = f"scipy-status-{result.status}: {result.message}"
+        solver_proof = _solver_proof(result)
+    except (ImportError, RuntimeError):
+        if len(pool) > 24:
+            raise RuntimeError("SciPy robust MILP unavailable and exact fallback is limited to 24 candidates")
+        method = "robust-exact-fallback"
+        best_value = 0.0
+        selected = []
+        for count in range(1, len(pool) + 1):
+            for subset in combinations(pool, count):
+                ids = [item.id for item in subset]
+                feasible, _ = validate_selection(
+                    pool,
+                    ids,
+                    crew_capacity=crew_capacity,
+                    daily_capacity=daily_capacity,
+                )
+                if not feasible:
+                    continue
+                worst_case = min(
+                    sum(float(scenario_utilities[name][item.id]) for item in subset)
+                    for name in scenario_names
+                )
+                if worst_case > best_value + 1e-12:
+                    best_value = worst_case
+                    selected = ids
+        status = "enumerated-robust-optimum"
+        solver_proof = {
+            "optimality_proven": True,
+            "relative_mip_gap": 0.0,
+            "objective_upper_bound": best_value,
+            "branch_and_bound_nodes": None,
+            "solver_success": True,
+        }
+
+    feasible, errors = validate_selection(
+        pool,
+        selected,
+        crew_capacity=crew_capacity,
+        daily_capacity=daily_capacity,
+    )
+    if not feasible:
+        raise RuntimeError(f"robust solver returned infeasible selection: {errors}")
+    selected_set = set(selected)
+    totals = {
+        name: sum(float(scenario_utilities[name][item.id]) for item in pool if item.id in selected_set)
+        for name in scenario_names
+    }
+    rejected = dict(short)
+    for item in pool:
+        if item.id not in selected_set:
+            rejected[item.id] = "not selected by worst-case objective/constraints"
+    return ScheduleResult(
+        method=method,
+        selected_ids=selected,
+        objective_value=min(totals.values()),
+        feasible=True,
+        rejected=rejected,
+        solver_status=status,
+        metadata={
+            "formulation": "max-min robust binary linear programme",
+            "candidate_count": len(pool),
+            "constraint_count": len(capacity_rows) + len(scenario_names),
+            "scenario_count": len(scenario_names),
+            "scenario_totals": totals,
+            "objective_definition": "minimum scenario utility",
+            "solver_proof": solver_proof,
+            "feasibility_certificate": build_feasibility_certificate(
+                pool,
+                selected,
+                crew_capacity=crew_capacity,
+                daily_capacity=daily_capacity,
+                reported_objective=sum(
+                    item.objective_value for item in pool if item.id in selected_set
+                ),
+            ),
+        },
+    )
+
+
+def _lower_tail_mean(values: Iterable[float], alpha: float) -> float:
+    ordered = np.sort(np.asarray(list(values), dtype=float))
+    if not len(ordered):
+        raise ValueError("CVaR requires at least one scenario")
+    tail_count = max(1, int(np.ceil((1.0 - alpha) * len(ordered))))
+    return float(np.mean(ordered[:tail_count]))
+
+
+def solve_cvar_schedule(
+    candidates: Iterable[ScheduleCandidate],
+    scenario_utilities: Mapping[str, Mapping[str, float]],
+    *,
+    crew_capacity: int,
+    alpha: float = 0.8,
+    min_duration_hours: float = 1.0,
+    daily_capacity: int | None = None,
+) -> ScheduleResult:
+    """Maximise empirical lower-tail CVaR across planning scenarios.
+
+    ``alpha=0.8`` maximises the mean of the worst 20% scenario utilities. The
+    formulation trades expected performance against tail protection without
+    treating a single worst case as a probabilistic forecast.
+    """
+
+    if crew_capacity < 1:
+        raise ValueError("crew_capacity must be positive")
+    if not 0.0 <= alpha < 1.0:
+        raise ValueError("alpha must be in [0, 1)")
+    if not scenario_utilities:
+        raise ValueError("at least one scenario is required")
+    candidates = list(candidates)
+    short = {
+        item.id: "shorter than minimum duration"
+        for item in candidates
+        if item.duration_hours < min_duration_hours
+    }
+    pool = [item for item in candidates if item.id not in short]
+    scenario_names = sorted(scenario_utilities)
+    for scenario in scenario_names:
+        missing = [item.id for item in pool if item.id not in scenario_utilities[scenario]]
+        if missing:
+            raise ValueError(f"scenario {scenario!r} lacks candidate utilities: {missing}")
+        values = np.asarray([scenario_utilities[scenario][item.id] for item in pool], dtype=float)
+        if not np.isfinite(values).all():
+            raise ValueError(f"scenario {scenario!r} contains non-finite utility")
+    if not pool:
+        return ScheduleResult(
+            method="cvar-exact-fallback",
+            selected_ids=[],
+            objective_value=0.0,
+            feasible=True,
+            rejected=short,
+            solver_status="empty-feasible-set",
+            metadata={"alpha": alpha, "scenario_count": len(scenario_names)},
+        )
+
+    capacity_rows, capacity_limits = _constraint_rows(pool, crew_capacity, daily_capacity)
+    selected: list[str]
+    method = "cvar-milp"
+    status = ""
+    solver_proof: dict[str, object]
+    try:
+        from scipy.optimize import Bounds, LinearConstraint, milp
+
+        scenario_count = len(scenario_names)
+        variable_count = len(pool) + 1 + scenario_count
+        rows = [row + [0.0] * (1 + scenario_count) for row in capacity_rows]
+        limits = list(capacity_limits)
+        for index, scenario in enumerate(scenario_names):
+            utilities = [float(scenario_utilities[scenario][item.id]) for item in pool]
+            row = [-value for value in utilities] + [1.0] + [0.0] * scenario_count
+            row[len(pool) + 1 + index] = -1.0
+            rows.append(row)
+            limits.append(0.0)
+        objective = np.zeros(variable_count, dtype=float)
+        objective[len(pool)] = -1.0
+        objective[len(pool) + 1 :] = 1.0 / ((1.0 - alpha) * scenario_count)
+        lower = np.concatenate(
+            [np.zeros(len(pool)), np.asarray([-np.inf]), np.zeros(scenario_count)]
+        )
+        upper = np.concatenate(
+            [np.ones(len(pool)), np.asarray([np.inf]), np.full(scenario_count, np.inf)]
+        )
+        result = milp(
+            c=objective,
+            integrality=np.concatenate([np.ones(len(pool)), np.zeros(1 + scenario_count)]),
+            bounds=Bounds(lower, upper),
+            constraints=LinearConstraint(
+                np.asarray(rows, dtype=float),
+                -np.inf,
+                np.asarray(limits, dtype=float),
+            ),
+            options={"time_limit": 60.0},
+        )
+        if result.x is None:
+            raise RuntimeError(result.message)
+        selected = [item.id for item, value in zip(pool, result.x[: len(pool)], strict=True) if value >= 0.5]
+        status = f"scipy-status-{result.status}: {result.message}"
+        solver_proof = _solver_proof(result)
+    except (ImportError, RuntimeError):
+        if len(pool) > 24:
+            raise RuntimeError("SciPy CVaR MILP unavailable and exact fallback is limited to 24 candidates")
+        method = "cvar-exact-fallback"
+        best_value = 0.0
+        selected = []
+        for count in range(1, len(pool) + 1):
+            for subset in combinations(pool, count):
+                ids = [item.id for item in subset]
+                feasible, _ = validate_selection(
+                    pool,
+                    ids,
+                    crew_capacity=crew_capacity,
+                    daily_capacity=daily_capacity,
+                )
+                if not feasible:
+                    continue
+                totals = [
+                    sum(float(scenario_utilities[name][item.id]) for item in subset)
+                    for name in scenario_names
+                ]
+                value = _lower_tail_mean(totals, alpha)
+                if value > best_value + 1e-12:
+                    best_value = value
+                    selected = ids
+        status = "enumerated-cvar-optimum"
+        solver_proof = {
+            "optimality_proven": True,
+            "relative_mip_gap": 0.0,
+            "objective_upper_bound": best_value,
+            "branch_and_bound_nodes": None,
+            "solver_success": True,
+        }
+
+    feasible, errors = validate_selection(
+        pool,
+        selected,
+        crew_capacity=crew_capacity,
+        daily_capacity=daily_capacity,
+    )
+    if not feasible:
+        raise RuntimeError(f"CVaR solver returned infeasible selection: {errors}")
+    selected_set = set(selected)
+    totals = {
+        name: sum(float(scenario_utilities[name][item.id]) for item in pool if item.id in selected_set)
+        for name in scenario_names
+    }
+    objective_value = _lower_tail_mean(totals.values(), alpha)
+    rejected = dict(short)
+    for item in pool:
+        if item.id not in selected_set:
+            rejected[item.id] = "not selected by lower-tail CVaR objective/constraints"
+    return ScheduleResult(
+        method=method,
+        selected_ids=selected,
+        objective_value=objective_value,
+        feasible=True,
+        rejected=rejected,
+        solver_status=status,
+        metadata={
+            "formulation": "empirical lower-tail CVaR binary linear programme",
+            "candidate_count": len(pool),
+            "constraint_count": len(capacity_rows) + len(scenario_names),
+            "scenario_count": len(scenario_names),
+            "scenario_totals": totals,
+            "alpha": alpha,
+            "tail_fraction": 1.0 - alpha,
+            "objective_definition": "mean utility in the empirical lower tail",
+            "solver_proof": solver_proof,
+            "feasibility_certificate": build_feasibility_certificate(
+                pool,
+                selected,
+                crew_capacity=crew_capacity,
+                daily_capacity=daily_capacity,
+                reported_objective=sum(
+                    item.objective_value for item in pool if item.id in selected_set
+                ),
+            ),
         },
     )
 

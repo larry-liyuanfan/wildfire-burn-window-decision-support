@@ -88,7 +88,16 @@ class ScheduleCandidate(BaseModel):
 
 
 class ScheduleResult(BaseModel):
-    method: Literal["milp", "exact-fallback", "earliest-feasible", "highest-score"]
+    method: Literal[
+        "milp",
+        "exact-fallback",
+        "robust-milp",
+        "robust-exact-fallback",
+        "cvar-milp",
+        "cvar-exact-fallback",
+        "earliest-feasible",
+        "highest-score",
+    ]
     selected_ids: list[str]
     objective_value: float
     feasible: bool
