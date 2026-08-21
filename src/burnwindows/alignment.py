@@ -68,8 +68,11 @@ def align_daily_dataarray(
 
     if "time" not in daily.dims:
         raise ValueError("daily DataArray must have a time dimension")
+    source_index = pd.DatetimeIndex(daily.time.values)
+    if not source_index.is_monotonic_increasing or source_index.has_duplicates:
+        raise ValueError("daily time coordinate must be strictly increasing")
     shifted = daily.assign_coords(
-        time=daily.time + np.timedelta64(availability_lag_hours, "h")
+        time=source_index + pd.to_timedelta(availability_lag_hours, unit="h")
     )
-    target = xr.DataArray(hourly_time, dims="time", name="time")
+    target = xr.DataArray(pd.DatetimeIndex(hourly_time), dims="time", name="time")
     return shifted.reindex(time=target, method="ffill", tolerance=f"{max_age_hours}h")

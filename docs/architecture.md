@@ -50,13 +50,22 @@ hour is therefore not a six-hour operational window.
 
 ## Large-data execution
 
-- NetCDF uses `open_mfdataset(combine="by_coords", parallel=True)`.
+- NetCDF uses `open_mfdataset(combine="by_coords", parallel=False)` inside
+  each annual process. Concurrency is supplied by the Slurm year array; this
+  avoids inheriting the physical node's 128-core thread count and protects the
+  mixed NetCDF3/HDF5 collection from unsafe in-process open/read concurrency.
 - Zarr opens consolidated or unconsolidated stores through one adapter.
 - Kerchunk references virtualise HDF5/NetCDF files without copying payloads.
 - Time-first chunks default to one week; spatial chunks are configurable after
   inspecting the on-disk chunks and task graph.
-- The 1972–2024 Slurm array runs one year per checkpoint, so interrupted years
+- The file-backed 1973–2023 Slurm array runs one year per checkpoint, so interrupted years
   can be resubmitted without recomputing completed metrics.
+- Each post-1973 year loads five hours of prior context before calculating
+  2/4/6-hour endpoints. The first day of 1973 is explicitly left-censored
+  because December 1972 daily KBDI/drought-factor state does not exist.
+- Scalar counts and duration endpoints share one Dask reduction graph. The
+  production request (1 CPU, 8 GiB, 20 minutes) is derived from semantic-equal
+  annual pilots rather than copied from the node shape.
 
 The scaling script is intentionally synthetic. Real scaling evidence requires
 the same year, burn class, storage path and chunk configuration at 1/2/4 workers.

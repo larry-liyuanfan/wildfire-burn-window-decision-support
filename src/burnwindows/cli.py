@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -11,17 +12,20 @@ from typing import Any
 
 import numpy as np
 
+from .aggregate import aggregate_vicclim6_years
 from .io import (
     ensure_hourly_grid,
     evaluate_xarray,
     inspect_dataset,
     normalise_dataset,
     open_climate_dataset,
+    open_vicclim6_period,
     parse_chunks,
 )
 from .manifest import make_manifest, write_json, write_run_artifacts
 from .models import MissingPolicy
 from .rules import compilation_summary, load_prescriptions
+from .spatial import subset_rectilinear_geojson
 
 
 def _select(prescriptions: list[object], name: str) -> object:
@@ -49,42 +53,145 @@ def command_inspect(args: argparse.Namespace) -> int:
 
 
 def command_analyse(args: argparse.Namespace) -> int:
+    import dask
+
+    dask_workers = args.dask_workers or int(os.environ.get("SLURM_CPUS_PER_TASK", "1"))
+    if dask_workers < 1:
+        raise ValueError("dask-workers must be positive")
+    dask.config.set(scheduler=args.scheduler, num_workers=dask_workers)
     started = time.perf_counter()
     prescriptions = load_prescriptions(args.prescriptions)
     prescription = _select(prescriptions, args.burn_class)
-    dataset = open_climate_dataset(args.input, backend=args.backend, chunks=parse_chunks(args.chunks))
+    if args.backend == "vicclim6":
+        if not args.start or not args.end:
+            raise ValueError("vicclim6 backend requires --start and --end")
+        dataset = open_vicclim6_period(
+            args.input,
+            start=args.start,
+            end=args.end,
+            chunks=parse_chunks(args.chunks),
+        )
+    else:
+        dataset = open_climate_dataset(
+            args.input,
+            backend=args.backend,
+            chunks=parse_chunks(args.chunks),
+        )
+    region_scope = None
+    if args.region_geojson:
+        dataset, region_scope = subset_rectilinear_geojson(dataset, args.region_geojson)
+        region_scope["label"] = args.region_label
     dataset, unit_warnings = normalise_dataset(dataset)
     if args.start or args.end:
         dataset = dataset.sel(time=slice(args.start, args.end))
     if dataset.sizes.get("time", 0) == 0:
         raise ValueError("time selection produced an empty dataset")
     dataset = ensure_hourly_grid(dataset)
-    suitable, masks, rule_warnings = evaluate_xarray(
+    suitable_with_context, masks_with_context, rule_warnings = evaluate_xarray(
         dataset,
         prescription,
         missing_policy=MissingPolicy(args.missing_policy),
         include_unmapped=args.include_unmapped,
     )
+    metric_start = args.metric_start or args.start
+    metric_end = args.metric_end or args.end
+    suitable = suitable_with_context.sel(time=slice(metric_start, metric_end))
+    masks = {
+        key: value.sel(time=slice(metric_start, metric_end))
+        for key, value in masks_with_context.items()
+    }
+    if suitable.sizes.get("time", 0) == 0:
+        raise ValueError("metric time selection produced an empty dataset")
+    excluded_unmapped = sum(
+        condition.operational_status == "unmapped" and not args.include_unmapped
+        for condition in prescription.conditions
+    )
+    prescription_complete = excluded_unmapped == 0 and not prescription.unresolved
+    scope_warning = (
+        []
+        if prescription_complete
+        else [
+            (
+                "partial prescription: unmapped conditions and unresolved source values are "
+                "not evaluated; pass counts are not operational burn windows or safety evidence"
+            )
+        ]
+    )
+    condition_names = list(masks)
+    duration_names = [str(duration) for duration in args.durations]
+    endpoint_tasks = [
+        (
+            suitable_with_context.rolling(time=duration, min_periods=duration).sum()
+            == duration
+        )
+        .sel(time=slice(metric_start, metric_end))
+        .sum()
+        for duration in args.durations
+    ]
+    computed = dask.compute(
+        suitable.sum(),
+        suitable.count(),
+        *((~masks[name]).sum() for name in condition_names),
+        *endpoint_tasks,
+    )
+    screened_cells = int(computed[0])
+    evaluated_cells = int(computed[1])
+    condition_values = computed[2 : 2 + len(condition_names)]
+    duration_values = computed[2 + len(condition_names) :]
+    condition_failure_counts = {
+        name: int(value) for name, value in zip(condition_names, condition_values, strict=True)
+    }
+    duration_endpoints = {
+        name: int(value) for name, value in zip(duration_names, duration_values, strict=True)
+    }
     metrics: dict[str, Any] = {
-        "evidence_status": f"verified-{args.data_kind}-by-this-run",
+        "evidence_status": (
+            f"verified-{args.data_kind}-complete-prescription-by-this-run"
+            if prescription_complete
+            else f"verified-{args.data_kind}-partial-prescription-by-this-run"
+        ),
         "data_kind": args.data_kind,
         "burn_class": args.burn_class,
-        "suitable_space_time_cells": int(suitable.sum().compute()),
-        "evaluated_space_time_cells": int(suitable.count().compute()),
-        "suitable_rate": float(suitable.mean().compute()),
-        "condition_failure_rates": {
-            key: float((~mask).mean().compute()) for key, mask in masks.items()
+        "prescription_scope": {
+            "complete": prescription_complete,
+            "compiled_condition_count": len(prescription.conditions),
+            "evaluated_condition_count": len(masks),
+            "excluded_unmapped_condition_count": excluded_unmapped,
+            "unresolved_value_count": len(prescription.unresolved),
         },
-        "minimum_duration_endpoints": {},
-        "warnings": [*unit_warnings, *rule_warnings],
+        "interpretation": (
+            "complete compiled prescription evaluation"
+            if prescription_complete
+            else "provisional mapped-condition screen; not an operational burn window"
+        ),
+        "region_scope": region_scope,
+        "time_coverage": {
+            "load_start": args.start,
+            "load_end": args.end,
+            "metric_start": metric_start,
+            "metric_end": metric_end,
+            "scheduler": args.scheduler,
+            "dask_workers": dask_workers,
+            "metric_hours": int(suitable.sizes["time"]),
+            "left_censored": bool(metric_start == args.start),
+        },
+        "suitable_space_time_cells": screened_cells,
+        "evaluated_space_time_cells": evaluated_cells,
+        "suitable_rate": screened_cells / evaluated_cells,
+        "condition_failure_counts": condition_failure_counts,
+        "condition_failure_rates": {
+            key: count / evaluated_cells for key, count in condition_failure_counts.items()
+        },
+        "minimum_duration_endpoints": duration_endpoints,
+        "warnings": [*unit_warnings, *rule_warnings, *scope_warning],
     }
-    for duration in args.durations:
-        endpoints = suitable.rolling(time=duration, min_periods=duration).sum() == duration
-        metrics["minimum_duration_endpoints"][str(duration)] = int(endpoints.sum().compute())
     metrics["wall_seconds"] = time.perf_counter() - started
+    input_paths = [args.prescriptions, args.input]
+    if args.region_geojson:
+        input_paths.append(args.region_geojson)
     manifest = make_manifest(
         command=sys.argv,
-        input_paths=[args.prescriptions, args.input],
+        input_paths=input_paths,
         config={
             "backend": args.backend,
             "chunks": parse_chunks(args.chunks),
@@ -93,6 +200,10 @@ def command_analyse(args: argparse.Namespace) -> int:
             "include_unmapped": args.include_unmapped,
             "start": args.start,
             "end": args.end,
+            "metric_start": metric_start,
+            "metric_end": metric_end,
+            "region_geojson": str(args.region_geojson) if args.region_geojson else None,
+            "region_label": args.region_label,
         },
         data_kind=args.data_kind,
     )
@@ -147,6 +258,14 @@ def command_benchmark(args: argparse.Namespace) -> int:
     )
     write_run_artifacts(args.output_dir, manifest=manifest, metrics=metrics)
     print(json.dumps(metrics, indent=2))
+    return 0
+
+
+def command_aggregate_vicclim6(args: argparse.Namespace) -> int:
+    years = range(args.year_start, args.year_end + 1)
+    summary = aggregate_vicclim6_years(args.input, expected_years=years)
+    write_json(args.output, summary)
+    print(json.dumps(summary, indent=2, default=str))
     return 0
 
 
@@ -210,15 +329,52 @@ def build_parser() -> argparse.ArgumentParser:
     analyse.add_argument("--input", type=str, required=True)
     analyse.add_argument("--burn-class", required=True)
     analyse.add_argument("--output-dir", type=Path, required=True)
-    analyse.add_argument("--backend", choices=["netcdf", "zarr", "kerchunk"], default="netcdf")
+    analyse.add_argument(
+        "--backend",
+        choices=["netcdf", "zarr", "kerchunk", "vicclim6"],
+        default="netcdf",
+    )
     analyse.add_argument("--chunks")
+    analyse.add_argument(
+        "--scheduler",
+        choices=["synchronous", "threads"],
+        default="threads",
+    )
+    analyse.add_argument("--dask-workers", type=int)
     analyse.add_argument("--durations", nargs="+", type=int, default=[2, 4, 6])
     analyse.add_argument("--missing-policy", choices=[item.value for item in MissingPolicy], default="error")
     analyse.add_argument("--include-unmapped", action="store_true")
     analyse.add_argument("--data-kind", choices=["real", "synthetic"], required=True)
     analyse.add_argument("--start", help="inclusive ISO time bound")
     analyse.add_argument("--end", help="inclusive ISO time bound")
+    analyse.add_argument(
+        "--metric-start",
+        help="inclusive metric bound; earlier loaded hours are context only",
+    )
+    analyse.add_argument(
+        "--metric-end",
+        help="inclusive metric bound; later loaded hours are context only",
+    )
+    analyse.add_argument(
+        "--region-geojson",
+        type=Path,
+        help="single-feature EPSG:4326 Polygon/MultiPolygon used to select grid-cell centres",
+    )
+    analyse.add_argument(
+        "--region-label",
+        help="human-readable region label recorded with the spatial evidence scope",
+    )
     analyse.set_defaults(handler=command_analyse)
+
+    aggregate = subparsers.add_parser(
+        "aggregate-vicclim6",
+        help="quality-gate and aggregate restartable annual VicClim6 artifacts",
+    )
+    aggregate.add_argument("--input", type=Path, required=True)
+    aggregate.add_argument("--year-start", type=int, required=True)
+    aggregate.add_argument("--year-end", type=int, required=True)
+    aggregate.add_argument("--output", type=Path, required=True)
+    aggregate.set_defaults(handler=command_aggregate_vicclim6)
 
     benchmark = subparsers.add_parser("benchmark", help="compare NumPy and Dask on fixed synthetic data")
     benchmark.add_argument("--hours", type=int, default=8760)
@@ -253,7 +409,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return int(args.handler(args))
-    except (FileNotFoundError, KeyError, ValueError, RuntimeError) as exc:
+    except (FileNotFoundError, KeyError, TypeError, ValueError, RuntimeError) as exc:
         parser.error(str(exc))
         return 2
 

@@ -9,6 +9,8 @@
 #SBATCH --error=logs/%x-%j.err
 
 set -euo pipefail
+module load "${FLARE_PYTHON_MODULE:-Python/3.11.3}"
+
 : "${PROJECT_ROOT:?Set the Group44 or portfolio repository checkout}"
 : "${FLARE_PYTHON:?Set the registered FLARE environment Python executable}"
 : "${VICCLIM_ROOT:?Set the confirmed Group44 VicClim6 root}"

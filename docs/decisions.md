@@ -8,14 +8,18 @@
 | D004 | Use a 24-hour default availability lag for date-labelled daily aggregates | Same-day fill can leak future information | Zero lag requires documented availability timestamps |
 | D005 | Convert units only from explicit NetCDF attributes | Inferring units from magnitude is unsafe | Unknown units produce warnings, not silent conversion |
 | D006 | Keep unmapped fuel/ground-wind rules out of the core baseline | Required datasets, height conversion and semantics are unresolved | They remain typed and can be enabled when evidence arrives |
-| D007 | Use Xarray/Dask lazily and benchmark chunk layouts | Full 1972–2024 grids exceed workstation memory | Results are checkpointed by year on Spartan |
+| D007 | Use Xarray/Dask lazily and benchmark chunk layouts | The file-backed 1973–2023 grid exceeds workstation memory | Results are checkpointed by year on Spartan |
 | D008 | Support Kerchunk but keep references restricted | References expose source locations and inherit access controls | Reference JSON is ignored and not a public artifact by default |
 | D009 | Validate every optimiser output independently | Solver success alone is not a domain feasibility proof | A failing validation aborts the run |
 | D010 | Label synthetic metrics at creation time | Fixtures prove code, not project outcomes | Synthetic rates and timings are prohibited resume evidence |
 | D011 | Do not publish the FMS workbook or a threshold dump | Licensing/publication permission is unclear | Workbook is supplied at runtime from restricted storage |
 | D012 | Keep 6.49%, 9.04% and prior scale claims unverified | No accessible run artifact reproduces them | README records them only as historical project claims |
-| D014 | Use anonymous ARCO-ERA5 only as a bounded real-data engineering preflight | It exercises cloud Zarr/Xarray/unit derivation while VicClim6 access is blocked, but differs in source and resolution | Publish provenance and engineering metrics; prohibit VicClim6, FFDI/KBDI, window, trend or value claims |
+| D014 | Keep anonymous ARCO-ERA5 as a bounded, independently reproducible engineering preflight | It exercises cloud Zarr/Xarray/unit derivation without restricted project access, but differs from VicClim6 in source and resolution | Publish provenance and engineering metrics; prohibit VicClim6, FFDI/KBDI, window, trend or value claims |
 | D013 | Add lower-tail CVaR beside nominal and max-min schedules | A single worst scenario was conservative and did not yield stable held-out P05 improvement | Risk appetite is explicit (`alpha=0.8`); planning and held-out scenarios use independent seeds |
+| D015 | Treat the actual inventory (1973–2023) as authoritative rather than the `1972-2024` directory label | All six families contain 51 years and no 1972/2024 year directories | Coverage claims and arrays use 1973–2023; 1973 starts on 2 January because prior daily state is absent |
+| D016 | Use a synchronous one-worker Dask scheduler inside each concurrent annual task | Four processes each inherited the 128-core node and produced random NetCDF SIGSEGV/SIGBUS failures | One CPU per year; Slurm array parallelism supplies concurrency; mixed NetCDF formats use automatic backend selection |
+| D017 | Fuse scalar reductions into one shared Dask graph and size memory from pilots | Repeated reductions reread the same 245.59-GiB collection; the first fused pilot exposed the exact OOM boundary | Formal years request 8 GiB after a 6,015,508-KiB pilot peak and preserve a semantic-hash equality gate |
+| D018 | Use the official `LF_DISTRICT` ArcGIS feature for district reporting and evaluate membership at grid-cell centres | Group44 storage has no spatial mask, while substituting an LGA or inferring geography from a burn-class name would be indefensible | Exact district match, EPSG:4326, sub-grid simplification tolerance and boundary hash are mandatory; district results remain distinct from burn-unit/area claims |
 
 ## Open decisions requiring supervisor or data-owner confirmation
 

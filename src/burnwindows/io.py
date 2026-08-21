@@ -7,16 +7,29 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .alignment import align_daily_dataarray
 from .models import MissingPolicy, Prescription
 
 VARIABLE_ALIASES = {
     "T_SFC": "temperature_c",
     "TSFC": "temperature_c",
+    "RH_SFC": "relative_humidity_pct",
     "RHSFC": "relative_humidity_pct",
+    "Wind_Mag_SFC": "wind_speed_kmh",
     "WMAG": "wind_speed_kmh",
     "FFDI": "FFDI",
+    "KBDI-AWAP": "KBDI",
     "KBDI": "KBDI",
     "DF": "drought_factor",
+}
+
+VICCLIM6_FAMILIES: dict[str, tuple[str, str, str]] = {
+    "T_SFC": ("WRFV6_TSFC1972-2024", "T_SFC", "hourly"),
+    "RH_SFC": ("WRFV6_RHSFC1972-2024", "RH_SFC", "hourly"),
+    "Wind_Mag_SFC": ("WRFV6_WMAG1972-2024", "Wind_Mag_SFC", "hourly"),
+    "FFDI": ("WRFV6_FFDI1972-2024", "FFDI", "hourly"),
+    "KBDI": ("WRFV6_KBDI1972-2024", "KBDI-AWAP", "daily"),
+    "DF": ("WRFV6_DF1972-2024", "DF", "daily"),
 }
 
 
@@ -68,6 +81,109 @@ def open_climate_dataset(
     raise ValueError(f"unsupported backend: {backend}")
 
 
+def _vicclim6_month_files(
+    root: Path,
+    family: str,
+    start: object,
+    end: object,
+    *,
+    include_previous_month: bool,
+) -> list[str]:
+    import pandas as pd
+
+    start_period = pd.Timestamp(start).to_period("M")
+    end_period = pd.Timestamp(end).to_period("M")
+    if end_period < start_period:
+        raise ValueError("end must not precede start")
+    if include_previous_month:
+        start_period -= 1
+    paths: list[str] = []
+    for period in pd.period_range(start_period, end_period, freq="M"):
+        month_dir = root / family / f"{period.year:04d}" / f"{period.month:02d}"
+        matches = sorted(month_dir.glob("*.nc"))
+        if len(matches) != 1:
+            raise FileNotFoundError(
+                f"expected exactly one NetCDF in {month_dir}, found {len(matches)}"
+            )
+        paths.append(str(matches[0]))
+    return paths
+
+
+def open_vicclim6_period(
+    input_path: str | Path,
+    *,
+    start: object,
+    end: object,
+    chunks: dict[str, int] | None = None,
+    daily_availability_lag_hours: int = 24,
+    daily_max_age_hours: int = 48,
+) -> object:
+    """Open one bounded VicClim6 period with leakage-safe daily/hourly alignment.
+
+    Hourly temperature, relative humidity, wind and FFDI files define the
+    target grid. Date-labelled daily KBDI and drought factor are shifted by the
+    declared availability lag and only backward-filled within a bounded age.
+    A previous-month file is loaded only when the requested start precedes the
+    first current-month observation becoming available.
+    """
+
+    import pandas as pd
+    import xarray as xr
+
+    root = Path(input_path)
+    if not root.is_dir():
+        raise FileNotFoundError(root)
+    start_time = pd.Timestamp(start)
+    end_time = pd.Timestamp(end)
+    if end_time < start_time:
+        raise ValueError("end must not precede start")
+    target_time = pd.date_range(start_time, end_time, freq="h")
+    if not len(target_time):
+        raise ValueError("requested VicClim6 period is empty")
+    chunks = chunks or {"time": 168}
+
+    month_start = start_time.to_period("M").start_time
+    needs_previous_daily_month = start_time < (
+        month_start + pd.Timedelta(hours=daily_availability_lag_hours)
+    )
+    variables: dict[str, object] = {}
+    for output_name, (family, source_name, cadence) in VICCLIM6_FAMILIES.items():
+        paths = _vicclim6_month_files(
+            root,
+            family,
+            start_time,
+            end_time,
+            include_previous_month=cadence == "daily" and needs_previous_daily_month,
+        )
+        dataset = xr.open_mfdataset(
+            paths,
+            combine="by_coords",
+            parallel=False,
+            chunks=chunks,
+        )
+        if source_name not in dataset:
+            raise KeyError(f"{source_name} is missing from {paths[0]}")
+        values = dataset[source_name]
+        if cadence == "daily":
+            values = align_daily_dataarray(
+                values,
+                target_time,
+                availability_lag_hours=daily_availability_lag_hours,
+                max_age_hours=daily_max_age_hours,
+            )
+        else:
+            values = values.reindex(time=target_time)
+        variables[output_name] = values
+    return xr.Dataset(variables).assign_attrs(
+        {
+            "source": "VicClim6 Group44 GPFS",
+            "daily_alignment": "backward-only",
+            "daily_availability_lag_hours": daily_availability_lag_hours,
+            "daily_max_age_hours": daily_max_age_hours,
+        }
+    )
+
+
 def normalise_dataset(dataset: object) -> tuple[object, list[str]]:
     """Rename recognised variables and convert only units declared in attrs."""
 
@@ -97,6 +213,9 @@ def normalise_dataset(dataset: object) -> tuple[object, list[str]]:
         units = str(result.wind_speed_kmh.attrs.get("units", "")).lower().replace(" ", "")
         if units in {"m/s", "ms-1", "m.s-1"}:
             result["wind_speed_kmh"] = result.wind_speed_kmh * 3.6
+            result.wind_speed_kmh.attrs["units"] = "km/h"
+        elif units in {"kt", "kts", "knot", "knots"}:
+            result["wind_speed_kmh"] = result.wind_speed_kmh * 1.852
             result.wind_speed_kmh.attrs["units"] = "km/h"
         elif units not in {"km/h", "kmh-1", "kmhr-1"}:
             warnings.append("wind-speed units are absent or unrecognised; values were not converted")

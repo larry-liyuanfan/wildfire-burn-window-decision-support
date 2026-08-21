@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import xarray as xr
 
@@ -32,3 +34,12 @@ def test_inventory_records_collection_scale_and_representative_headers(tmp_path)
     ]
     assert all(sample["time_strictly_increasing"] for sample in result["samples"])
     assert result["samples"][0]["variable_units"]["T_SFC"] == "K"
+
+
+def test_spartan_venv_preflight_loads_the_python_module_used_to_build_the_venv() -> None:
+    script = (
+        Path(__file__).parents[1] / "spartan" / "run_real_preflight_venv.sbatch"
+    ).read_text(encoding="utf-8")
+
+    assert 'module load "${FLARE_PYTHON_MODULE:-Python/3.11.3}"' in script
+    assert script.index("module load") < script.index('[[ -x "${FLARE_PYTHON}" ]]')

@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-08-21",
+  "evidence_status": "verified-real-partial-prescription-by-this-run",
+  "data_provenance": {
+    "source": "authorised Group44 VicClim6 project storage on Spartan",
+    "payload_published": false,
+    "actual_year_start": 1973,
+    "actual_year_end": 2023,
+    "year_count": 51,
+    "variable_families": 6,
+    "netcdf_file_count": 3672,
+    "total_bytes": 263698792008,
+    "total_gib": 245.58863789588213,
+    "collection_metadata_sha256": "a88d53704f0b865585f5e20b68b13732e3175ab3f05175553220d73f30f688ac4",
+    "inventory_job_id": "29483795",
+    "inventory_git_sha": "dae09335db05825c04ca2bd8200f89ef1164b616",
+    "inventory_elapsed_seconds": 12,
+    "inventory_max_rss_kib": 122596
+  },
+  "prescription": {
+    "burn_class": "Murray Goldfields - Box ironbark forest",
+    "spatial_scope": "all 148 x 244 VicClim6 grid cells; no Murray Goldfields or burn-unit mask was available",
+    "workbook_sha256": "e063ffda8c003b4fb5e9c9506072cbc6edf78364b358acfb84c13f91a22feb1a",
+    "compiled_condition_count": 8,
+    "evaluated_condition_count": 6,
+    "excluded_unmapped_condition_count": 2,
+    "unresolved_value_count": 0,
+    "interpretation": "provisional mapped-condition screen; not an operational burn window"
+  },
+  "year_2020_pilot": {
+    "job_id": "29483994",
+    "git_sha": "51779178bb4ae70cc04ddf902cf7ae18c00d95e7",
+    "state": "COMPLETED",
+    "exit_code": "0:0",
+    "elapsed_seconds": 487,
+    "compute_step_max_rss_kib": 3113304,
+    "requested_cpus": 4,
+    "requested_memory_gib": 4,
+    "metric_hours": 8784,
+    "grid_shape": [148, 244],
+    "evaluated_space_time_cells": 317207808,
+    "provisional_pass_cells": 10726687,
+    "provisional_pass_rate": 0.03381596142803647,
+    "minimum_duration_endpoints": {
+      "2": 6128152,
+      "4": 1947775,
+      "6": 689709
+    },
+    "metrics_sha256": "6b830895c2b4e16a716c5eb6ea69d55da1470b8b61a8c5ad6861c40899ac9d07",
+    "manifest_sha256": "6cd935ae0aa1ed21b10ad1f3b8e7ebac86d66272d7fe631aed8362a739cf2625",
+    "error_cases_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+  },
+  "publication_boundary": [
+    "The two unmapped prescription fields are excluded rather than guessed.",
+    "No region or burn-unit geometry was present in the authorised Group44 data area, so the statewide grid screen is not a Murray Goldfields regional estimate.",
+    "Pass cells and duration endpoints are not burn approvals, safety evidence or treated area.",
+    "No fire-risk reduction, field outcome or financial return is inferred.",
+    "Restricted workbook and NetCDF payloads remain on Spartan project storage."
+  ]
+}
