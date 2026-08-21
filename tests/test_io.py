@@ -139,3 +139,18 @@ def test_vicclim6_month_pilot_is_exact_sha_and_partial_rule_gated() -> None:
     assert '--backend vicclim6' in script
     assert '--missing-policy error' in script
     assert '--include-unmapped' not in script
+
+
+def test_vicclim6_year_array_is_pilot_sized_and_boundary_explicit() -> None:
+    from pathlib import Path
+
+    script = (
+        Path(__file__).parents[1] / "spartan" / "run_vicclim6_year_array.sbatch"
+    ).read_text(encoding="utf-8")
+
+    assert "#SBATCH --array=1973-2023%4" in script
+    assert "#SBATCH --mem=4G" in script
+    assert "--metric-start" in script
+    assert "1973-01-02T00:00:00" in script
+    assert "SLURM_ARRAY_JOB_ID" in script
+    assert '${FLARE_GIT_SHA:?Pin the pushed commit to execute}' in script

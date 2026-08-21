@@ -11,6 +11,7 @@ from typing import Any
 
 import numpy as np
 
+from .aggregate import aggregate_vicclim6_years
 from .io import (
     ensure_hourly_grid,
     evaluate_xarray,
@@ -74,12 +75,21 @@ def command_analyse(args: argparse.Namespace) -> int:
     if dataset.sizes.get("time", 0) == 0:
         raise ValueError("time selection produced an empty dataset")
     dataset = ensure_hourly_grid(dataset)
-    suitable, masks, rule_warnings = evaluate_xarray(
+    suitable_with_context, masks_with_context, rule_warnings = evaluate_xarray(
         dataset,
         prescription,
         missing_policy=MissingPolicy(args.missing_policy),
         include_unmapped=args.include_unmapped,
     )
+    metric_start = args.metric_start or args.start
+    metric_end = args.metric_end or args.end
+    suitable = suitable_with_context.sel(time=slice(metric_start, metric_end))
+    masks = {
+        key: value.sel(time=slice(metric_start, metric_end))
+        for key, value in masks_with_context.items()
+    }
+    if suitable.sizes.get("time", 0) == 0:
+        raise ValueError("metric time selection produced an empty dataset")
     excluded_unmapped = sum(
         condition.operational_status == "unmapped" and not args.include_unmapped
         for condition in prescription.conditions
@@ -115,9 +125,20 @@ def command_analyse(args: argparse.Namespace) -> int:
             if prescription_complete
             else "provisional mapped-condition screen; not an operational burn window"
         ),
+        "time_coverage": {
+            "load_start": args.start,
+            "load_end": args.end,
+            "metric_start": metric_start,
+            "metric_end": metric_end,
+            "metric_hours": int(suitable.sizes["time"]),
+            "left_censored": bool(metric_start == args.start),
+        },
         "suitable_space_time_cells": int(suitable.sum().compute()),
         "evaluated_space_time_cells": int(suitable.count().compute()),
         "suitable_rate": float(suitable.mean().compute()),
+        "condition_failure_counts": {
+            key: int((~mask).sum().compute()) for key, mask in masks.items()
+        },
         "condition_failure_rates": {
             key: float((~mask).mean().compute()) for key, mask in masks.items()
         },
@@ -125,7 +146,10 @@ def command_analyse(args: argparse.Namespace) -> int:
         "warnings": [*unit_warnings, *rule_warnings, *scope_warning],
     }
     for duration in args.durations:
-        endpoints = suitable.rolling(time=duration, min_periods=duration).sum() == duration
+        endpoints = (
+            suitable_with_context.rolling(time=duration, min_periods=duration).sum()
+            == duration
+        ).sel(time=slice(metric_start, metric_end))
         metrics["minimum_duration_endpoints"][str(duration)] = int(endpoints.sum().compute())
     metrics["wall_seconds"] = time.perf_counter() - started
     manifest = make_manifest(
@@ -139,6 +163,8 @@ def command_analyse(args: argparse.Namespace) -> int:
             "include_unmapped": args.include_unmapped,
             "start": args.start,
             "end": args.end,
+            "metric_start": metric_start,
+            "metric_end": metric_end,
         },
         data_kind=args.data_kind,
     )
@@ -193,6 +219,14 @@ def command_benchmark(args: argparse.Namespace) -> int:
     )
     write_run_artifacts(args.output_dir, manifest=manifest, metrics=metrics)
     print(json.dumps(metrics, indent=2))
+    return 0
+
+
+def command_aggregate_vicclim6(args: argparse.Namespace) -> int:
+    years = range(args.year_start, args.year_end + 1)
+    summary = aggregate_vicclim6_years(args.input, expected_years=years)
+    write_json(args.output, summary)
+    print(json.dumps(summary, indent=2, default=str))
     return 0
 
 
@@ -268,7 +302,25 @@ def build_parser() -> argparse.ArgumentParser:
     analyse.add_argument("--data-kind", choices=["real", "synthetic"], required=True)
     analyse.add_argument("--start", help="inclusive ISO time bound")
     analyse.add_argument("--end", help="inclusive ISO time bound")
+    analyse.add_argument(
+        "--metric-start",
+        help="inclusive metric bound; earlier loaded hours are context only",
+    )
+    analyse.add_argument(
+        "--metric-end",
+        help="inclusive metric bound; later loaded hours are context only",
+    )
     analyse.set_defaults(handler=command_analyse)
+
+    aggregate = subparsers.add_parser(
+        "aggregate-vicclim6",
+        help="quality-gate and aggregate restartable annual VicClim6 artifacts",
+    )
+    aggregate.add_argument("--input", type=Path, required=True)
+    aggregate.add_argument("--year-start", type=int, required=True)
+    aggregate.add_argument("--year-end", type=int, required=True)
+    aggregate.add_argument("--output", type=Path, required=True)
+    aggregate.set_defaults(handler=command_aggregate_vicclim6)
 
     benchmark = subparsers.add_parser("benchmark", help="compare NumPy and Dask on fixed synthetic data")
     benchmark.add_argument("--hours", type=int, default=8760)

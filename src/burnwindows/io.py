@@ -120,10 +120,11 @@ def open_vicclim6_period(
 ) -> object:
     """Open one bounded VicClim6 period with leakage-safe daily/hourly alignment.
 
-    Hourly temperature, relative humidity and wind files define the target
-    grid. Date-labelled daily FFDI, KBDI and drought factor are shifted by the
+    Hourly temperature, relative humidity, wind and FFDI files define the
+    target grid. Date-labelled daily KBDI and drought factor are shifted by the
     declared availability lag and only backward-filled within a bounded age.
-    The previous month is therefore required for daily variables.
+    A previous-month file is loaded only when the requested start precedes the
+    first current-month observation becoming available.
     """
 
     import pandas as pd
@@ -141,6 +142,10 @@ def open_vicclim6_period(
         raise ValueError("requested VicClim6 period is empty")
     chunks = chunks or {"time": 168}
 
+    month_start = start_time.to_period("M").start_time
+    needs_previous_daily_month = start_time < (
+        month_start + pd.Timedelta(hours=daily_availability_lag_hours)
+    )
     variables: dict[str, object] = {}
     for output_name, (family, source_name, cadence) in VICCLIM6_FAMILIES.items():
         paths = _vicclim6_month_files(
@@ -148,7 +153,7 @@ def open_vicclim6_period(
             family,
             start_time,
             end_time,
-            include_previous_month=cadence == "daily",
+            include_previous_month=cadence == "daily" and needs_previous_daily_month,
         )
         dataset = xr.open_mfdataset(
             paths,
