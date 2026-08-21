@@ -213,6 +213,41 @@ Set the required environment variables shown at the top of each script. Raw
 climate data, source prescriptions, Kerchunk paths and analysis outputs stay on
 restricted project storage.
 
+### Verified 51-year Murray Goldfields district screen
+
+The official Victorian Government *Land and Fire District Major* ArcGIS layer
+was queried by the exact `MURRAY GOLDFIELDS` district name, converted to a
+single-feature EPSG:4326 GeoJSON and hashed before execution. Grid-centre
+point-in-polygon selected **2,221 of 36,112** VicClim6 cells (6.1503%). The
+district boundary is a reproducible analysis scope, but it is not a burn-unit,
+land-tenure, access or treatable-area mask.
+
+Spartan array `29486334` and dependent aggregate `29486336` completed all
+**51 file-backed years (1973–2023)** at exact commit `cbc044c`. The aggregate
+quality gate verified one Git SHA, one prescription contract, one spatial
+contract, real data, all expected years and no raw paths. It evaluated
+**992,840,304 regional space-time cells** under six mapped conditions for the
+`Murray Goldfields - Box ironbark forest` workbook class. Two conditions,
+surface fuel moisture and ground wind, remain explicitly unmapped. The partial
+screen retained **48,143,687 cells (4.8491%)**; 2/4/6-hour continuous-window
+endpoints were **27,971,450 / 9,440,163 / 3,190,224**.
+
+Each annual task used one CPU and completed in 44–81 seconds with a maximum
+observed RSS of 883,708 KiB; the 51 task elapsed times summed to 3,091 seconds,
+and aggregation took eight seconds. This bounded spatial reduction is the
+measured engineering gain over the 2020 statewide reference, not a claim that
+the climate computation itself became approximate.
+
+A Theil–Sen descriptive trend with a seeded five-year moving-block residual
+bootstrap estimated a **+0.331 percentage-point change per decade** in this
+partial-screen pass rate (95% interval **+0.012 to +0.613 percentage points per
+decade**). It is a descriptive association for one data/rule/spatial contract,
+not causal attribution. None of the pass counts are burn approvals, complete
+prescriptions, safe hours, treated area, fire-risk reduction or economic value.
+See the [compact public record](artifacts/public/vicclim6_murray_goldfields_51y_29486334.json);
+the workbook, NetCDF payloads and annual outputs remain on authorised Spartan
+storage.
+
 Spartan job `29461166` completed the public-data preflight from exact commit
 `9f2401f8`: 24 hourly steps over a 23 x 41 Victoria grid were read from the
 official ARCO-ERA5 store, temperature/RH/wind/precipitation fields were derived,
@@ -265,6 +300,7 @@ feature to remain deliberately unmapped.
 | A forced `h5netcdf` pilot could not open the collection's classic NetCDF years | Use automatic backend selection and test representative families/years | failed job `29484324`; mixed-format loader tests |
 | Four Dask processes each inherited the physical 128-core node shape, producing nondeterministic NetCDF `SIGSEGV`/`SIGBUS` failures | One synchronous Dask worker per annual task; Slurm array supplies bounded outer concurrency | failed array `29484258`; successful sequential pilot `29484375` |
 | A fused annual graph exceeded a 4-GiB request | Preserve the graph fusion, measure its 6,015,508-KiB peak, and request 8 GiB with margin | OOM job `29484605`; completed pilot `29484629` |
+| The authorised climate directory contained no region or burn-unit geometry | Fetch the official Victorian Government district feature by exact name, hash it, apply grid-centre inclusion, and make spatial scope part of the aggregation contract | boundary provenance record; 51-year district array `29486334` and aggregate `29486336` |
 | Calendar-year partitioning would truncate windows at 1 January | Load five hours of prior context for later years; explicitly left-censor the first 24 hours of 1973 | boundary tests and annual manifest fields |
 | Partial/mixed retries could silently yield a plausible aggregate | Reject missing years, duplicate years, mixed commits, mixed workbook hashes and non-real artifacts | `aggregate_vicclim6_years` plus tamper/incompleteness tests |
 
@@ -279,7 +315,7 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 56 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
+- 59 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
   and full-year 2024 weather-only screen jobs on Spartan with exact commits and
   hashes;
 - a remote controlled exit-75/checkpoint/resume gate whose uninterrupted and
@@ -288,6 +324,10 @@ Verified locally in this repository:
   real 2020 mapped-condition screen over 317,207,808 space-time cells. The
   screen evaluated six of eight compiled conditions and excluded two unmapped
   fuel/ground-wind fields rather than guessing them.
+- an official district-scoped 1973–2023 VicClim6 array over 992,840,304
+  regional space-time cells, with one exact Git SHA/spatial/rule contract,
+  51/51 annual checkpoints, measured resource records and a non-causal
+  block-bootstrap descriptive trend.
 
 Not verified or not eligible for promotion:
 

@@ -18,7 +18,7 @@ motivates this repository's typed rule AST, explicit unresolved values and
   <https://doi.org/10.1016/j.agrformet.2019.03.005>.
 - Code: `src/burnwindows/rules.py`, `src/burnwindows/tools.py`.
 - Evidence: 43 workbook rows compile into typed or explicitly unresolved
-  fields; boundary and threshold-scenario tests are part of the 56-test suite.
+  fields; boundary and threshold-scenario tests are part of the 59-test suite.
 - Hiring signal: converts policy spreadsheets into versionable, testable domain
   logic and makes sensitivity auditable.
 - Boundary: workbook thresholds remain private, and no public-data weather pass
@@ -37,12 +37,16 @@ average.
 - Code: `src/burnwindows/trend.py`, `src/burnwindows/engine.py`,
   `src/burnwindows/tools.py`.
 - Evidence: deterministic fixtures cover trend grouping, continuous-window
-  extraction and limiting factors.
+  extraction and limiting factors. The official-district 51-year array
+  `29486334` and aggregate `29486336` completed 51/51 years and produced a
+  Theil–Sen pass-rate change of +0.331 percentage points/decade with a seeded
+  five-year moving-block-bootstrap 95% interval of +0.012 to +0.613.
 - Hiring signal: turns a large climate cube into explainable regional decision
   features rather than a single descriptive statistic.
-- Boundary: the authorised file-backed collection covers 1973–2023. A complete
-  trend is not claimed until all 51 exact-SHA annual artifacts and the dependent
-  aggregation quality gate complete successfully.
+- Boundary: the completed trend is descriptive for the six mapped conditions,
+  one workbook class and the official Murray Goldfields district grid-centre
+  mask. It is not causal attribution, a complete prescription, a burn-unit
+  result or operational availability.
 
 ## 3. Tail-risk scheduling should remain a solvable, auditable programme
 

@@ -1,0 +1,89 @@
+{
+  "artifact_type": "vicclim6_official_district_partial_prescription_screen",
+  "evidence_status": "verified-real-partial-prescription-by-this-run",
+  "jobs": {
+    "year_array": "29486334",
+    "aggregate": "29486336",
+    "aggregate_exit_code": "0:0",
+    "aggregate_elapsed_seconds": 8,
+    "array_task_count": 51,
+    "array_elapsed_total_seconds": 3091,
+    "array_task_elapsed_min_seconds": 44,
+    "array_task_elapsed_max_seconds": 81,
+    "array_max_rss_kib": 883708
+  },
+  "code_and_inputs": {
+    "git_sha": "cbc044cfa35f37c1f352583d9bb8ac776e7aba13",
+    "workbook_sha256": "e063ffda8c003b4fb5e9c9506072cbc6edf78364b358acfb84c13f91aa22feb1a",
+    "boundary_sha256": "840b0dd6aaa45a8d216074433ad6d0b0fbd4d08142d2c9ea1699e5f639a215c3",
+    "aggregate_summary_sha256": "93cf8641bc2ea746b8c8c12c1f1cb417809b4f78510bc214171fca28b2614fe9",
+    "vicclim6_inventory": {
+      "families": 6,
+      "monthly_files": 3672,
+      "bytes": 263698792008,
+      "actual_year_start": 1973,
+      "actual_year_end": 2023
+    }
+  },
+  "spatial_scope": {
+    "label": "Murray Goldfields FFMVic district",
+    "official_layer": "Victorian Government Land and Fire District Major",
+    "official_service": "https://spatial.planning.vic.gov.au/gis/rest/services/boundary/MapServer/12",
+    "license": "Creative Commons Attribution 4.0 International",
+    "attribution": "State of Victoria (Department of Energy, Environment and Climate Action)",
+    "district_name": "MURRAY GOLDFIELDS",
+    "region_name": "LODDON MALLEE",
+    "selected_grid_cell_centres": 2221,
+    "source_grid_cells": 36112,
+    "selected_fraction": 0.061503101462117855,
+    "inclusion_rule": "EPSG:4326 grid-cell centre inside single official Polygon",
+    "geometry_boundary": "A fire-management district is not a burn-unit, land-tenure, access or treatable-area mask."
+  },
+  "prescription_contract": {
+    "burn_class": "Murray Goldfields - Box ironbark forest",
+    "workbook_classes": 43,
+    "compiled_conditions_for_class": 8,
+    "evaluated_mapped_conditions": 6,
+    "unmapped_conditions": ["FMCSurfaceInside", "WindSpeedGround"],
+    "interpretation": "Provisional mapped-condition weather exposure screen, not an operational burn window."
+  },
+  "result": {
+    "year_start": 1973,
+    "year_end": 2023,
+    "year_count": 51,
+    "evaluated_space_time_cells": 992840304,
+    "provisional_pass_cells": 48143687,
+    "provisional_pass_rate": 0.048490866865533694,
+    "minimum_duration_endpoints": {
+      "2_hours": 27971450,
+      "4_hours": 9440163,
+      "6_hours": 3190224
+    },
+    "descriptive_theil_sen": {
+      "pass_rate_percentage_point_change_per_decade": 0.3308135340948061,
+      "moving_block_bootstrap_95_interval_percentage_points_per_decade": [
+        0.012420833609555014,
+        0.6133663966521004
+      ],
+      "block_years": 5,
+      "bootstrap_samples": 2000,
+      "seed": 20260821,
+      "causal_interpretation": false
+    }
+  },
+  "quality_gate": {
+    "complete_expected_year_set": true,
+    "single_exact_git_sha": true,
+    "single_prescription_contract": true,
+    "single_spatial_contract": true,
+    "all_real_data": true,
+    "raw_paths_omitted": true,
+    "annual_error_cases_empty": true
+  },
+  "boundaries": [
+    "The pass count evaluates six mapped conditions while two fuel-moisture/ground-wind conditions remain explicitly unmapped.",
+    "Results are not burn approval, complete prescription, safe hours, treated area, fire-risk reduction or economic value.",
+    "The trend is a descriptive association for this data/rule/spatial contract, not a causal climate attribution.",
+    "The workbook, VicClim6 payloads, full annual artifacts and raw paths remain on authorised Spartan project storage."
+  ]
+}

@@ -65,14 +65,19 @@ and 245.59 GiB. File-backed years are 1973–2023 even though directory names sa
 5. gives later years five hours of left context so 2/4/6-hour endpoint counts are
    exact at the year boundary;
 6. runs every year as an independently restartable exact-SHA task and aggregates
-   only a complete, single-commit, single-prescription result set;
+   only a complete, single-commit, single-prescription and single-spatial-contract result set;
 7. estimates descriptive annual change with Theil–Sen slope and a seeded
    five-year moving-block residual bootstrap, with no causal interpretation.
 
 The authorised data area does not contain a region polygon or burn-unit mask.
-The selected class thresholds are therefore screened across the statewide grid
-only to test temporal/rule machinery. No regional availability, treated-area or
-allocation conclusion is drawn from that spatial scope.
+The statewide 2020 run is therefore retained only as a temporal/rule reference.
+For the regional chain, the system fetches the official Victorian Government
+Murray Goldfields fire-management-district feature by exact name, records its
+hash/licence/properties, selects 2,221 grid-cell centres and refuses to aggregate
+mixed spatial contracts. Jobs `29486334`/`29486336` completed 51/51 years over
+992,840,304 regional cells. This is a reproducible district exposure scope, but
+the district still does not encode burn units, land tenure, access or treatable
+area, so no area/allocation conclusion is drawn.
 
 This is the current technical contribution. The next scientifically meaningful
 upgrade is not a larger neural network; it is the licensed fuel-moisture,

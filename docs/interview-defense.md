@@ -10,7 +10,7 @@ evaluation with NetCDF/Zarr/Kerchunk adapters, continuous-window extraction,
 limiting-factor and sensitivity tools, and a binary scheduling layer validated
 against greedy baselines. I compared nominal, max-min and lower-tail CVaR
 formulations, keeping planning scenarios independent from held-out evaluation.
-Fifty-six local tests verify the engineering behavior on golden fixtures. I
+Fifty-nine local tests verify the engineering behavior on golden fixtures. I
 also built an anonymous ARCO-ERA5 preflight with explicit source boundaries,
 then used an authorised team identity to inventory and process the restricted
 VicClim6 collection without copying its payloads.
@@ -22,11 +22,17 @@ safety evidence. The controlled exit-75 plus resume job `29467567` stopped at
 168/336 hours, restored its checkpoint, and matched the uninterrupted summary
 exactly over 316,848 cell-hours (semantic SHA `6e13387b...205a`). This verifies
 one bounded restart path, not recovery from every infrastructure failure. The
-real 2020 VicClim6 pilot evaluated 317,207,808 space-time cells and produced a
-3.381596% mapped-condition pass rate, but two fuel/ground-wind conditions remain
-unmapped. It is therefore a provisional screen, not a burn approval, complete
-prescription, safety result or economic claim; historical 6.49% and 9.04%
-values remain unverified.
+real 2020 VicClim6 pilot evaluated 317,207,808 statewide space-time cells. The
+data directory had no regional mask, so I fetched and hashed the official
+Murray Goldfields fire-management-district polygon and made spatial scope part
+of the aggregation contract. Exact-SHA jobs `29486334`/`29486336` then completed
+51/51 years over 992,840,304 regional cells. Six mapped conditions retained
+48,143,687 cells (4.8491%), and annual tasks took 44–81 seconds with less than
+0.85 GiB MaxRSS. Two fuel/ground-wind conditions remain unmapped, and the
+district is not a burn-unit/treatable-area mask. It is therefore a provisional
+weather-exposure screen, not a burn approval, complete prescription, safety,
+area, risk or economic result. A block-bootstrap descriptive trend is also
+non-causal; historical 6.49% and 9.04% values remain unverified.
 
 ## Code evidence map
 
@@ -38,7 +44,8 @@ values remain unverified.
 | What happens when a variable is missing? | explicit `MissingPolicy` and warning envelope |
 | How is a continuous operational window defined? | `extract_windows`; irregular gaps split runs |
 | How do you scale beyond memory? | `io.py`, Kerchunk builder and Spartan Slurm array |
-| What real-data path was actually executed? | `io.py`, `evaluate_vicclim6_year.py`, the compact VicClim6 inventory/2020 record and Slurm accounting; `public_reanalysis.py` remains an independently reproducible public preflight |
+| What real-data path was actually executed? | `io.py`, `spatial.py`, `evaluate_vicclim6_year.py`, the compact VicClim6 inventory/2020 and 51-year district records plus Slurm accounting; `public_reanalysis.py` remains an independently reproducible public preflight |
+| How is regional scope prevented from being mixed across years? | `spatial.py`, region hash/properties in every manifest, and `aggregate_vicclim6_years` single-spatial-contract gate |
 | How do you prove restart does not alter results? | local property tests plus remote job `29467567`: controlled exit 75 at 168/336 hours, resume from checkpoint and exact semantic hash match against an uninterrupted 316,848-cell-hour run |
 | How do you know optimisation output is valid? | MILP constraints plus independent `validate_selection` |
 | Why was a candidate rejected, and what would another crew buy? | `explain_selection` plus the typed tool's discrete crew-capacity counterfactuals; both carry non-dual/non-financial boundaries |
@@ -75,4 +82,7 @@ values remain unverified.
 26. Which state must cross a chunk boundary so 2/4/6-hour runs are not double-counted or split?
 27. Why compare semantic payload hashes instead of raw JSON file hashes after resume?
 28. What additional evidence is required before feeding public-weather candidates into a real scheduling or economic claim?
+29. Why is an official fire-management district still not a burn-unit or treatable-area mask?
+30. How do you interpret a positive Theil–Sen slope whose block-bootstrap interval excludes zero without making a causal claim?
+31. Why did masking 6.15% of grid centres reduce annual runtime and MaxRSS, and which operations still scale with time rather than space?
 
