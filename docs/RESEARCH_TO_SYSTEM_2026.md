@@ -84,6 +84,15 @@ mixed spatial contracts. Jobs `29486334`/`29486336` completed 51/51 years over
 the district still does not encode burn units, land tenure, access or treatable
 area, so no area/allocation conclusion is drawn.
 
+The public run records also support a bounded performance comparison. The
+district retained 6.1503% of statewide evaluated cells, while summed array-task
+elapsed time and maximum RSS fell 83.74% and 88.10%. Per-cell throughput fell to
+37.82% of the statewide rate, making fixed file-opening, time-alignment and
+aggregation work visible. Because the spatial contracts and code SHAs differ,
+the comparison is evidence for resource planning and failure analysis only; it
+does not identify a causal speedup, an Amdahl serial fraction or worker-scaling
+efficiency.
+
 This is the current technical contribution. The next scientifically meaningful
 upgrade is not a larger neural network; it is the licensed fuel-moisture,
 ground-wind and burn-unit evidence needed to close the prescription and outcome

@@ -265,6 +265,18 @@ and aggregation took eight seconds. This bounded spatial reduction is the
 measured engineering gain over the 2020 statewide reference, not a claim that
 the climate computation itself became approximate.
 
+A strict comparison of the two completed 51-year records makes the systems
+trade-off explicit. The official district retained **6.1503%** of statewide
+space-time cells; summed array-task elapsed time fell **83.74%** and maximum
+observed RSS fell **88.10%**. Regional throughput per evaluated cell was only
+**37.82%** of the statewide rate, however, so performance did not scale linearly
+with cell count. Fixed file-opening, temporal alignment and aggregation work
+are plausible contributors, but the two chains have different spatial
+contracts and Git SHAs, so this is an observed scope comparison—not a causal
+code-level speedup, an Amdahl serial-fraction estimate or a 1→4 worker result.
+The [compact comparison record](artifacts/public/vicclim6_spatial_scope_performance_20260822.json)
+pins both input-record hashes and the quality gates used for the derivation.
+
 A Theil–Sen descriptive trend with a seeded five-year moving-block residual
 bootstrap estimated a **+0.331 percentage-point change per decade** in this
 partial-screen pass rate (95% interval **+0.012 to +0.613 percentage points per
@@ -342,7 +354,7 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 59 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
+- 61 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
   and full-year 2024 weather-only screen jobs on Spartan with exact commits and
   hashes;
 - a remote controlled exit-75/checkpoint/resume gate whose uninterrupted and

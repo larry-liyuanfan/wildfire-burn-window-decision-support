@@ -10,7 +10,7 @@ evaluation with NetCDF/Zarr/Kerchunk adapters, continuous-window extraction,
 limiting-factor and sensitivity tools, and a binary scheduling layer validated
 against greedy baselines. I compared nominal, max-min and lower-tail CVaR
 formulations, keeping planning scenarios independent from held-out evaluation.
-Fifty-nine local tests verify the engineering behavior on golden fixtures. I
+Sixty-one local tests verify the engineering behavior on golden fixtures. I
 also built an anonymous ARCO-ERA5 preflight with explicit source boundaries,
 then used an authorised team identity to inventory and process the restricted
 VicClim6 collection without copying its payloads.
@@ -35,6 +35,11 @@ district is not a burn-unit/treatable-area mask. It is therefore a provisional
 weather-exposure screen, not a burn approval, complete prescription, safety,
 area, risk or economic result. A block-bootstrap descriptive trend is also
 non-causal; historical 6.49% and 9.04% values remain unverified.
+The district retained 6.1503% of statewide cells while summed elapsed time and
+peak RSS fell 83.74% and 88.10%. Per-cell throughput fell to 37.82% of the
+statewide rate, which makes fixed I/O/alignment overhead visible. Because the
+two chains use different spatial contracts and Git SHAs, I present this as an
+observed scope comparison, not worker scaling or causal code acceleration.
 
 ## Code evidence map
 
@@ -48,6 +53,7 @@ non-causal; historical 6.49% and 9.04% values remain unverified.
 | How do you scale beyond memory? | `io.py`, Kerchunk builder and Spartan Slurm array |
 | What real-data path was actually executed? | `io.py`, `spatial.py`, `evaluate_vicclim6_year.py`, the compact VicClim6 inventory/2020, 51-year statewide and 51-year district records plus Slurm accounting; `public_reanalysis.py` remains an independently reproducible public preflight |
 | How is regional scope prevented from being mixed across years? | `spatial.py`, region hash/properties in every manifest, and `aggregate_vicclim6_years` single-spatial-contract gate |
+| Why did a 93.85% cell reduction produce only an 83.74% elapsed reduction? | `performance.py`, `compare_spatial_scopes.py` and the compact scope-comparison artifact; discuss fixed I/O/alignment overhead and the non-causal comparison boundary |
 | How do you prove restart does not alter results? | local property tests plus remote job `29467567`: controlled exit 75 at 168/336 hours, resume from checkpoint and exact semantic hash match against an uninterrupted 316,848-cell-hour run |
 | How do you know optimisation output is valid? | MILP constraints plus independent `validate_selection` |
 | Why was a candidate rejected, and what would another crew buy? | `explain_selection` plus the typed tool's discrete crew-capacity counterfactuals; both carry non-dual/non-financial boundaries |
@@ -87,4 +93,5 @@ non-causal; historical 6.49% and 9.04% values remain unverified.
 29. Why is an official fire-management district still not a burn-unit or treatable-area mask?
 30. How do you interpret a positive Theil–Sen slope whose block-bootstrap interval excludes zero without making a causal claim?
 31. Why did masking 6.15% of grid centres reduce annual runtime and MaxRSS, and which operations still scale with time rather than space?
+32. Why is the statewide-vs-district comparison not a 1→4 worker benchmark or an Amdahl serial-fraction estimate?
 
