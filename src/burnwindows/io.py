@@ -158,7 +158,6 @@ def open_vicclim6_period(
         dataset = xr.open_mfdataset(
             paths,
             combine="by_coords",
-            engine="h5netcdf",
             parallel=False,
             chunks=chunks,
         )
