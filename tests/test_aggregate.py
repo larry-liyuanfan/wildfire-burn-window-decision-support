@@ -56,6 +56,8 @@ def test_annual_aggregation_is_weighted_and_quality_gated(tmp_path: Path) -> Non
     assert result["provisional_pass_rate"] == 0.15
     assert result["condition_failure_counts"] == {"a": 4, "b": 6}
     assert result["minimum_duration_endpoints"] == {"2": 2, "4": 0}
+    assert result["descriptive_trend"]["slope_rate_per_year"] == 0.1
+    assert result["descriptive_trend"]["causal_interpretation"] is False
     assert result["quality_gate"]["complete_expected_year_set"] is True
 
 

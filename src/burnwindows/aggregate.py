@@ -7,6 +7,8 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from .trend import block_bootstrap_ci, theil_sen_slope
+
 
 def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -107,6 +109,16 @@ def aggregate_vicclim6_years(
                 "left_censored": bool(metrics["time_coverage"]["left_censored"]),
             }
         )
+    annual_rates = [float(item["provisional_pass_rate"]) for item in annual]
+    slope = theil_sen_slope(expected, annual_rates)
+    bootstrap_block_years = min(5, len(expected))
+    trend_interval = block_bootstrap_ci(
+        expected,
+        annual_rates,
+        block_size=bootstrap_block_years,
+        samples=2000,
+        seed=20260821,
+    )
 
     return {
         "evidence_status": next(iter(statuses)),
@@ -126,6 +138,16 @@ def aggregate_vicclim6_years(
         },
         "minimum_duration_endpoints": duration_endpoints,
         "annual": annual,
+        "descriptive_trend": {
+            "estimator": "Theil-Sen slope with moving-block residual bootstrap",
+            "slope_rate_per_year": slope,
+            "change_rate_per_decade": slope * 10,
+            "bootstrap_95pct_ci_rate_per_year": list(trend_interval),
+            "bootstrap_block_years": bootstrap_block_years,
+            "bootstrap_samples": 2000,
+            "seed": 20260821,
+            "causal_interpretation": False,
+        },
         "quality_gate": {
             "complete_expected_year_set": True,
             "single_exact_git_sha": True,
