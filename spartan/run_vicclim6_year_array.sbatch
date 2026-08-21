@@ -3,7 +3,7 @@
 #SBATCH --account=punim1257
 #SBATCH --partition=sapphire
 #SBATCH --array=1973-2023%4
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
 #SBATCH --time=00:20:00
 #SBATCH --output=logs/%x-%A_%a.out
@@ -11,6 +11,10 @@
 
 set -euo pipefail
 module load "${FLARE_PYTHON_MODULE:-Python/3.11.3}"
+export OMP_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
 
 : "${PROJECT_ROOT:?Set the exact FLARE repository checkout}"
 : "${FLARE_GIT_SHA:?Pin the pushed commit to execute}"
@@ -67,6 +71,8 @@ srun "${FLARE_PYTHON}" -c \
   --metric-start "${METRIC_START}" \
   --metric-end "${END_TIME}" \
   --chunks '{"time":168,"latitude":37,"longitude":61}' \
+  --scheduler synchronous \
+  --dask-workers 1 \
   --durations 2 4 6 \
   --missing-policy error \
   --data-kind real \

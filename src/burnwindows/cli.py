@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -51,6 +52,12 @@ def command_inspect(args: argparse.Namespace) -> int:
 
 
 def command_analyse(args: argparse.Namespace) -> int:
+    import dask
+
+    dask_workers = args.dask_workers or int(os.environ.get("SLURM_CPUS_PER_TASK", "1"))
+    if dask_workers < 1:
+        raise ValueError("dask-workers must be positive")
+    dask.config.set(scheduler=args.scheduler, num_workers=dask_workers)
     started = time.perf_counter()
     prescriptions = load_prescriptions(args.prescriptions)
     prescription = _select(prescriptions, args.burn_class)
@@ -130,6 +137,8 @@ def command_analyse(args: argparse.Namespace) -> int:
             "load_end": args.end,
             "metric_start": metric_start,
             "metric_end": metric_end,
+            "scheduler": args.scheduler,
+            "dask_workers": dask_workers,
             "metric_hours": int(suitable.sizes["time"]),
             "left_censored": bool(metric_start == args.start),
         },
@@ -296,6 +305,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="netcdf",
     )
     analyse.add_argument("--chunks")
+    analyse.add_argument(
+        "--scheduler",
+        choices=["synchronous", "threads"],
+        default="threads",
+    )
+    analyse.add_argument("--dask-workers", type=int)
     analyse.add_argument("--durations", nargs="+", type=int, default=[2, 4, 6])
     analyse.add_argument("--missing-policy", choices=[item.value for item in MissingPolicy], default="error")
     analyse.add_argument("--include-unmapped", action="store_true")

@@ -149,7 +149,10 @@ def test_vicclim6_year_array_is_pilot_sized_and_boundary_explicit() -> None:
     ).read_text(encoding="utf-8")
 
     assert "#SBATCH --array=1973-2023%4" in script
+    assert "#SBATCH --cpus-per-task=1" in script
     assert "#SBATCH --mem=4G" in script
+    assert "--scheduler synchronous" in script
+    assert "--dask-workers 1" in script
     assert "--metric-start" in script
     assert "1973-01-02T00:00:00" in script
     assert "SLURM_ARRAY_JOB_ID" in script
