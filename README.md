@@ -8,11 +8,12 @@ rules, bypass missing-data policy or return an infeasible schedule.
 
 ## Why this project exists
 
-The research question is how often suitable prescribed-burning conditions occur
-in Victoria, how availability changes across space and time, and how sensitive
-the result is to the definition of a window. The engineering question is how to
-make that analysis reproducible at the file-backed VicClim6 scale (1973–2023, approximately
-4 km) and safe to call from an Agentic AI application.
+The product question is how a planner or Agent can turn expert prescriptions,
+multi-decadal weather data, official burn-unit records and resource assumptions
+into an auditable shortlist of candidate windows and feasible schedules. The
+engineering question is how to make that decision chain reproducible at the
+file-backed VicClim6 scale (1973–2023, approximately 4 km) without letting an LLM
+invent rules, measurements or economic outcomes.
 
 This repository complements a multimodal-search/Agent portfolio by demonstrating
 the part that must remain deterministic: typed tools, explicit constraints,
@@ -22,12 +23,16 @@ large-array execution, provenance and refusal to guess unresolved semantics.
 flowchart LR
   W[Private FMS workbook] --> A[Typed rule AST]
   V[Six VicClim6 families] --> T[Leakage-safe time alignment]
-  B[Official FFMVic district polygon] --> S[Grid-centre spatial mask]
+  B[Official FFMVic district and burn-unit polygons] --> S[Spatial scope]
+  H[FFMVic Fire History outcomes] --> X[Plan/outcome polygon intersection]
+  M[Temperature/RH/rain + 10 m wind] --> P[FMC ensemble + fuel-level-wind proxy]
   A --> D[Xarray/Dask rule graph]
   T --> S --> D
+  P --> D
   D --> R[2/4/6 h endpoint extraction]
   R --> E[Limiting factors and sensitivity]
   E --> O[Validated nominal / max-min / CVaR MILP]
+  X --> O
   O --> C[Feasibility certificate and Agent tool envelope]
 ```
 
@@ -38,18 +43,21 @@ data kind, Git SHA, workbook hash, coverage, warnings and output hashes pass the
 same aggregation gate.
 
 The authorised Group44 data area contains the six climate/index families but
-no region polygon, burn-unit geometry or raster mask. The first full-grid array
+no region polygon or burn-unit geometry. The first full-grid array
 therefore labels all 148 x 244-cell results as a **statewide exposure screen
 under that partial rule set**, not a Murray Goldfields estimate. A separate,
 official Victorian Government `LF_DISTRICT` ArcGIS layer is now fetched by an
 exact district-name query and applied at VicClim6 grid-cell centres. Regional
 and statewide artifacts are never mixed by the aggregation quality gate. The
-district mask still is not a burn-unit boundary and cannot support treated-area
-or operational-approval claims. See [boundary provenance](docs/boundary-data.md).
+district mask is still not a burn-unit boundary. A separate official JFMP/Fire
+History adapter now queries **176 current Murray Goldfields burn IDs** and
+**187 historical burn IDs**, aligns eight shared IDs and measures plan/outcome
+polygon overlap in EPSG:3577. This outcome layer is kept separate from the
+historical district weather screen. See [boundary provenance](docs/boundary-data.md).
 
 ## Stable tool contracts
 
-All five public tools return a `ToolEnvelope` containing status, data version,
+All six public tools return a `ToolEnvelope` containing status, data version,
 source, active constraints, warnings and a typed result.
 
 | Tool | Deterministic responsibility |
@@ -59,6 +67,7 @@ source, active constraints, warnings and a typed result.
 | `compare_threshold_scenarios` | Compare explicit threshold perturbations with a fixed baseline |
 | `get_region_trend` | Report Theil–Sen slope and seeded block-bootstrap interval |
 | `optimize_burn_schedule` | Compare two greedy baselines with a validated binary programme, machine-checkable feasibility/solver certificates, local rejection reasons and discrete crew-capacity counterfactuals |
+| `derive_fuel_inputs` | Produce a dry-fuel FMC model ensemble and explicit 10-m-to-fuel-level wind scenario with rain guards and provenance |
 
 The Pydantic schemas are in `src/burnwindows/models.py`; JSON Schema can be
 generated directly with `ToolEnvelope.model_json_schema()` and the request
@@ -77,6 +86,14 @@ models used by a calling service.
 - **Missing data:** callers choose `error`, `fail` or `ignore`; the default is
   `error`. Unmapped fuel/ground-wind constraints are excluded with warnings
   unless the caller explicitly includes them.
+- **Fuel-input closure:** `--derive-fuel-proxies` evaluates the two previously
+  absent surface-FMC and fuel-level-wind inputs using a Viney/Van Wagner-Pickett
+  ensemble, rain guard and explicit wind-reduction factor. These are labelled
+  meteorological proxies rather than site observations.
+- **Burn-unit outcomes:** official JFMP and Fire History records are paginated,
+  hashed, de-duplicated by typed record, joined on the official burn ID and
+  intersected in Australian Albers. Attribute ratios and geometry overlap are
+  both retained so staged/partially completed burns remain visible.
 - **Scale:** Xarray/Dask evaluation stays lazy until metrics are computed.
   NetCDF, Zarr and Kerchunk references share one input adapter.
 - **Spatial scope:** an optional, single-feature EPSG:4326 GeoJSON polygon is
@@ -128,14 +145,79 @@ burn-window analyse \
   --end 2020-12-31T23:00:00 \
   --durations 2 4 6 \
   --missing-policy error \
+  --derive-fuel-proxies \
+  --wind-reduction-factor 0.33 \
   --data-kind real \
   --output-dir artifacts/run-001
 ```
+
+Fetch the current official Murray Goldfields burn-unit/outcome evidence without
+persisting the raw service payload:
+
+```bash
+burn-window official-outcomes \
+  --planned-district "Murray Goldfields" \
+  --history-district "Loddon Mallee - Murray Goldfields" \
+  --output-dir artifacts/public/ffmvic_murray_goldfields_burn_delivery_20260822
+```
+
+### Verified official burn-unit and outcome integration
+
+The public FFMVic JFMP and Fire History services returned **221 plan features
+(176 burn IDs)** and **430 historical features (187 burn IDs)** for Murray
+Goldfields. Exact official-ID alignment found **eight shared burn units**. Their
+current plan polygons cover **422.16 ha** and the matched historical treatment
+polygons cover **162.56 ha**; **161.89 ha intersect**, equal to **38.35% of the
+plan geometry** and **99.59% of the treated geometry**. The calculation uses
+GeoJSON feature hashes and EPSG:3577 Australian Albers, and independently
+recomputes geometry area rather than trusting display values.
+
+The same artifact records two transparent planning inputs: FFMVic's public
+20/30/70-person crew scenarios and the 2024–25 statewide direct planned-burning
+benchmark of **AUD 26.7m / 92,473 ha = AUD 288.73 per treated hectare**. Applied
+to the matched 162.54 attribute hectares this is an **AUD 46,931 direct-cost
+scale proxy**—not a unit's observed cost, saving or ROI. These data now support
+burn-unit, treated-area, resource-scenario and cost-scale discussion while
+remaining separate from safety and causal risk-reduction claims. See the
+[machine-readable artifact](artifacts/public/ffmvic_murray_goldfields_burn_delivery_20260822.json).
 
 Every analysis emits `run_manifest.json`, `metrics.json` and
 `error_cases.json`. The manifest captures git SHA, input hashes where practical,
 configuration, hardware, Slurm IDs and whether the run used real or synthetic
 data.
+
+### Verified real-data complete-condition proxy chain
+
+Spartan job `29504538` evaluated the selected Murray Goldfields prescription
+over all **19,509,264** 2020 district space-time cells. Unlike the earlier
+six-condition screen, it evaluated all **eight compiled conditions** by adding
+the explicit FMC ensemble and fuel-level-wind scenario. It retained **481,733
+cells (2.4693%)** and found **193,450 / 36,245 / 7,622** endpoints meeting the
+2/4/6-hour continuity thresholds. The compute step completed in 73 seconds with
+792,724 KiB MaxRSS.
+
+This closes the software/data-input gap, not the field-validation gap. The FMC
+value is a Viney/Van Wagner--Pickett model ensemble, ground wind uses a declared
+0.33 reduction factor, and VicClim6 has no precipitation field, so the rain
+guard could not be applied. The result is therefore a complete compiled-rule
+**proxy evaluation**, not an on-site measurement, safe-burn approval or causal
+outcome. See the [redacted run record](artifacts/public/vicclim6_murray_goldfields_proxy_complete_2020_29504538.json).
+
+The production-shaped chain then ran the same compiled prescription across all
+**51 file-backed years (1973–2023)**. Spartan array `29504645` completed **51/51
+annual checkpoints** and dependent aggregate `29504810` passed the exact-SHA,
+spatial-contract, prescription-contract and proxy-contract gates. It evaluated
+**992,840,304 district cell-hours** with all **8/8 conditions**, retained
+**24,273,000 cells (2.4448%)**, and produced **9,919,639 / 2,253,645 / 533,488**
+2/4/6-hour endpoints. Annual tasks used 2,513 summed task-seconds with 0.89 GiB
+peak step RSS; the enhanced aggregate completed in seven seconds.
+
+The descriptive Theil–Sen change is **+0.221 percentage points per decade**
+(five-year moving-block-bootstrap 95% interval **+0.010 to +0.413**). It is a
+non-causal property of this proxy contract, not evidence that burns became safer
+or more effective. The [redacted 51-year record](artifacts/public/vicclim6_murray_goldfields_proxy_complete_51y_29504645.json)
+contains the annual series, condition attribution, source provenance, code SHAs
+and Slurm accounting without publishing restricted NetCDF or workbook content.
 
 Run the deterministic operations benchmark:
 
@@ -193,6 +275,9 @@ publishes hashes and boundaries without copying the workbook or climate data.
   evidence-producing 2026 array;
 - `run_scaling_benchmark.sbatch` compares 1/2/4 workers on a clearly labelled
   deterministic synthetic benchmark.
+- `run_vicclim6_real_scaling.sbatch` runs a checkpointed 1/2/4-thread comparison
+  on one pinned real region/year/rule workload; the comparator rejects semantic
+  drift, mixed or unknown run SHAs and restricted source paths.
 - `run_arco_era5_preflight.sbatch` reads a bounded Victoria slice from the
   anonymous public ARCO-ERA5 Zarr store and verifies the real-data I/O and
   meteorological-derivation path without copying the source collection.
@@ -287,6 +372,64 @@ See the [compact public record](artifacts/public/vicclim6_murray_goldfields_51y_
 the workbook, NetCDF payloads and annual outputs remain on authorised Spartan
 storage.
 
+### Verified real 1/2/4-thread scaling boundary
+
+Spartan jobs `29492033` and `29492055` repeated the same 2020 Murray Goldfields
+workload at exact run commit `4dcabfd`: **19,509,264** real region-cell-hours,
+the same six mapped conditions, seven threshold scenarios and identical
+baseline/scenario outputs in all three runs. Dask wall time for 1/2/4 thread
+workers was **169.61 / 140.40 / 142.39 seconds**. Two threads achieved a
+**1.208x** speedup and **60.40%** parallel efficiency; four threads achieved
+only **1.191x** and **29.78%**.
+
+The pre-registered 4-worker efficiency target was therefore **not met**. Four
+threads were slightly slower than two, consistent with this file-backed graph
+becoming limited by file opening, alignment, storage and scheduler overhead
+rather than scalable rule arithmetic. This is a useful capacity boundary, not
+a speedup claim. Slurm elapsed/MaxRSS for 1/2/4 were **191/147/148 seconds** and
+**2,082,252 / 1,995,744 / 2,020,444 KiB**. The
+[compact comparison record](artifacts/public/vicclim6_murray_goldfields_worker_scaling_20260822.json)
+binds all six metrics/manifest hashes, exact run/comparator SHAs and the public
+region summary without restricted paths.
+
+### Verified 51-year threshold sensitivity
+
+Spartan array `29492066` and dependent aggregate `29492149` reran the same
+official-district, partial-prescription contract for all **51 file-backed years
+(1973–2023)** while evaluating seven pre-declared perturbations. The annual
+artifacts share exact run SHA `1309060`; aggregation used exact SHA `566cf8c`.
+All real-data, year-completeness, Git, rule, spatial and raw-path quality gates
+passed across **992,840,304 region-cell-hours**. The baseline exactly reproduced
+**48,143,687 provisional pass cells (4.8491%)** and **27,971,450 / 9,440,163 /
+3,190,224** 2/4/6-hour endpoints.
+
+Changing all five mapped numeric bounds together produced the largest response:
+the narrower scenario retained **3,825,268 cells (0.3853%, -92.05% relative to
+baseline)**, while the wider scenario retained **129,427,701 (13.0361%, +168.84%)**.
+In isolated one-factor tests, widening FFDI by 2 units changed the pass rate by
+**+83.23%** relative to baseline, humidity by 5 percentage points **+40.85%**,
+wind by 5 km/h **+16.54%**, temperature by 2 C **+6.06%**, and KBDI by 5 units
+**0.00%**. The zero KBDI response is itself diagnostic evidence that KBDI was
+not the active limiting bound under this fixed contract; it is not evidence
+that KBDI is generally irrelevant.
+
+Paired annual effects were summarised with seeded five-year moving-block
+bootstrap intervals. The all-narrower mean change was **-4.464 percentage
+points** (95% interval **-4.992 to -4.030**; negative in 51/51 years), and the
+all-wider mean was **+8.187 points** (95% interval **+7.633 to +8.788**; positive
+in 51/51 years). FFDI, humidity, temperature and wind effects were also positive
+in 51/51 years; KBDI was zero in 51/51. These are paired descriptive threshold
+effects, not causal forecasts or operational validation.
+
+The 51 one-CPU annual tasks took **84–133 seconds each**, **5,021 seconds** in
+summed elapsed time and at most **1,989,956 KiB RSS**; the enhanced aggregation
+took eight seconds and 51,444 KiB RSS. The
+[redacted public record](artifacts/public/vicclim6_murray_goldfields_threshold_sensitivity_51y_20260822.json)
+binds the source-summary hash, exact run/aggregation/record-builder SHAs and
+Slurm accounting. Surface fuel moisture and ground wind remain unmapped, and
+the district is not a burn unit, so none of these results is a burn approval,
+safety, treatable-area, fire-risk or economic-value claim.
+
 Spartan job `29461166` completed the public-data preflight from exact commit
 `9f2401f8`: 24 hourly steps over a 23 x 41 Victoria grid were read from the
 official ARCO-ERA5 store, temperature/RH/wind/precipitation fields were derived,
@@ -354,7 +497,7 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 61 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
+- 85 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
   and full-year 2024 weather-only screen jobs on Spartan with exact commits and
   hashes;
 - a remote controlled exit-75/checkpoint/resume gate whose uninterrupted and
@@ -370,15 +513,23 @@ Verified locally in this repository:
   regional space-time cells, with one exact Git SHA/spatial/rule contract,
   51/51 annual checkpoints, measured resource records and a non-causal
   block-bootstrap descriptive trend.
+- a second 51/51 exact-SHA district array that reproduced the baseline, evaluated
+  seven explicit threshold scenarios and reported paired annual effects with
+  seeded five-year moving-block bootstrap intervals.
+- a complete-condition 1973–2023 district chain over 992,840,304 cell-hours,
+  using an explicit two-model FMC ensemble and fuel-level-wind scenario, with
+  51/51 annual checkpoints and a single verified proxy contract;
+- an official JFMP/Fire History delivery layer with eight exact-ID matched burn
+  units, Australian-Albers polygon overlap, crew scenarios and a statewide
+  direct-cost-per-hectare planning benchmark.
 
 Not verified or not eligible for promotion:
 
 - the prior 2024 values **6.49%** and **9.04%**;
 - prior speedup claims;
-- an operational burn-window rate, safety/treated-area outcome, financial
-  value, or a complete prescription that includes fuel moisture and ground
-  wind;
-- a 1→4 worker scaling result or real-candidate optimisation value.
+- an operational burn-window rate, safety outcome, causal risk reduction,
+  realised unit cost, saving or return on investment;
+- a real-candidate optimisation value.
 
 These values are historical project records only and must not be presented as
 reproduced results until an artifact contains the exact data range, rule version,

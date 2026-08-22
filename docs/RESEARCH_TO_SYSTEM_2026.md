@@ -31,12 +31,14 @@ resource-allocation decision rather than stopping at a weather map.
 - Implemented now: typed deterministic rules, candidate explanations,
   nominal/max-min/CVaR scheduling, independent feasibility certificates and
   crew-capacity counterfactuals.
-- Still required for a field-value claim: burn-unit polygons, parcel priority and
-  history, calibrated forecast error, crew/cost records and realised burn
-  decisions. Current optimiser results therefore remain synthetic utility units,
-  not dollars, hectares treated or risk reduction.
+- Implemented outcome layer: current official JFMP burn-unit polygons and Fire
+  History treatment polygons are joined by official ID and intersected in
+  EPSG:3577. Public crew ranges and statewide direct cost/area provide explicit
+  resource scenarios. Calibrated forecast error, unit rosters/invoices and
+  prospective realised decisions are still required for a field-value claim;
+  optimiser results remain scenario utility rather than savings or risk reduction.
 
-## 3. Fuel moisture cannot be manufactured from weather fields
+## 3. Fuel moisture proxies must remain distinct from field observations
 
 A 2026 Victorian study reports a seven-day spatial dead-fuel-moisture forecasting
 system trained on 23,354 site-days from 27 forest sites, with day-1/day-7 median
@@ -46,11 +48,16 @@ constraint needs labelled, below-canopy observations and cannot be replaced by
 an undocumented temperature/RH proxy.
 
 - Source: [Keeble et al., *Environmental Modelling & Software* 200, 106942](https://doi.org/10.1016/j.envsoft.2026.106942)
-- Current decision: keep `FMCSurfaceInside` unmapped and fail visibly at the
-  prescription-completeness gate.
-- Safe extension point: add a versioned `FuelMoistureProvider` only after a
-  licensed model/observation feed is available; evaluate it with spatially held
-  out sites and time-rolling splits before allowing it into the rule AST.
+- Implemented proxy path: `derive_fuel_inputs` returns both the Viney empirical
+  estimate and Van Wagner--Pickett equilibrium estimate, their midpoint and
+  model-spread interval. Rain-affected hours are returned as missing. Fuel-level
+  wind is the 10-m open wind multiplied by a caller-visible reduction factor,
+  following published Australian fire-behaviour practice.
+- System boundary: historical six-condition results remain unchanged. Only an
+  explicit `--derive-fuel-proxies` run promotes the two implemented variables to
+  provisional, records `observed_on_site=false` and labels the result
+  `proxy-complete`. Site-held-out calibration remains necessary before the
+  output can be used as operational or safety evidence.
 
 ## 4. What the real VicClim6 run proves
 
@@ -69,7 +76,7 @@ and 245.59 GiB. File-backed years are 1973–2023 even though directory names sa
 7. estimates descriptive annual change with Theil–Sen slope and a seeded
    five-year moving-block residual bootstrap, with no causal interpretation.
 
-The authorised data area does not contain a region polygon or burn-unit mask.
+The authorised climate data area does not contain a region polygon or burn-unit mask.
 The statewide 2020 run is retained as the initial temporal/rule reference. The
 same annual contract subsequently completed all 51 file-backed years over
 16,142,930,688 statewide space-time cells (jobs `29484660`/`29484661`). That
@@ -93,7 +100,11 @@ the comparison is evidence for resource planning and failure analysis only; it
 does not identify a causal speedup, an Amdahl serial fraction or worker-scaling
 efficiency.
 
-This is the current technical contribution. The next scientifically meaningful
-upgrade is not a larger neural network; it is the licensed fuel-moisture,
-ground-wind and burn-unit evidence needed to close the prescription and outcome
-loops.
+The outcome loop is now independently exercised using public official data:
+221 JFMP plan features and 430 Fire History features resolve to 176/187 burn
+IDs, with eight exact-ID matches. Their Australian-Albers union/intersection
+contains 422.16 ha of current plan geometry, 162.56 ha of historical treatment
+geometry and 161.89 ha of overlap. This is real spatial delivery evidence, but
+the current JFMP and historical records may represent staged/repeated burns.
+The next scientific upgrade is therefore field calibration and prospective
+decision evaluation, not simply a larger model or a stronger adjective.

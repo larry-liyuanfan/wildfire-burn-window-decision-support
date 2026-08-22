@@ -55,14 +55,17 @@ def compare_spatial_scope_performance(
     regional_seconds = float(_require(regional, ("jobs", "array_elapsed_total_seconds")))
     statewide_rss = int(_require(statewide, ("jobs", "array_max_rss_kib")))
     regional_rss = int(_require(regional, ("jobs", "array_max_rss_kib")))
-    if min(
-        statewide_cells,
-        regional_cells,
-        statewide_seconds,
-        regional_seconds,
-        statewide_rss,
-        regional_rss,
-    ) <= 0:
+    if (
+        min(
+            statewide_cells,
+            regional_cells,
+            statewide_seconds,
+            regional_seconds,
+            statewide_rss,
+            regional_rss,
+        )
+        <= 0
+    ):
         raise ValueError("performance inputs must be positive")
 
     cell_fraction = regional_cells / statewide_cells
@@ -107,8 +110,7 @@ def compare_spatial_scope_performance(
             "regional_max_rss_fraction": rss_fraction,
             "observed_elapsed_reduction": 1.0 - elapsed_fraction,
             "observed_max_rss_reduction": 1.0 - rss_fraction,
-            "regional_vs_statewide_throughput_ratio": regional_throughput
-            / statewide_throughput,
+            "regional_vs_statewide_throughput_ratio": regional_throughput / statewide_throughput,
             "elapsed_fraction_divided_by_cell_fraction": elapsed_fraction / cell_fraction,
         },
         "quality_gate": {
@@ -124,5 +126,102 @@ def compare_spatial_scope_performance(
             "The chains use different spatial contracts and Git SHAs; the comparison cannot isolate a causal code-level speedup.",
             "Lower regional throughput per cell is consistent with fixed file-opening, alignment and aggregation overhead, but this record does not estimate an Amdahl serial fraction.",
             "No result is a burn approval, complete prescription, safe-hour, treated-area, fire-risk or economic-value claim.",
+        ],
+    }
+
+
+def compare_real_worker_scaling(
+    records: dict[int, dict[str, Any]],
+) -> dict[str, Any]:
+    """Compare 1/2/4-thread Dask runs only after semantic equality checks."""
+
+    required = {1, 2, 4}
+    if set(records) != required:
+        raise ValueError(f"worker scaling requires exactly {sorted(required)}")
+    reference = records[1]
+    comparable_fields = (
+        "git_sha",
+        "evidence_status",
+        "data_kind",
+        "burn_class",
+        "prescription_scope",
+        "region_scope",
+        "suitable_space_time_cells",
+        "evaluated_space_time_cells",
+        "condition_failure_counts",
+        "minimum_duration_endpoints",
+        "threshold_sensitivity",
+    )
+    for workers, payload in sorted(records.items()):
+        if payload.get("data_kind") != "real":
+            raise ValueError(f"workers={workers} is not a real-data record")
+        if payload.get("time_coverage", {}).get("dask_workers") != workers:
+            raise ValueError(f"workers={workers} record has a mismatched worker count")
+        for field in comparable_fields:
+            if payload.get(field) != reference.get(field):
+                raise ValueError(f"workers={workers} changed the semantic result field {field}")
+        if float(payload.get("wall_seconds", 0.0)) <= 0:
+            raise ValueError(f"workers={workers} has no positive wall time")
+    if reference.get("git_sha") in {None, "", "unknown"}:
+        raise ValueError("worker scaling requires one known run git SHA")
+
+    raw_region_scope = reference.get("region_scope") or {}
+    public_region_scope = {
+        key: raw_region_scope.get(key)
+        for key in (
+            "geometry_type",
+            "selected_grid_cells",
+            "total_grid_cells",
+            "coverage_fraction_of_source_grid",
+            "feature_properties",
+            "coordinate_reference_system",
+            "boundary_inclusion_rule",
+            "label",
+        )
+        if raw_region_scope.get(key) is not None
+    }
+
+    one_worker_seconds = float(reference["wall_seconds"])
+    observations = []
+    for workers, payload in sorted(records.items()):
+        seconds = float(payload["wall_seconds"])
+        speedup = one_worker_seconds / seconds
+        observations.append(
+            {
+                "dask_thread_workers": workers,
+                "wall_seconds": seconds,
+                "speedup_vs_one": speedup,
+                "parallel_efficiency": speedup / workers,
+            }
+        )
+    four_worker = observations[-1]
+    return {
+        "comparison_contract": {
+            "scheduler": "threads",
+            "workers": [1, 2, 4],
+            "data_kind": "real",
+            "same_workload": True,
+            "semantic_results_equal": True,
+            "evaluated_space_time_cells": int(reference["evaluated_space_time_cells"]),
+            "burn_class": reference["burn_class"],
+            "run_git_sha": reference["git_sha"],
+            "region_scope": public_region_scope,
+        },
+        "observed": observations,
+        "derived": {
+            "one_to_four_speedup": four_worker["speedup_vs_one"],
+            "one_to_four_parallel_efficiency": four_worker["parallel_efficiency"],
+        },
+        "quality_gate": {
+            "exact_worker_set": True,
+            "all_real_data": True,
+            "same_semantic_results": True,
+            "single_exact_git_sha": True,
+            "positive_wall_times": True,
+        },
+        "boundaries": [
+            "This measures one process using Dask's threaded scheduler with 1, 2 and 4 thread workers; it is not multi-node distributed scaling.",
+            "The result applies only to the pinned data, rule, region, time range and storage state of these runs.",
+            "No timing result is burn approval, safety, treated-area, risk-reduction or economic evidence.",
         ],
     }

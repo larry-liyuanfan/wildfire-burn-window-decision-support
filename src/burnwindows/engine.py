@@ -58,7 +58,11 @@ def evaluate_prescription(
             if missing_policy == MissingPolicy.ERROR:
                 raise KeyError(message)
             warnings.append(message)
-            mask = np.zeros(shape, dtype=bool) if missing_policy == MissingPolicy.FAIL else np.ones(shape, dtype=bool)
+            mask = (
+                np.zeros(shape, dtype=bool)
+                if missing_policy == MissingPolicy.FAIL
+                else np.ones(shape, dtype=bool)
+            )
         else:
             mask = evaluate_condition(np.asarray(data[condition.variable]), condition)
         if condition.season:
@@ -149,3 +153,37 @@ def apply_threshold_override(condition: Condition, delta: float) -> Condition:
     if update.lower and update.upper and update.lower.value > update.upper.value:
         raise ValueError("delta produces an inverted range")
     return update
+
+
+def apply_threshold_scenario(
+    prescription: Prescription,
+    overrides: Mapping[str, float],
+) -> Prescription:
+    """Apply unit-aware field deltas without pretending missing inputs exist.
+
+    A positive delta widens a rule interval and a negative delta narrows it.
+    Overrides are keyed by workbook field, which keeps degrees Celsius,
+    percentage points, kilometres per hour and fire-index units separate.
+    Unmapped constraints are deliberately ineligible for scenario overrides.
+    """
+
+    mapped_fields = {
+        condition.field
+        for condition in prescription.conditions
+        if condition.operational_status != "unmapped"
+    }
+    unknown = sorted(set(overrides) - mapped_fields)
+    if unknown:
+        raise ValueError(f"threshold overrides are not mapped rule fields: {unknown}")
+    normalised = {str(field): float(delta) for field, delta in overrides.items()}
+    if any(not np.isfinite(delta) for delta in normalised.values()):
+        raise ValueError("threshold deltas must be finite")
+
+    result = prescription.model_copy(deep=True)
+    result.conditions = [
+        apply_threshold_override(condition, normalised.get(condition.field, 0.0))
+        if condition.operational_status != "unmapped"
+        else condition
+        for condition in result.conditions
+    ]
+    return result

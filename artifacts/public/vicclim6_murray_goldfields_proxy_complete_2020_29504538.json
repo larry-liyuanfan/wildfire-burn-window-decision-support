@@ -1,0 +1,126 @@
+{
+  "schema_version": "1.0",
+  "scope": "2020 Murray Goldfields real VicClim6 complete-condition proxy pilot",
+  "metrics": {
+    "evidence_status": "verified-real-proxy-complete-prescription-by-this-run",
+    "data_kind": "real",
+    "burn_class": "Murray Goldfields - Box ironbark forest",
+    "prescription_scope": {
+      "complete": true,
+      "compiled_condition_count": 8,
+      "evaluated_condition_count": 8,
+      "excluded_unmapped_condition_count": 0,
+      "unresolved_value_count": 0
+    },
+    "interpretation": "complete compiled-condition evaluation with literature-derived proxies",
+    "derived_fuel_inputs": {
+      "variables": [
+        "fmc_surface_inside_pct",
+        "wind_speed_ground_kmh"
+      ],
+      "fmc_models": [
+        "Viney-1991",
+        "Van-Wagner-Pickett-1985"
+      ],
+      "fmc_ensemble": "arithmetic midpoint",
+      "fmc_rain_guard_mm": null,
+      "fmc_temperature_validity": "temperature_c > 0; other cells are missing",
+      "wind_reduction_factor": 0.33,
+      "observed_on_site": false
+    },
+    "region_scope": {
+      "source_path": "official-district-boundary.geojson",
+      "geometry_type": "Polygon",
+      "selected_grid_cells": 2221,
+      "total_grid_cells": 36112,
+      "coverage_fraction_of_source_grid": 0.061503101462117855,
+      "feature_properties": {
+        "DISTRICT_NAME": "MURRAY GOLDFIELDS",
+        "REGION_NAME": "LODDON MALLEE"
+      },
+      "boundary_provenance": {
+        "source_service": "https://spatial.planning.vic.gov.au/gis/rest/services/boundary/MapServer/12/query",
+        "source_layer": "Land and Fire District Major",
+        "query_url": "https://spatial.planning.vic.gov.au/gis/rest/services/boundary/MapServer/12/query?where=DISTRICT_NAME%3D%27MURRAY+GOLDFIELDS%27&outFields=DISTRICT_NAME%2CREGION_NAME&returnGeometry=true&outSR=4326&maxAllowableOffset=0.001000&geometryPrecision=6&f=geojson",
+        "retrieved_at_utc": "2026-08-21T10:19:33.131347+00:00",
+        "output_crs": "EPSG:4326",
+        "max_allowable_offset_degrees": 0.001,
+        "license": "Creative Commons Attribution 4.0 International",
+        "attribution": "State of Victoria (Department of Energy, Environment and Climate Action)"
+      },
+      "coordinate_reference_system": "EPSG:4326 grid-cell centres",
+      "boundary_inclusion_rule": "even-odd point-in-polygon at cell centre",
+      "label": "Murray Goldfields FFMVic district"
+    },
+    "time_coverage": {
+      "load_start": "2020-01-01T00:00:00",
+      "load_end": "2020-12-31T23:00:00",
+      "metric_start": "2020-01-01T00:00:00",
+      "metric_end": "2020-12-31T23:00:00",
+      "scheduler": "synchronous",
+      "dask_workers": 1,
+      "metric_hours": 8784,
+      "left_censored": true
+    },
+    "suitable_space_time_cells": 481733,
+    "evaluated_space_time_cells": 19509264,
+    "suitable_rate": 0.024692525561189803,
+    "condition_failure_counts": {
+      "FDIIgnitionDay1:0": 17305291,
+      "Temperature:1": 689108,
+      "RelativeHumidity:2": 1465200,
+      "WindSpeed:3": 1884358,
+      "KBDI:4": 0,
+      "KBDI:5": 0,
+      "FMCSurfaceInside:6": 16387969,
+      "WindSpeedGround:7": 5724
+    },
+    "condition_failure_rates": {
+      "FDIIgnitionDay1:0": 0.8870294133084672,
+      "Temperature:1": 0.035322091084522715,
+      "RelativeHumidity:2": 0.07510278193990301,
+      "WindSpeed:3": 0.0965878569278677,
+      "KBDI:4": 0.0,
+      "KBDI:5": 0.0,
+      "FMCSurfaceInside:6": 0.8400095974917352,
+      "WindSpeedGround:7": 0.0002933990744089577
+    },
+    "minimum_duration_endpoints": {
+      "2": 193450,
+      "4": 36245,
+      "6": 7622
+    },
+    "warnings": [
+      "fuel moisture is a dry-fuel meteorological proxy, not an on-site meter reading",
+      "fuel-level wind uses an explicit literature wind-reduction scenario, not site calibration",
+      "Viney FMC is missing where gridded air temperature is <= 0 C",
+      "precipitation field absent; FMC rain guard was not applied",
+      "all compiled conditions are evaluated, but two inputs are literature-derived proxies rather than on-site measurements; results are not burn authorisation"
+    ],
+    "wall_seconds": 50.443077053001616
+  },
+  "run": {
+    "created_at_utc": "2026-08-22T06:41:58.673035+00:00",
+    "git_sha": "8ea9d2ab5a423ed61ff0308129a23140bc9d24da",
+    "slurm_job_id": "29504538",
+    "python": "3.11.3 (main, Jul  9 2024, 17:24:35) [GCC 11.3.0]",
+    "elapsed": "00:01:16",
+    "compute_max_rss_kib": 792724,
+    "input_identity": {
+      "prescription_workbook_sha256": "e063ffda8c003b4fb5e9c9506072cbc6edf78364b358acfb84c13f91a22feb1a",
+      "region_boundary_sha256": "840b0dd6aaa45a8d216074433ad6d0b0fbd4d08142d2c9ea1699e5f639a215c3",
+      "vicclim6_source": "authorised Group44 six-family file-backed collection"
+    }
+  },
+  "source_artifact_sha256": {
+    "metrics": "097c5af0a411ab1ee74c0eaf50aa60c425c06440ae28d85b64f06956773f3838",
+    "run_manifest": "81c35e13f5620e5d97b7760418db8de7e64a1a10ffe3a649e5e7773a876a4cf5"
+  },
+  "publication_boundary": [
+    "FMC is a dry-fuel meteorological model ensemble, not an on-site reading.",
+    "Fuel-level wind is an explicit wind-reduction-factor scenario, not site calibration.",
+    "VicClim6 has no precipitation field, so the rain guard was not applied in this run.",
+    "District cells are not burn-unit or treatable-area cells.",
+    "The result is not burn authorisation, safety evidence, risk reduction or economic value."
+  ]
+}

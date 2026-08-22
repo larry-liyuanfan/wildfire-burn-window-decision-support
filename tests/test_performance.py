@@ -4,7 +4,11 @@ from copy import deepcopy
 
 import pytest
 
-from burnwindows.performance import compare_spatial_scope_performance
+from burnwindows.performance import (
+    compare_real_worker_scaling,
+    compare_spatial_scope_performance,
+)
+from scripts.compare_real_worker_scaling import _load_run, _parse_slurm_accounting
 
 
 def _record(*, cells: int, seconds: int, rss: int, regional: bool) -> dict:
@@ -59,3 +63,95 @@ def test_spatial_comparison_rejects_mixed_contract_or_failed_gate() -> None:
     failed["quality_gate"]["all_real_data"] = False
     with pytest.raises(ValueError, match="quality gate"):
         compare_spatial_scope_performance(statewide, failed)
+
+
+def _scaling_record(*, workers: int, seconds: float) -> dict:
+    return {
+        "git_sha": "a" * 40,
+        "evidence_status": "verified-real-partial-prescription-by-this-run",
+        "data_kind": "real",
+        "burn_class": "fixture",
+        "prescription_scope": {"complete": False},
+        "region_scope": {
+            "label": "fixture district",
+            "selected_grid_cells": 10,
+            "source_path": "/restricted/boundary.geojson",
+        },
+        "time_coverage": {"dask_workers": workers},
+        "suitable_space_time_cells": 10,
+        "evaluated_space_time_cells": 100,
+        "condition_failure_counts": {"temperature": 20},
+        "minimum_duration_endpoints": {"2": 5},
+        "threshold_sensitivity": {"scenarios": []},
+        "wall_seconds": seconds,
+    }
+
+
+def test_real_worker_scaling_requires_equal_semantics() -> None:
+    result = compare_real_worker_scaling(
+        {
+            1: _scaling_record(workers=1, seconds=40),
+            2: _scaling_record(workers=2, seconds=24),
+            4: _scaling_record(workers=4, seconds=16),
+        }
+    )
+    assert result["derived"]["one_to_four_speedup"] == pytest.approx(2.5)
+    assert result["derived"]["one_to_four_parallel_efficiency"] == pytest.approx(0.625)
+    assert result["quality_gate"]["single_exact_git_sha"] is True
+    assert "source_path" not in result["comparison_contract"]["region_scope"]
+
+    changed = _scaling_record(workers=4, seconds=16)
+    changed["suitable_space_time_cells"] = 9
+    with pytest.raises(ValueError, match="semantic result"):
+        compare_real_worker_scaling(
+            {
+                1: _scaling_record(workers=1, seconds=40),
+                2: _scaling_record(workers=2, seconds=24),
+                4: changed,
+            }
+        )
+
+    unknown_sha = {
+        workers: {**_scaling_record(workers=workers, seconds=seconds), "git_sha": "unknown"}
+        for workers, seconds in ((1, 40), (2, 24), (4, 16))
+    }
+    with pytest.raises(ValueError, match="known run git SHA"):
+        compare_real_worker_scaling(unknown_sha)
+
+
+def test_scaling_record_binds_metrics_to_sibling_manifest(tmp_path) -> None:
+    metrics_path = tmp_path / "metrics.json"
+    metrics_path.write_text('{"data_kind":"real"}', encoding="utf-8")
+    (tmp_path / "run_manifest.json").write_text(
+        '{"git_sha":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}',
+        encoding="utf-8",
+    )
+
+    metrics, provenance = _load_run(metrics_path, 2)
+
+    assert metrics["git_sha"] == "b" * 40
+    assert provenance["metrics_file"] == "metrics.json"
+    assert provenance["manifest_file"] == "run_manifest.json"
+    assert set(provenance) == {
+        "dask_thread_workers",
+        "metrics_file",
+        "metrics_sha256",
+        "manifest_file",
+        "manifest_sha256",
+    }
+
+
+def test_scaling_slurm_accounting_requires_exact_worker_set() -> None:
+    records = _parse_slurm_accounting(
+        ["1=100_0,191,2082252", "2=101_1,147,1995744", "4=101_2,148,2020444"],
+        {1, 2, 4},
+    )
+    assert records[-1] == {
+        "dask_thread_workers": 4,
+        "job_id": "101_2",
+        "elapsed_seconds": 148,
+        "max_rss_kib": 2020444,
+    }
+
+    with pytest.raises(ValueError, match="same worker set"):
+        _parse_slurm_accounting(["1=100_0,191,2082252"], {1, 2, 4})

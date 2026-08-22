@@ -1,0 +1,31 @@
+{
+  "all_mapped_narrower": {
+    "FDIIgnitionDay1": -2.0,
+    "KBDI": -5.0,
+    "RelativeHumidity": -5.0,
+    "Temperature": -2.0,
+    "WindSpeed": -5.0
+  },
+  "all_mapped_wider": {
+    "FDIIgnitionDay1": 2.0,
+    "KBDI": 5.0,
+    "RelativeHumidity": 5.0,
+    "Temperature": 2.0,
+    "WindSpeed": 5.0
+  },
+  "ffdi_upper_plus_2": {
+    "FDIIgnitionDay1": 2.0
+  },
+  "humidity_range_plus_5pct": {
+    "RelativeHumidity": 5.0
+  },
+  "kbdi_upper_plus_5": {
+    "KBDI": 5.0
+  },
+  "temperature_range_plus_2c": {
+    "Temperature": 2.0
+  },
+  "wind_upper_plus_5kmh": {
+    "WindSpeed": 5.0
+  }
+}

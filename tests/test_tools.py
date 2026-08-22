@@ -32,7 +32,10 @@ def test_explain_limiting_factors_is_deterministic(core_prescription) -> None:
         "data": {"temperature_c": [10, 20, 30], "relative_humidity_pct": [50, 70, 50]},
         "prescription": core_prescription,
     }
-    assert explain_limiting_factors(**payload).model_dump() == explain_limiting_factors(**payload).model_dump()
+    assert (
+        explain_limiting_factors(**payload).model_dump()
+        == explain_limiting_factors(**payload).model_dump()
+    )
 
 
 def test_threshold_scenario_widens_temperature_range(core_prescription) -> None:
@@ -56,7 +59,7 @@ def test_region_trend_reports_known_linear_slope() -> None:
     assert abs(response.result["slope_per_year"] - 0.1) < 1e-12
 
 
-def test_all_five_tools_publish_json_schema() -> None:
+def test_all_tools_publish_json_schema() -> None:
     schemas = tool_schemas()
     assert set(schemas) == {
         "find_burn_windows",
@@ -64,5 +67,6 @@ def test_all_five_tools_publish_json_schema() -> None:
         "compare_threshold_scenarios",
         "get_region_trend",
         "optimize_burn_schedule",
+        "derive_fuel_inputs",
     }
     assert all(schema["type"] == "object" for schema in schemas.values())

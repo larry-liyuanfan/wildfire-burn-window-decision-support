@@ -20,14 +20,17 @@
 | D016 | Use a synchronous one-worker Dask scheduler inside each concurrent annual task | Four processes each inherited the 128-core node and produced random NetCDF SIGSEGV/SIGBUS failures | One CPU per year; Slurm array parallelism supplies concurrency; mixed NetCDF formats use automatic backend selection |
 | D017 | Fuse scalar reductions into one shared Dask graph and size memory from pilots | Repeated reductions reread the same 245.59-GiB collection; the first fused pilot exposed the exact OOM boundary | Formal years request 8 GiB after a 6,015,508-KiB pilot peak and preserve a semantic-hash equality gate |
 | D018 | Use the official `LF_DISTRICT` ArcGIS feature for district reporting and evaluate membership at grid-cell centres | Group44 storage has no spatial mask, while substituting an LGA or inferring geography from a burn-class name would be indefensible | Exact district match, EPSG:4326, sub-grid simplification tolerance and boundary hash are mandatory; district results remain distinct from burn-unit/area claims |
+| D019 | Close surface-FMC and fuel-level-wind gaps with an explicit proxy mode, not silent substitution | Published equations and wind-reduction factors make a reproducible scenario possible, while site meters/canopy calibration are unavailable | Proxy inputs are promoted only when `--derive-fuel-proxies` is explicit; rain-affected FMC is missing and every artifact says `observed_on_site=false` |
+| D020 | Use official JFMP and Fire History polygons as a separate burn-unit outcome layer | Current JFMP and historical treatment geometry are publicly queryable with stable burn identifiers | De-duplicate typed records, union multipart polygons, intersect in EPSG:3577 and preserve source hashes; staged/repeated burns prohibit causal interpretation |
+| D021 | Use public crew and cost figures only as transparent scenarios | Unit rosters and invoices are not public, but FFMVic publishes staffing ranges and statewide direct planned-burning investment/area | Report person-hour and AUD/ha scale proxies; never relabel them as actual unit cost, saving or return |
 
 ## Open decisions requiring supervisor or data-owner confirmation
 
 1. authoritative window definition and minimum operational duration;
-2. units, measurement height and averaging period for both wind fields;
+2. site-specific wind-reduction factor and field calibration for fuel-level wind;
 3. Day 2/3 FDI semantics;
 4. exact meaning and dates for `Fallen` and `From Summer` KBDI labels;
-5. mandatory versus optional unmapped fuel-moisture constraints;
+5. field calibration/acceptance tolerance for literature-derived fuel moisture;
 6. spatial reporting unit and completeness threshold;
 7. whether the workbook and any normalized threshold representation may be published;
 8. whether fire-history records are contextual evidence or a validation set.

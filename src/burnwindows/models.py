@@ -170,3 +170,64 @@ class OptimizeScheduleRequest(BaseModel):
     min_duration_hours: float = Field(default=2.0, gt=0)
     daily_capacity: int | None = Field(default=None, ge=1)
     data_version: str = "unknown"
+
+
+class BurnUnit(BaseModel):
+    """One official Joint Fuel Management Program planned-burn polygon."""
+
+    burn_id: str
+    name: str
+    jfmp_year: str | None = None
+    treatment_type: str | None = None
+    district: str
+    region: str | None = None
+    objective: str | None = None
+    planned_hectares: float = Field(gt=0)
+    event_id: int | None = None
+
+
+class BurnOutcome(BaseModel):
+    """One official Fire History record for an executed burn."""
+
+    burn_id: str
+    name: str
+    season: int | None = None
+    start: datetime | None = None
+    treatment_type: str | None = None
+    treated_hectares: float = Field(gt=0)
+    district: str
+    region: str | None = None
+    lead_agency: str | None = None
+
+
+class DeriveFuelInputsRequest(BaseModel):
+    """Inputs for literature-derived FMC and fuel-level-wind scenarios."""
+
+    temperature_c: list[float]
+    relative_humidity_pct: list[float]
+    wind_10m_kmh: list[float]
+    precipitation_mm: list[float] | None = None
+    wind_reduction_factor: float = Field(default=0.33, gt=0.0, le=1.0)
+    rain_guard_mm: float = Field(default=0.2, ge=0.0)
+    data_version: str = "unknown"
+
+    @model_validator(mode="after")
+    def validate_lengths_and_ranges(self) -> DeriveFuelInputsRequest:
+        lengths = {
+            len(self.temperature_c),
+            len(self.relative_humidity_pct),
+            len(self.wind_10m_kmh),
+        }
+        if self.precipitation_mm is not None:
+            lengths.add(len(self.precipitation_mm))
+        if len(lengths) != 1:
+            raise ValueError("fuel-input arrays have different lengths")
+        if any(value <= 0 for value in self.temperature_c):
+            raise ValueError("Viney FMC proxy requires temperature_c > 0")
+        if any(value < 1 or value > 100 for value in self.relative_humidity_pct):
+            raise ValueError("relative_humidity_pct must be in [1, 100]")
+        if any(value < 0 for value in self.wind_10m_kmh):
+            raise ValueError("wind_10m_kmh cannot be negative")
+        if self.precipitation_mm is not None and any(value < 0 for value in self.precipitation_mm):
+            raise ValueError("precipitation_mm cannot be negative")
+        return self
