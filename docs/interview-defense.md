@@ -60,6 +60,12 @@ multipart geometries and recomputes overlap in Australian Albers: 422.16 ha of
 plan polygons, 162.56 ha of treatment polygons and 161.89 ha intersection.
 Public staffing ranges and AUD 288.73/ha statewide direct-cost scale are exposed
 as scenarios, not actual rosters, savings or ROI.
+Spartan job `29504538` then executed those two proxy variables on real 2020
+VicClim6 data: all 8/8 compiled conditions over 19,509,264 district cell-hours,
+with a 2.4693% retained rate and 193,450/36,245/7,622 2/4/6-hour endpoints. The
+artifact explicitly records that precipitation was unavailable, so the rain
+guard was not applied and this remains a proxy evaluation rather than safety
+validation.
 
 ## Code evidence map
 

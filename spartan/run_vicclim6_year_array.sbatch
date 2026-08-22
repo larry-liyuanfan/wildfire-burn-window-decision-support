@@ -80,6 +80,15 @@ if [[ -n "${THRESHOLD_SCENARIOS:-}" ]]; then
   SENSITIVITY_ARGS=(--threshold-scenarios "${THRESHOLD_SCENARIOS}")
 fi
 
+FUEL_PROXY_ARGS=()
+if [[ "${DERIVE_FUEL_PROXIES:-0}" == "1" ]]; then
+  FUEL_PROXY_ARGS=(
+    --derive-fuel-proxies
+    --wind-reduction-factor "${WIND_REDUCTION_FACTOR:-0.33}"
+    --fmc-rain-guard-mm "${FMC_RAIN_GUARD_MM:-0.2}"
+  )
+fi
+
 srun "${FLARE_PYTHON}" -c \
   'from burnwindows.cli import main; raise SystemExit(main())' \
   analyse \
@@ -99,4 +108,5 @@ srun "${FLARE_PYTHON}" -c \
   --data-kind real \
   "${REGION_ARGS[@]}" \
   "${SENSITIVITY_ARGS[@]}" \
+  "${FUEL_PROXY_ARGS[@]}" \
   --output-dir "${RUN_DIR}"

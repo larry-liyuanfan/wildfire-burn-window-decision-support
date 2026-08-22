@@ -185,6 +185,23 @@ Every analysis emits `run_manifest.json`, `metrics.json` and
 configuration, hardware, Slurm IDs and whether the run used real or synthetic
 data.
 
+### Verified real-data complete-condition proxy pilot
+
+Spartan job `29504538` evaluated the selected Murray Goldfields prescription
+over all **19,509,264** 2020 district space-time cells. Unlike the earlier
+six-condition screen, it evaluated all **eight compiled conditions** by adding
+the explicit FMC ensemble and fuel-level-wind scenario. It retained **481,733
+cells (2.4693%)** and found **193,450 / 36,245 / 7,622** endpoints meeting the
+2/4/6-hour continuity thresholds. The compute step completed in 73 seconds with
+792,724 KiB MaxRSS.
+
+This closes the software/data-input gap, not the field-validation gap. The FMC
+value is a Viney/Van Wagner--Pickett model ensemble, ground wind uses a declared
+0.33 reduction factor, and VicClim6 has no precipitation field, so the rain
+guard could not be applied. The result is therefore a complete compiled-rule
+**proxy evaluation**, not an on-site measurement, safe-burn approval or causal
+outcome. See the [redacted run record](artifacts/public/vicclim6_murray_goldfields_proxy_complete_2020_29504538.json).
+
 Run the deterministic operations benchmark:
 
 ```bash
