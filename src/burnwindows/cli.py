@@ -14,6 +14,7 @@ import numpy as np
 
 from .aggregate import aggregate_vicclim6_years
 from .engine import apply_threshold_scenario
+from .fuel_inputs import add_xarray_fuel_inputs, promote_derived_conditions
 from .io import (
     ensure_hourly_grid,
     evaluate_xarray,
@@ -128,6 +129,8 @@ def command_analyse(args: argparse.Namespace) -> int:
     started = time.perf_counter()
     prescriptions = load_prescriptions(args.prescriptions)
     prescription = _select(prescriptions, args.burn_class)
+    if args.derive_fuel_proxies:
+        prescription = promote_derived_conditions(prescription)
     threshold_scenarios = (
         _load_threshold_scenarios(args.threshold_scenarios, prescription)
         if args.threshold_scenarios
@@ -153,6 +156,14 @@ def command_analyse(args: argparse.Namespace) -> int:
         dataset, region_scope = subset_rectilinear_geojson(dataset, args.region_geojson)
         region_scope["label"] = args.region_label
     dataset, unit_warnings = normalise_dataset(dataset)
+    derived_fuel_inputs = None
+    if args.derive_fuel_proxies:
+        dataset, derived_fuel_inputs, derived_warnings = add_xarray_fuel_inputs(
+            dataset,
+            wind_reduction_factor=args.wind_reduction_factor,
+            rain_guard_mm=args.fmc_rain_guard_mm,
+        )
+        unit_warnings.extend(derived_warnings)
     if args.start or args.end:
         dataset = dataset.sel(time=slice(args.start, args.end))
     if dataset.sizes.get("time", 0) == 0:
@@ -192,16 +203,21 @@ def command_analyse(args: argparse.Namespace) -> int:
         for condition in prescription.conditions
     )
     prescription_complete = excluded_unmapped == 0 and not prescription.unresolved
-    scope_warning = (
-        []
-        if prescription_complete
-        else [
-            (
-                "partial prescription: unmapped conditions and unresolved source values are "
-                "not evaluated; pass counts are not operational burn windows or safety evidence"
-            )
-        ]
-    )
+    scope_warning = []
+    if derived_fuel_inputs:
+        scope_warning.append(
+            "all compiled conditions are evaluated, but two inputs are literature-derived "
+            "proxies rather than on-site measurements; results are not burn authorisation"
+        )
+    elif not prescription_complete:
+        scope_warning.extend(
+            [
+                (
+                    "partial prescription: unmapped conditions and unresolved source values are "
+                    "not evaluated; pass counts are not operational burn windows or safety evidence"
+                )
+            ]
+        )
     condition_names = list(masks)
     duration_names = [str(duration) for duration in args.durations]
     endpoint_tasks = [
@@ -270,7 +286,9 @@ def command_analyse(args: argparse.Namespace) -> int:
         )
     metrics: dict[str, Any] = {
         "evidence_status": (
-            f"verified-{args.data_kind}-complete-prescription-by-this-run"
+            f"verified-{args.data_kind}-proxy-complete-prescription-by-this-run"
+            if prescription_complete and derived_fuel_inputs
+            else f"verified-{args.data_kind}-complete-prescription-by-this-run"
             if prescription_complete
             else f"verified-{args.data_kind}-partial-prescription-by-this-run"
         ),
@@ -284,10 +302,13 @@ def command_analyse(args: argparse.Namespace) -> int:
             "unresolved_value_count": len(prescription.unresolved),
         },
         "interpretation": (
-            "complete compiled prescription evaluation"
+            "complete compiled-condition evaluation with literature-derived proxies"
+            if derived_fuel_inputs and prescription_complete
+            else "complete compiled prescription evaluation"
             if prescription_complete
             else "provisional mapped-condition screen; not an operational burn window"
         ),
+        "derived_fuel_inputs": derived_fuel_inputs,
         "region_scope": region_scope,
         "time_coverage": {
             "load_start": args.start,
@@ -324,7 +345,11 @@ def command_analyse(args: argparse.Namespace) -> int:
             "scenarios": sensitivity_results,
             "constraints": [
                 "scenario changes are descriptive threshold sensitivity, not forecasts",
-                "unmapped fuel-moisture and ground-wind conditions remain excluded",
+                (
+                    "fuel-moisture and fuel-level wind are literature-derived proxies"
+                    if derived_fuel_inputs
+                    else "unmapped fuel-moisture and ground-wind conditions remain excluded"
+                ),
                 "pass counts are not operational burn approvals or safety evidence",
             ],
         }
@@ -352,6 +377,9 @@ def command_analyse(args: argparse.Namespace) -> int:
             "threshold_scenarios": (
                 str(args.threshold_scenarios) if args.threshold_scenarios else None
             ),
+            "derive_fuel_proxies": args.derive_fuel_proxies,
+            "wind_reduction_factor": args.wind_reduction_factor,
+            "fmc_rain_guard_mm": args.fmc_rain_guard_mm,
         },
         data_kind=args.data_kind,
     )
@@ -459,6 +487,39 @@ def command_decision_benchmark(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_official_outcomes(args: argparse.Namespace) -> int:
+    from .official_burns import (
+        build_delivery_summary,
+        build_spatial_delivery_summary,
+        fetch_district_delivery,
+        fetch_matched_delivery_geometries,
+    )
+
+    plans, outcomes, provenance = fetch_district_delivery(
+        planned_district=args.planned_district,
+        history_district=args.history_district,
+    )
+    metrics = build_delivery_summary(plans, outcomes)
+    metrics["provenance"] = provenance
+    matched_ids = sorted({item.burn_id for item in plans} & {item.burn_id for item in outcomes})
+    plan_geojson, outcome_geojson, geometry_provenance = fetch_matched_delivery_geometries(
+        matched_ids
+    )
+    metrics["spatial_delivery"] = build_spatial_delivery_summary(plan_geojson, outcome_geojson)
+    metrics["provenance"]["geometries"] = geometry_provenance
+    manifest = make_manifest(
+        command=sys.argv,
+        config={
+            "planned_district": args.planned_district,
+            "history_district": args.history_district,
+        },
+        data_kind="official-public-burn-plan-and-outcome-records",
+    )
+    write_run_artifacts(args.output_dir, manifest=manifest, metrics=metrics)
+    print(json.dumps(metrics, indent=2, default=str))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="burn-window")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -505,6 +566,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--missing-policy", choices=[item.value for item in MissingPolicy], default="error"
     )
     analyse.add_argument("--include-unmapped", action="store_true")
+    analyse.add_argument(
+        "--derive-fuel-proxies",
+        action="store_true",
+        help=(
+            "derive dry-fuel FMC and fuel-level wind proxies; records model provenance and "
+            "does not convert the result into an operational approval"
+        ),
+    )
+    analyse.add_argument("--wind-reduction-factor", type=float, default=0.33)
+    analyse.add_argument("--fmc-rain-guard-mm", type=float, default=0.2)
     analyse.add_argument("--data-kind", choices=["real", "synthetic"], required=True)
     analyse.add_argument("--start", help="inclusive ISO time bound")
     analyse.add_argument("--end", help="inclusive ISO time bound")
@@ -572,6 +643,15 @@ def build_parser() -> argparse.ArgumentParser:
     decision.add_argument("--daily-capacity", type=int, default=3)
     decision.add_argument("--output-dir", type=Path, required=True)
     decision.set_defaults(handler=command_decision_benchmark)
+
+    outcomes = subparsers.add_parser(
+        "official-outcomes",
+        help="align official JFMP planned-burn units with FFMVic Fire History outcomes",
+    )
+    outcomes.add_argument("--planned-district", default="Murray Goldfields")
+    outcomes.add_argument("--history-district", default="Loddon Mallee - Murray Goldfields")
+    outcomes.add_argument("--output-dir", type=Path, required=True)
+    outcomes.set_defaults(handler=command_official_outcomes)
     return parser
 
 

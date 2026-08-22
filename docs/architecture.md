@@ -9,6 +9,9 @@ flowchart LR
     C --> D["Rule AST evaluator"]
     C --> E["Trend and sensitivity"]
     C --> F["Binary scheduling optimizer"]
+    C --> L["FMC / fuel-level-wind proxy tool"]
+    M["Official JFMP + Fire History polygons"] --> N["ID join + EPSG:3577 intersection"]
+    N --> F
     D --> G["Xarray + Dask execution"]
     G --> H["NetCDF / Zarr / Kerchunk"]
     I["Private FMS workbook"] --> J["Runtime compiler"]
@@ -30,12 +33,29 @@ The workbook compiler processes all non-empty cells in each burn-class row:
 3. explicit Victorian seasons compile to seasonal AST leaves;
 4. ambiguous `Fallen` / `From Summer`, Day 2/3 semantics and anomalous values
    remain in `unresolved`;
-5. unmapped fuel-moisture and ground-wind fields remain typed but are excluded
-   from the core climate baseline unless explicitly enabled.
+5. the historical core baseline still excludes unavailable fuel-moisture and
+   fuel-level-wind fields; an explicit proxy mode promotes only surface FMC and
+   fuel-level wind after adding model provenance, rain guards and a declared
+   wind-reduction factor.
 
 One prescription is an AND node over leaf conditions. Seasonal leaves are
 neutral outside their active months. Missing variables follow the caller's
 explicit policy; `error` is the default.
+
+## Burn-unit and outcome geometry
+
+The public adapter pages through the official JFMP and Fire History ArcGIS
+layers, validates required attributes and hashes the complete ordered response.
+Records are joined only on the official treatment/fire identifier. GeoJSON
+polygons are projected to EPSG:3577, duplicate records are removed, multipart
+features are unioned and intersections are recomputed locally. The attribute
+area ratio and geometry overlap are both reported because staged and repeated
+burns can make a single ratio misleading.
+
+The resource layer uses FFMVic's published staffing ranges as discrete scenarios
+and the latest statewide direct planned-burning investment divided by treated
+area as an AUD/ha scale benchmark. Neither enters the safety evaluator, and both
+carry `proxy` semantics through the tool envelope and evidence ledger.
 
 ## Temporal correctness
 

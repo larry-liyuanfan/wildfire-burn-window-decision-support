@@ -4,6 +4,7 @@ from .models import (
     Bound,
     BurnWindow,
     Condition,
+    DeriveFuelInputsRequest,
     ExplainLimitingFactorsRequest,
     FindBurnWindowsRequest,
     OptimizeScheduleRequest,
@@ -15,6 +16,7 @@ from .models import (
 )
 from .tools import (
     compare_threshold_scenarios,
+    derive_fuel_inputs,
     explain_limiting_factors,
     find_burn_windows,
     get_region_trend,
@@ -25,6 +27,7 @@ __all__ = [
     "Bound",
     "BurnWindow",
     "Condition",
+    "DeriveFuelInputsRequest",
     "ExplainLimitingFactorsRequest",
     "FindBurnWindowsRequest",
     "OptimizeScheduleRequest",
@@ -34,6 +37,7 @@ __all__ = [
     "ScheduleResult",
     "ThresholdScenarioRequest",
     "compare_threshold_scenarios",
+    "derive_fuel_inputs",
     "explain_limiting_factors",
     "find_burn_windows",
     "get_region_trend",

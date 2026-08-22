@@ -105,6 +105,38 @@ suppression-outcome model.
   spatiotemporal splits, calibrated uncertainty, a deterministic-rule baseline,
   and held-out decision improvement with a predeclared safety boundary.
 
+## 6. Empirical fuel inputs need model disagreement and validity guards
+
+Viney's eucalypt-litter relationship and the Van Wagner--Pickett equilibrium
+equation provide complementary temperature/RH estimates. Australian fire
+behaviour practice also converts 10-m open wind to within-stand/fuel-level wind
+with explicit reduction factors rather than treating the two heights as equal.
+
+- Sources: Sharples et al. (2009), *A simple index for assessing fuel moisture
+  content*; Matthews et al. (2010), *Simple models for predicting dead fuel
+  moisture in eucalyptus forests*; Hollis et al. (2024), AFDRS wind-factor
+  implementation and fuel attributes.
+- Code: `src/burnwindows/fuel_inputs.py`, `src/burnwindows/tools.py`.
+- Evidence: typed arrays, model-spread interval, precipitation guard, explicit
+  WRF and tests for invalid inputs/null rain hours.
+- Hiring signal: converts a missing-variable blocker into a traceable model
+  component while keeping model risk visible.
+- Boundary: this is a meteorological proxy, not an on-site meter or an
+  operational safety decision.
+
+## 7. Spatial outcomes should be recomputed, not inferred from labels
+
+The official JFMP and Fire History services expose both stable treatment IDs and
+polygon geometry. The adapter de-duplicates records, unions multipart geometry,
+projects to Australian Albers and measures plan/outcome intersection.
+
+- Code: `src/burnwindows/official_burns.py` and `burn-window official-outcomes`.
+- Evidence: 176 current plan IDs, 187 historical IDs, eight exact matches;
+  422.16/162.56/161.89 plan/treated/intersection hectares with source hashes.
+- Hiring signal: a real geospatial outcome pipeline, not a district-level chart.
+- Boundary: staged/repeated burns prevent nonmatches or coverage ratios from
+  becoming causal performance, safety or risk-reduction labels.
+
 ## Interview summary
 
 The technical story is not "I processed NetCDF". It is:
@@ -112,7 +144,9 @@ The technical story is not "I processed NetCDF". It is:
 1. compile operational prescriptions into typed, testable rules;
 2. evaluate large spatiotemporal arrays without lookahead and with restartable
    provenance;
-3. expose explanations, sensitivity and typed tools to an Agent;
-4. turn candidate windows into a constrained scheduling decision;
-5. validate feasibility independently and reject unsupported real-world value
-   claims.
+3. close fuel-input gaps with visible model uncertainty and rain guards;
+4. join official burn-unit plans to historical treatment geometry;
+5. expose explanations, sensitivity and typed tools to an Agent;
+6. turn candidate windows into a constrained scheduling decision;
+7. validate feasibility independently and separate observed outcomes from
+   resource/cost proxies.

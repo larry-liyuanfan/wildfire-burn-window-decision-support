@@ -17,7 +17,9 @@ from .engine import (
     extract_windows,
     limiting_factors,
 )
+from .fuel_inputs import derive_fuel_input_arrays
 from .models import (
+    DeriveFuelInputsRequest,
     ExplainLimitingFactorsRequest,
     FindBurnWindowsRequest,
     MissingPolicy,
@@ -41,8 +43,53 @@ def tool_schemas() -> dict[str, dict[str, Any]]:
         "compare_threshold_scenarios": ThresholdScenarioRequest,
         "get_region_trend": RegionTrendRequest,
         "optimize_burn_schedule": OptimizeScheduleRequest,
+        "derive_fuel_inputs": DeriveFuelInputsRequest,
     }
     return {name: model.model_json_schema() for name, model in models.items()}
+
+
+def derive_fuel_inputs(
+    *,
+    temperature_c: Sequence[float],
+    relative_humidity_pct: Sequence[float],
+    wind_10m_kmh: Sequence[float],
+    precipitation_mm: Sequence[float] | None = None,
+    wind_reduction_factor: float = 0.33,
+    rain_guard_mm: float = 0.2,
+    data_version: str = "unknown",
+) -> ToolEnvelope:
+    """Expose the two evidence-backed proxies through a typed Agent tool."""
+
+    values = derive_fuel_input_arrays(
+        temperature_c=temperature_c,
+        relative_humidity_pct=relative_humidity_pct,
+        wind_10m_kmh=wind_10m_kmh,
+        precipitation_mm=precipitation_mm,
+        wind_reduction_factor=wind_reduction_factor,
+        rain_guard_mm=rain_guard_mm,
+    )
+
+    def serialise(array: np.ndarray) -> list[float | None]:
+        return [None if not np.isfinite(value) else float(value) for value in array]
+
+    result = {
+        key: serialise(value) if isinstance(value, np.ndarray) else value
+        for key, value in values.items()
+    }
+    return ToolEnvelope(
+        status="partial",
+        data_version=data_version,
+        source=(
+            "Viney and Van Wagner-Pickett FMC equations; explicit 10-m wind-reduction scenario"
+        ),
+        constraints=[
+            "derived meteorological proxies, not on-site FMC or fuel-level wind observations",
+            "rain-affected FMC values are returned as null",
+            "must not be used alone as burn authorisation or safety evidence",
+        ],
+        warnings=["site calibration and field verification remain required before operations"],
+        result=result,
+    )
 
 
 def find_burn_windows(

@@ -22,12 +22,16 @@ large-array execution, provenance and refusal to guess unresolved semantics.
 flowchart LR
   W[Private FMS workbook] --> A[Typed rule AST]
   V[Six VicClim6 families] --> T[Leakage-safe time alignment]
-  B[Official FFMVic district polygon] --> S[Grid-centre spatial mask]
+  B[Official FFMVic district and burn-unit polygons] --> S[Spatial scope]
+  H[FFMVic Fire History outcomes] --> X[Plan/outcome polygon intersection]
+  M[Temperature/RH/rain + 10 m wind] --> P[FMC ensemble + fuel-level-wind proxy]
   A --> D[Xarray/Dask rule graph]
   T --> S --> D
+  P --> D
   D --> R[2/4/6 h endpoint extraction]
   R --> E[Limiting factors and sensitivity]
   E --> O[Validated nominal / max-min / CVaR MILP]
+  X --> O
   O --> C[Feasibility certificate and Agent tool envelope]
 ```
 
@@ -38,18 +42,21 @@ data kind, Git SHA, workbook hash, coverage, warnings and output hashes pass the
 same aggregation gate.
 
 The authorised Group44 data area contains the six climate/index families but
-no region polygon, burn-unit geometry or raster mask. The first full-grid array
+no region polygon or burn-unit geometry. The first full-grid array
 therefore labels all 148 x 244-cell results as a **statewide exposure screen
 under that partial rule set**, not a Murray Goldfields estimate. A separate,
 official Victorian Government `LF_DISTRICT` ArcGIS layer is now fetched by an
 exact district-name query and applied at VicClim6 grid-cell centres. Regional
 and statewide artifacts are never mixed by the aggregation quality gate. The
-district mask still is not a burn-unit boundary and cannot support treated-area
-or operational-approval claims. See [boundary provenance](docs/boundary-data.md).
+district mask is still not a burn-unit boundary. A separate official JFMP/Fire
+History adapter now queries **176 current Murray Goldfields burn IDs** and
+**187 historical burn IDs**, aligns eight shared IDs and measures plan/outcome
+polygon overlap in EPSG:3577. This outcome layer is kept separate from the
+historical district weather screen. See [boundary provenance](docs/boundary-data.md).
 
 ## Stable tool contracts
 
-All five public tools return a `ToolEnvelope` containing status, data version,
+All six public tools return a `ToolEnvelope` containing status, data version,
 source, active constraints, warnings and a typed result.
 
 | Tool | Deterministic responsibility |
@@ -59,6 +66,7 @@ source, active constraints, warnings and a typed result.
 | `compare_threshold_scenarios` | Compare explicit threshold perturbations with a fixed baseline |
 | `get_region_trend` | Report Theil–Sen slope and seeded block-bootstrap interval |
 | `optimize_burn_schedule` | Compare two greedy baselines with a validated binary programme, machine-checkable feasibility/solver certificates, local rejection reasons and discrete crew-capacity counterfactuals |
+| `derive_fuel_inputs` | Produce a dry-fuel FMC model ensemble and explicit 10-m-to-fuel-level wind scenario with rain guards and provenance |
 
 The Pydantic schemas are in `src/burnwindows/models.py`; JSON Schema can be
 generated directly with `ToolEnvelope.model_json_schema()` and the request
@@ -77,6 +85,14 @@ models used by a calling service.
 - **Missing data:** callers choose `error`, `fail` or `ignore`; the default is
   `error`. Unmapped fuel/ground-wind constraints are excluded with warnings
   unless the caller explicitly includes them.
+- **Fuel-input closure:** `--derive-fuel-proxies` evaluates the two previously
+  absent surface-FMC and fuel-level-wind inputs using a Viney/Van Wagner-Pickett
+  ensemble, rain guard and explicit wind-reduction factor. These are labelled
+  meteorological proxies rather than site observations.
+- **Burn-unit outcomes:** official JFMP and Fire History records are paginated,
+  hashed, de-duplicated by typed record, joined on the official burn ID and
+  intersected in Australian Albers. Attribute ratios and geometry overlap are
+  both retained so staged/partially completed burns remain visible.
 - **Scale:** Xarray/Dask evaluation stays lazy until metrics are computed.
   NetCDF, Zarr and Kerchunk references share one input adapter.
 - **Spatial scope:** an optional, single-feature EPSG:4326 GeoJSON polygon is
@@ -128,9 +144,41 @@ burn-window analyse \
   --end 2020-12-31T23:00:00 \
   --durations 2 4 6 \
   --missing-policy error \
+  --derive-fuel-proxies \
+  --wind-reduction-factor 0.33 \
   --data-kind real \
   --output-dir artifacts/run-001
 ```
+
+Fetch the current official Murray Goldfields burn-unit/outcome evidence without
+persisting the raw service payload:
+
+```bash
+burn-window official-outcomes \
+  --planned-district "Murray Goldfields" \
+  --history-district "Loddon Mallee - Murray Goldfields" \
+  --output-dir artifacts/public/ffmvic_murray_goldfields_burn_delivery_20260822
+```
+
+### Verified official burn-unit and outcome integration
+
+The public FFMVic JFMP and Fire History services returned **221 plan features
+(176 burn IDs)** and **430 historical features (187 burn IDs)** for Murray
+Goldfields. Exact official-ID alignment found **eight shared burn units**. Their
+current plan polygons cover **422.16 ha** and the matched historical treatment
+polygons cover **162.56 ha**; **161.89 ha intersect**, equal to **38.35% of the
+plan geometry** and **99.59% of the treated geometry**. The calculation uses
+GeoJSON feature hashes and EPSG:3577 Australian Albers, and independently
+recomputes geometry area rather than trusting display values.
+
+The same artifact records two transparent planning inputs: FFMVic's public
+20/30/70-person crew scenarios and the 2024–25 statewide direct planned-burning
+benchmark of **AUD 26.7m / 92,473 ha = AUD 288.73 per treated hectare**. Applied
+to the matched 162.54 attribute hectares this is an **AUD 46,931 direct-cost
+scale proxy**—not a unit's observed cost, saving or ROI. These data now support
+burn-unit, treated-area, resource-scenario and cost-scale discussion while
+remaining separate from safety and causal risk-reduction claims. See the
+[machine-readable artifact](artifacts/public/ffmvic_murray_goldfields_burn_delivery_20260822.json).
 
 Every analysis emits `run_manifest.json`, `metrics.json` and
 `error_cases.json`. The manifest captures git SHA, input hashes where practical,

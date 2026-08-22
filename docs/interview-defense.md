@@ -10,7 +10,7 @@ evaluation with NetCDF/Zarr/Kerchunk adapters, continuous-window extraction,
 limiting-factor and sensitivity tools, and a binary scheduling layer validated
 against greedy baselines. I compared nominal, max-min and lower-tail CVaR
 formulations, keeping planning scenarios independent from held-out evaluation.
-Seventy-one local tests verify the engineering behavior on golden fixtures. I
+Seventy-nine local tests verify the engineering behavior on golden fixtures. I
 also built an anonymous ARCO-ERA5 preflight with explicit source boundaries,
 then used an authorised team identity to inventory and process the restricted
 VicClim6 collection without copying its payloads.
@@ -50,6 +50,16 @@ bootstrap intervals, and KBDI's 51/51-year zero response is reported as an
 inactive bound under this contract—not as general domain irrelevance. These
 results are descriptive sensitivity evidence, not causal, safety or economic
 evidence.
+I then closed two previously missing engineering loops without hiding their
+uncertainty. A sixth typed tool derives dry-fuel FMC from the Viney and Van
+Wagner--Pickett equations and converts 10-m wind through an explicit reduction
+factor; rain-affected hours fail rather than receiving an invented value. An
+official FFMVic adapter paginates and hashes 221 JFMP plan features and 430 Fire
+History features. It resolves 176/187 burn IDs, joins eight shared IDs, unions
+multipart geometries and recomputes overlap in Australian Albers: 422.16 ha of
+plan polygons, 162.56 ha of treatment polygons and 161.89 ha intersection.
+Public staffing ranges and AUD 288.73/ha statewide direct-cost scale are exposed
+as scenarios, not actual rosters, savings or ROI.
 
 ## Code evidence map
 
@@ -72,6 +82,9 @@ evidence.
 | Why was a candidate rejected, and what would another crew buy? | `explain_selection` plus the typed tool's discrete crew-capacity counterfactuals; both carry non-dual/non-financial boundaries |
 | Why CVaR as well as max-min? | `solve_cvar_schedule` exposes a tail-risk parameter and avoids letting one worst scenario dominate |
 | What is genuinely measured today? | `docs/evidence.md` and run manifests |
+| How did you move from a district to real burn units? | `official_burns.py`, official ArcGIS attribute/GeoJSON hashes and the public delivery artifact; exact-ID join plus EPSG:3577 union/intersection |
+| How are FMC and ground wind now handled? | `fuel_inputs.py` and `derive_fuel_inputs`; two-model FMC interval, rain guard, explicit WRF and `observed_on_site=false` |
+| Where do crew and cost numbers come from? | FFMVic public 20/30/70-person scenarios and 2024–25 direct planned-burning cost/area; both remain proxies rather than unit records |
 
 ## Expected deep questions
 
@@ -79,7 +92,7 @@ evidence.
 2. When is forward fill scientifically valid, and what maximum age is safe?
 3. Why are seasonal AST leaves neutral outside their active season?
 4. How would you resolve overlapping KBDI seasonal rules?
-5. Why exclude ground wind instead of deriving it from surface wind?
+5. Why is a wind-reduction factor a scenario rather than a site measurement?
 6. What is lost when only window endpoints are counted in a full grid run?
 7. How would chunk shape change for time-series versus map queries?
 8. What does Kerchunk virtualise, and what access risks remain?
@@ -111,4 +124,8 @@ evidence.
 34. Why use a moving-block bootstrap for annual threshold effects instead of an IID bootstrap?
 35. How would you distinguish a genuinely inactive KBDI bound from a unit-conversion or scenario-wiring bug?
 36. Why are the all-mapped wider/narrower effects not the sum of the one-factor effects?
+37. Why do you union duplicate/multipart plan polygons before computing area?
+38. Why can historical treated geometry lie almost entirely inside a current plan while covering only 38% of it?
+39. Why is AUD/ha an expenditure-scale proxy rather than a savings estimate?
+40. What held-out field data would be needed to calibrate the FMC ensemble and WRF?
 
