@@ -60,10 +60,22 @@ def aggregate_vicclim6_years(
     region_scopes = {
         json.dumps(records[year][1].get("region_scope"), sort_keys=True) for year in expected
     }
+    derived_fuel_contracts = {
+        json.dumps(records[year][1].get("derived_fuel_inputs"), sort_keys=True)
+        for year in expected
+    }
     if len(git_shas) != 1 or "unknown" in git_shas:
         raise ValueError(f"annual runs do not share one known git SHA: {sorted(git_shas)}")
-    if len(burn_classes) != 1 or len(scopes) != 1 or len(statuses) != 1 or len(region_scopes) != 1:
-        raise ValueError("annual runs do not share one prescription/evidence/spatial contract")
+    if (
+        len(burn_classes) != 1
+        or len(scopes) != 1
+        or len(statuses) != 1
+        or len(region_scopes) != 1
+        or len(derived_fuel_contracts) != 1
+    ):
+        raise ValueError(
+            "annual runs do not share one prescription/evidence/spatial/fuel-input contract"
+        )
     if any(records[year][0].get("data_kind") != "real" for year in expected):
         raise ValueError("all annual runs must use data_kind=real")
 
@@ -262,11 +274,20 @@ def aggregate_vicclim6_years(
         seed=20260821,
     )
 
+    evidence_status = next(iter(statuses))
+    interpretation = (
+        "complete compiled-condition evaluation with literature-derived proxies; "
+        "not operational burn windows"
+        if "proxy-complete" in str(evidence_status)
+        else "provisional mapped-condition screen; not operational burn windows"
+    )
     result = {
-        "evidence_status": next(iter(statuses)),
-        "interpretation": "provisional mapped-condition screen; not operational burn windows",
+        "evidence_status": evidence_status,
+        "interpretation": interpretation,
         "git_sha": next(iter(git_shas)),
         "burn_class": next(iter(burn_classes)),
+        "prescription_scope": json.loads(next(iter(scopes))),
+        "derived_fuel_inputs": json.loads(next(iter(derived_fuel_contracts))),
         "region_scope": records[expected[0]][1].get("region_scope"),
         "year_start": expected[0],
         "year_end": expected[-1],
@@ -296,6 +317,7 @@ def aggregate_vicclim6_years(
             "single_exact_git_sha": True,
             "single_prescription_contract": True,
             "single_spatial_contract": True,
+            "single_derived_fuel_input_contract": True,
             "single_threshold_sensitivity_contract": True,
             "all_real_data": True,
             "raw_paths_omitted": True,

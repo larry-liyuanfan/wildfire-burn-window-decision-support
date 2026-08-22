@@ -122,3 +122,29 @@ def test_annual_aggregation_combines_one_sensitivity_contract(tmp_path: Path) ->
         "moving_block_bootstrap_95pct_ci_mean_absolute_rate_change"
     ] == pytest.approx([0.1, 0.1])
     assert result["quality_gate"]["single_threshold_sensitivity_contract"] is True
+
+
+def test_annual_aggregation_preserves_complete_proxy_contract(tmp_path: Path) -> None:
+    _annual(tmp_path, 1973)
+    _annual(tmp_path, 1974)
+    for year in (1973, 1974):
+        metrics_path = tmp_path / f"vicclim6-year-99_{year}" / "metrics.json"
+        metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+        metrics["evidence_status"] = "verified-real-proxy-complete-prescription-by-this-run"
+        metrics["prescription_scope"] = {
+            "complete": True,
+            "compiled_condition_count": 8,
+            "evaluated_condition_count": 8,
+            "excluded_unmapped_condition_count": 0,
+        }
+        metrics["derived_fuel_inputs"] = {
+            "variables": ["fmc_surface_inside_pct", "wind_speed_ground_kmh"],
+            "observed_on_site": False,
+        }
+        metrics_path.write_text(json.dumps(metrics), encoding="utf-8")
+
+    result = aggregate_vicclim6_years(tmp_path, expected_years=[1973, 1974])
+    assert result["prescription_scope"]["evaluated_condition_count"] == 8
+    assert result["derived_fuel_inputs"]["observed_on_site"] is False
+    assert result["quality_gate"]["single_derived_fuel_input_contract"] is True
+    assert result["interpretation"].startswith("complete compiled-condition")
