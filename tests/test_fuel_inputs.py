@@ -1,7 +1,9 @@
 import numpy as np
 import pytest
+import xarray as xr
 
 from burnwindows.fuel_inputs import (
+    add_xarray_fuel_inputs,
     derive_fuel_input_arrays,
     promote_derived_conditions,
     van_wagner_pickett_fmc_pct,
@@ -78,3 +80,19 @@ def test_promote_only_implemented_proxy_conditions() -> None:
 def test_fmc_rejects_non_positive_temperature() -> None:
     with pytest.raises(ValueError, match="temperature_c"):
         viney_fmc_pct([0.0], [50.0])
+
+
+def test_xarray_proxy_marks_non_positive_temperature_missing() -> None:
+    dataset = xr.Dataset(
+        {
+            "temperature_c": ("time", [20.0, 0.0, -1.0]),
+            "relative_humidity_pct": ("time", [50.0, 50.0, 50.0]),
+            "wind_speed_kmh": ("time", [30.0, 30.0, 30.0]),
+        }
+    )
+    result, provenance, warnings = add_xarray_fuel_inputs(dataset)
+    values = result["fmc_surface_inside_pct"].values
+    assert np.isfinite(values[0])
+    assert np.isnan(values[1:]).all()
+    assert provenance["fmc_temperature_validity"].startswith("temperature_c > 0")
+    assert any("<= 0 C" in warning for warning in warnings)

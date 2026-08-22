@@ -147,11 +147,13 @@ def add_xarray_fuel_inputs(
         raise ValueError(f"cannot derive fuel inputs; dataset lacks {missing}")
     temperature = dataset["temperature_c"]
     humidity = dataset["relative_humidity_pct"]
+    valid_temperature = temperature > 0
+    safe_temperature = temperature.where(valid_temperature)
     viney = (
         5.658
         + 0.04651 * humidity
-        + 0.0003151 * humidity**3 / temperature
-        - 0.184 * temperature**0.77
+        + 0.0003151 * humidity**3 / safe_temperature
+        - 0.184 * safe_temperature**0.77
     )
     van_wagner = (
         0.942 * humidity**0.679
@@ -162,6 +164,7 @@ def add_xarray_fuel_inputs(
     warnings = [
         "fuel moisture is a dry-fuel meteorological proxy, not an on-site meter reading",
         "fuel-level wind uses an explicit literature wind-reduction scenario, not site calibration",
+        "Viney FMC is missing where gridded air temperature is <= 0 C",
     ]
     if "precipitation_mm" in dataset.data_vars:
         midpoint = midpoint.where(dataset["precipitation_mm"] <= rain_guard_mm)
@@ -186,6 +189,7 @@ def add_xarray_fuel_inputs(
         "fmc_models": ["Viney-1991", "Van-Wagner-Pickett-1985"],
         "fmc_ensemble": "arithmetic midpoint",
         "fmc_rain_guard_mm": rain_guard_mm if "precipitation_mm" in dataset.data_vars else None,
+        "fmc_temperature_validity": "temperature_c > 0; other cells are missing",
         "wind_reduction_factor": wind_reduction_factor,
         "observed_on_site": False,
     }

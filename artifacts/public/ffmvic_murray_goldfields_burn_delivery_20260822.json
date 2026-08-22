@@ -1,0 +1,332 @@
+{
+  "schema_version": "1.0",
+  "scope": "official public FFMVic plan/outcome records and polygon overlap",
+  "metrics": {
+    "evidence_status": "verified-official-public-records",
+    "plan_feature_count": 221,
+    "unique_plan_record_count": 220,
+    "plan_unit_count": 176,
+    "history_feature_count": 430,
+    "unique_history_record_count": 430,
+    "history_burn_id_count": 187,
+    "matched_burn_unit_count": 8,
+    "matched_planned_hectares": 422.15942445,
+    "matched_treated_hectares": 162.54141214999999,
+    "aggregate_treated_to_planned_ratio": 0.3850237676483548,
+    "matched_examples": [
+      {
+        "burn_id": "LM-MGF-MRY-0374",
+        "name": "Burnbank - Graveyard Dam Tk",
+        "jfmp_year": "2026",
+        "treatment_type": "FUEL REDUCTION",
+        "planned_hectares": 137.49127967,
+        "treated_hectares": 11.70127572,
+        "treated_to_planned_ratio": 0.08510558450023042,
+        "plan_part_count": 1,
+        "history_record_count": 1,
+        "latest_start": "2025-05-15T00:00:00+00:00"
+      },
+      {
+        "burn_id": "LM-MGF-BGO-1885",
+        "name": "Tandarra - DDW - Thunder Swamp",
+        "jfmp_year": "2026",
+        "treatment_type": "TRADITIONAL OWNER",
+        "planned_hectares": 90.72836109,
+        "treated_hectares": 50.00429749,
+        "treated_to_planned_ratio": 0.551142960032058,
+        "plan_part_count": 1,
+        "history_record_count": 1,
+        "latest_start": "2025-05-13T00:00:00+00:00"
+      },
+      {
+        "burn_id": "LM-MGF-BGO-1884",
+        "name": "Hunter - DDW - Elmore - Cohuna Rail Line BR",
+        "jfmp_year": "2026",
+        "treatment_type": "TRADITIONAL OWNER",
+        "planned_hectares": 15.016508510000001,
+        "treated_hectares": 5.55487186,
+        "treated_to_planned_ratio": 0.3699176713615434,
+        "plan_part_count": 2,
+        "history_record_count": 1,
+        "latest_start": "2025-05-08T00:00:00+00:00"
+      },
+      {
+        "burn_id": "LM-MGF-BGO-0466",
+        "name": "Big Hill - High Level Tk",
+        "jfmp_year": "2026",
+        "treatment_type": "FUEL REDUCTION",
+        "planned_hectares": 67.32659494,
+        "treated_hectares": 45.391497349999995,
+        "treated_to_planned_ratio": 0.67419861928933,
+        "plan_part_count": 1,
+        "history_record_count": 2,
+        "latest_start": "2025-05-04T00:00:00+00:00"
+      },
+      {
+        "burn_id": "LM-MGF-CAS-0942",
+        "name": "Glenluce - Hunter Tk -Fire Investigation Training-",
+        "jfmp_year": "2026",
+        "treatment_type": "FUEL REDUCTION",
+        "planned_hectares": 17.24684287,
+        "treated_hectares": 1.82042961,
+        "treated_to_planned_ratio": 0.10555146954846699,
+        "plan_part_count": 1,
+        "history_record_count": 1,
+        "latest_start": "2024-11-12T00:00:00+00:00"
+      },
+      {
+        "burn_id": "LM-MGF-CAS-0943",
+        "name": "Castlemaine - Ashbys Tk -Fire Investigation Training-",
+        "jfmp_year": "2026",
+        "treatment_type": "FUEL REDUCTION",
+        "planned_hectares": 9.62102205,
+        "treated_hectares": 1.68048067,
+        "treated_to_planned_ratio": 0.17466758326367204,
+        "plan_part_count": 1,
+        "history_record_count": 1,
+        "latest_start": "2024-11-11T00:00:00+00:00"
+      },
+      {
+        "burn_id": "LM-MGF-BGO-0481",
+        "name": "Wyuna - YYNAC-Emily Jane LGNP",
+        "jfmp_year": "2026",
+        "treatment_type": "TRADITIONAL OWNER",
+        "planned_hectares": 1.64201675,
+        "treated_hectares": 1.63668616,
+        "treated_to_planned_ratio": 0.9967536323852969,
+        "plan_part_count": 1,
+        "history_record_count": 1,
+        "latest_start": "2024-09-23T00:00:00+00:00"
+      },
+      {
+        "burn_id": "LM-MGF-COH-0044",
+        "name": "Korrak Korrak - BLW Korrak Korrak NCR",
+        "jfmp_year": "2026",
+        "treatment_type": "TRADITIONAL OWNER",
+        "planned_hectares": 83.08679857,
+        "treated_hectares": 44.75187329,
+        "treated_to_planned_ratio": 0.5386159300902282,
+        "plan_part_count": 1,
+        "history_record_count": 1,
+        "latest_start": "2021-10-26T00:00:00+00:00"
+      }
+    ],
+    "economic_proxy": {
+      "statewide_direct_planned_burn_cost_aud_2024_25": 26700000.0,
+      "statewide_planned_burn_treated_hectares_2024_25": 92473.0,
+      "aggregate_direct_cost_aud_per_treated_hectare": 288.73292744909327,
+      "matched_area_direct_cost_proxy_aud": 46931.05776177911,
+      "source": "https://www.ffm.vic.gov.au/monitoring-evaluation-and-reporting/ffmvic-bushfire-risk-mitigation-update-2024-25",
+      "interpretation": "statewide aggregate direct-cost benchmark applied to matched treated area; not an observed burn-unit cost, saving or return on investment"
+    },
+    "crew_scenarios": {
+      "official_public_guidance_personnel": [
+        20,
+        30,
+        70
+      ],
+      "shift_hours_scenario": 12,
+      "person_hours_per_operation": [
+        240,
+        360,
+        840
+      ],
+      "source": "https://www.ffm.vic.gov.au/media-releases/how-we-do-planned-burning",
+      "interpretation": "resource scenarios from official public ranges; not actual crew rosters"
+    },
+    "constraints": [
+      "identifier alignment is not polygon overlap or causal attribution",
+      "a staged burn may treat only part of the displayed planned polygon",
+      "treated area is an official historical outcome, not a safety result",
+      "economic and crew values are transparent planning proxies, not realised records"
+    ],
+    "provenance": {
+      "plans": {
+        "layer_url": "https://maps.ffm.vic.gov.au/arcgis/rest/services/pbns/MapServer/8",
+        "where": "DISTRICT='Murray Goldfields'",
+        "out_fields": [
+          "OBJECTID",
+          "TREAT_NO",
+          "TREAT_NAME",
+          "JFMPYEAR",
+          "TREAT_TYPE",
+          "DISTRICT",
+          "REGION",
+          "LAND_OBJECTIVE",
+          "HECTARES",
+          "EVENTID"
+        ],
+        "record_count": 221,
+        "attributes_sha256": "1c9167ba59572f8b257b2001d6b0a72185d812f867872fd7018f634aa9fc9b2f",
+        "fetched_at_utc": "2026-08-22T06:34:42.116745+00:00"
+      },
+      "outcomes": {
+        "layer_url": "https://maps.ffm.vic.gov.au/arcgis/rest/services/pbns/MapServer/10",
+        "where": "FIRETYPE='Burn' AND DISTRICT_ID='Loddon Mallee - Murray Goldfields'",
+        "out_fields": [
+          "OBJECTID",
+          "FIRETYPE",
+          "SEASON",
+          "FIRE_NO",
+          "NAME",
+          "START_DATE",
+          "TREATMENT_TYPE",
+          "AREA_HA",
+          "DISTRICT_ID",
+          "REGION",
+          "LEAD_AGENCY"
+        ],
+        "record_count": 430,
+        "attributes_sha256": "98aadc1be21cc697f4a86ef59199fe24602f5e75f8d8119c5cf2034a1cf5e3d9",
+        "fetched_at_utc": "2026-08-22T06:34:42.495094+00:00"
+      },
+      "geometries": {
+        "plans": {
+          "layer_url": "https://maps.ffm.vic.gov.au/arcgis/rest/services/pbns/MapServer/8",
+          "where": "TREAT_NO IN ('LM-MGF-BGO-0466','LM-MGF-BGO-0481','LM-MGF-BGO-1884','LM-MGF-BGO-1885','LM-MGF-CAS-0942','LM-MGF-CAS-0943','LM-MGF-COH-0044','LM-MGF-MRY-0374')",
+          "out_fields": [
+            "TREAT_NO",
+            "TREAT_NAME",
+            "HECTARES"
+          ],
+          "record_count": 10,
+          "geojson_features_sha256": "606d8ed592689b9ceeecab2ef45324464edae74f40c5c97b0574bb2bfb12659c",
+          "fetched_at_utc": "2026-08-22T06:34:42.636839+00:00",
+          "crs": "EPSG:4326"
+        },
+        "outcomes": {
+          "layer_url": "https://maps.ffm.vic.gov.au/arcgis/rest/services/pbns/MapServer/10",
+          "where": "FIRETYPE='Burn' AND FIRE_NO IN ('LM-MGF-BGO-0466','LM-MGF-BGO-0481','LM-MGF-BGO-1884','LM-MGF-BGO-1885','LM-MGF-CAS-0942','LM-MGF-CAS-0943','LM-MGF-COH-0044','LM-MGF-MRY-0374')",
+          "out_fields": [
+            "FIRE_NO",
+            "NAME",
+            "AREA_HA",
+            "START_DATE"
+          ],
+          "record_count": 9,
+          "geojson_features_sha256": "1effb835d05f5d31eef93cd6e0f73c75bf654e4f514b46b4f706fcc7b739032b",
+          "fetched_at_utc": "2026-08-22T06:34:42.951689+00:00",
+          "crs": "EPSG:4326"
+        }
+      }
+    },
+    "spatial_delivery": {
+      "crs": "EPSG:3577 Australian Albers",
+      "matched_burn_unit_count": 8,
+      "planned_polygon_hectares": 422.15924091124185,
+      "treated_polygon_hectares": 162.56127550529067,
+      "intersection_hectares": 161.88949169971903,
+      "aggregate_plan_area_covered": 0.38347968257256737,
+      "aggregate_treated_area_inside_plan": 0.9958675040935578,
+      "per_burn": [
+        {
+          "burn_id": "LM-MGF-BGO-0466",
+          "planned_polygon_hectares": 67.3266989761457,
+          "treated_polygon_hectares": 45.40493679754694,
+          "intersection_hectares": 45.40359958173726,
+          "plan_area_covered": 0.6743773313143432,
+          "treated_area_inside_plan": 0.9999705491097667,
+          "intersection_over_union": 0.6743639373691129
+        },
+        {
+          "burn_id": "LM-MGF-BGO-0481",
+          "planned_polygon_hectares": 1.6420166995667411,
+          "treated_polygon_hectares": 1.6368306368298196,
+          "intersection_hectares": 1.631942353118836,
+          "plan_area_covered": 0.9938646504322621,
+          "treated_area_inside_plan": 0.9970135678053711,
+          "intersection_over_union": 0.9909146973796482
+        },
+        {
+          "burn_id": "LM-MGF-BGO-1884",
+          "planned_polygon_hectares": 15.016510044790737,
+          "treated_polygon_hectares": 5.556026279699484,
+          "intersection_hectares": 5.215395385064125,
+          "plan_area_covered": 0.3473107512669602,
+          "treated_area_inside_plan": 0.9386916336447235,
+          "intersection_over_union": 0.33960718376123805
+        },
+        {
+          "burn_id": "LM-MGF-BGO-1885",
+          "planned_polygon_hectares": 90.72832994878131,
+          "treated_polygon_hectares": 50.01478665595633,
+          "intersection_hectares": 49.90244117589885,
+          "plan_area_covered": 0.5500204975013888,
+          "treated_area_inside_plan": 0.9977537546879829,
+          "intersection_over_union": 0.5493402700973631
+        },
+        {
+          "burn_id": "LM-MGF-CAS-0942",
+          "planned_polygon_hectares": 17.246841946914618,
+          "treated_polygon_hectares": 1.8209679246741999,
+          "intersection_hectares": 1.8209679246741994,
+          "plan_area_covered": 0.10558268755979192,
+          "treated_area_inside_plan": 0.9999999999999998,
+          "intersection_over_union": 0.10558268755979194
+        },
+        {
+          "burn_id": "LM-MGF-CAS-0943",
+          "planned_polygon_hectares": 9.621028110531366,
+          "treated_polygon_hectares": 1.6809892702614966,
+          "intersection_hectares": 1.6809892702614968,
+          "plan_area_covered": 0.1747203366365236,
+          "treated_area_inside_plan": 1.0000000000000002,
+          "intersection_over_union": 0.17472033663652362
+        },
+        {
+          "burn_id": "LM-MGF-COH-0044",
+          "planned_polygon_hectares": 83.08654994545289,
+          "treated_polygon_hectares": 44.74208348561591,
+          "intersection_hectares": 44.70713619461286,
+          "plan_area_covered": 0.5380791021406415,
+          "treated_area_inside_plan": 0.9992189167718512,
+          "intersection_over_union": 0.537852874178145
+        },
+        {
+          "burn_id": "LM-MGF-MRY-0374",
+          "planned_polygon_hectares": 137.4912652390585,
+          "treated_polygon_hectares": 11.704654454706485,
+          "intersection_hectares": 11.527019814351418,
+          "plan_area_covered": 0.08383819724336077,
+          "treated_area_inside_plan": 0.9848235895350469,
+          "intersection_over_union": 0.0837300205380316
+        }
+      ],
+      "interpretation": "official polygon intersection for identifier-matched records; descriptive historical delivery evidence, not causal risk reduction or operational safety validation"
+    }
+  },
+  "run": {
+    "schema_version": "1.0",
+    "created_at_utc": "2026-08-22T06:34:43.073253+00:00",
+    "git_sha": "853248678c6f132a6f17f0fef2cf2033b57963f6",
+    "command": [
+      "E:\\Project\\wildfire-burn-window-decision-support\\.venv\\Scripts\\burn-window",
+      "official-outcomes",
+      "--output-dir",
+      "artifacts\\public\\ffmvic_murray_goldfields_burn_delivery_20260822"
+    ],
+    "inputs": [],
+    "config": {
+      "planned_district": "Murray Goldfields",
+      "history_district": "Loddon Mallee - Murray Goldfields"
+    },
+    "data_kind": "official-public-burn-plan-and-outcome-records",
+    "runtime": {
+      "python": "3.13.13 (tags/v3.13.13:01104ce, Apr  7 2026, 19:25:48) [MSC v.1944 64 bit (AMD64)]",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "hostname": "LAPTOP-VHUG6DII",
+      "cpu_count": 28,
+      "slurm_job_id": null,
+      "slurm_array_task_id": null
+    }
+  },
+  "source_artifact_sha256": {
+    "metrics": "49576ff50421ff0cdb056848501df5f953f82dd092209856e47e8a47bccac56b",
+    "run_manifest": "5d528064cbcdd1e41682262063ebfb4ef1f3b63d966ae57eac385ef0f3ce9b33"
+  },
+  "publication_boundary": [
+    "No raw ArcGIS payload or restricted project data is embedded.",
+    "Crew and AUD values are planning proxies, not unit records or savings.",
+    "Geometry overlap is descriptive and is not causal risk or safety evidence."
+  ]
+}
