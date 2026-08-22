@@ -8,11 +8,12 @@ rules, bypass missing-data policy or return an infeasible schedule.
 
 ## Why this project exists
 
-The research question is how often suitable prescribed-burning conditions occur
-in Victoria, how availability changes across space and time, and how sensitive
-the result is to the definition of a window. The engineering question is how to
-make that analysis reproducible at the file-backed VicClim6 scale (1973–2023, approximately
-4 km) and safe to call from an Agentic AI application.
+The product question is how a planner or Agent can turn expert prescriptions,
+multi-decadal weather data, official burn-unit records and resource assumptions
+into an auditable shortlist of candidate windows and feasible schedules. The
+engineering question is how to make that decision chain reproducible at the
+file-backed VicClim6 scale (1973–2023, approximately 4 km) without letting an LLM
+invent rules, measurements or economic outcomes.
 
 This repository complements a multimodal-search/Agent portfolio by demonstrating
 the part that must remain deterministic: typed tools, explicit constraints,
@@ -185,7 +186,7 @@ Every analysis emits `run_manifest.json`, `metrics.json` and
 configuration, hardware, Slurm IDs and whether the run used real or synthetic
 data.
 
-### Verified real-data complete-condition proxy pilot
+### Verified real-data complete-condition proxy chain
 
 Spartan job `29504538` evaluated the selected Murray Goldfields prescription
 over all **19,509,264** 2020 district space-time cells. Unlike the earlier
@@ -201,6 +202,22 @@ value is a Viney/Van Wagner--Pickett model ensemble, ground wind uses a declared
 guard could not be applied. The result is therefore a complete compiled-rule
 **proxy evaluation**, not an on-site measurement, safe-burn approval or causal
 outcome. See the [redacted run record](artifacts/public/vicclim6_murray_goldfields_proxy_complete_2020_29504538.json).
+
+The production-shaped chain then ran the same compiled prescription across all
+**51 file-backed years (1973–2023)**. Spartan array `29504645` completed **51/51
+annual checkpoints** and dependent aggregate `29504810` passed the exact-SHA,
+spatial-contract, prescription-contract and proxy-contract gates. It evaluated
+**992,840,304 district cell-hours** with all **8/8 conditions**, retained
+**24,273,000 cells (2.4448%)**, and produced **9,919,639 / 2,253,645 / 533,488**
+2/4/6-hour endpoints. Annual tasks used 2,513 summed task-seconds with 0.89 GiB
+peak step RSS; the enhanced aggregate completed in seven seconds.
+
+The descriptive Theil–Sen change is **+0.221 percentage points per decade**
+(five-year moving-block-bootstrap 95% interval **+0.010 to +0.413**). It is a
+non-causal property of this proxy contract, not evidence that burns became safer
+or more effective. The [redacted 51-year record](artifacts/public/vicclim6_murray_goldfields_proxy_complete_51y_29504645.json)
+contains the annual series, condition attribution, source provenance, code SHAs
+and Slurm accounting without publishing restricted NetCDF or workbook content.
 
 Run the deterministic operations benchmark:
 
@@ -480,7 +497,7 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 71 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
+- 85 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
   and full-year 2024 weather-only screen jobs on Spartan with exact commits and
   hashes;
 - a remote controlled exit-75/checkpoint/resume gate whose uninterrupted and
@@ -499,14 +516,19 @@ Verified locally in this repository:
 - a second 51/51 exact-SHA district array that reproduced the baseline, evaluated
   seven explicit threshold scenarios and reported paired annual effects with
   seeded five-year moving-block bootstrap intervals.
+- a complete-condition 1973–2023 district chain over 992,840,304 cell-hours,
+  using an explicit two-model FMC ensemble and fuel-level-wind scenario, with
+  51/51 annual checkpoints and a single verified proxy contract;
+- an official JFMP/Fire History delivery layer with eight exact-ID matched burn
+  units, Australian-Albers polygon overlap, crew scenarios and a statewide
+  direct-cost-per-hectare planning benchmark.
 
 Not verified or not eligible for promotion:
 
 - the prior 2024 values **6.49%** and **9.04%**;
 - prior speedup claims;
-- an operational burn-window rate, safety/treated-area outcome, financial
-  value, or a complete prescription that includes fuel moisture and ground
-  wind;
+- an operational burn-window rate, safety outcome, causal risk reduction,
+  realised unit cost, saving or return on investment;
 - a real-candidate optimisation value.
 
 These values are historical project records only and must not be presented as

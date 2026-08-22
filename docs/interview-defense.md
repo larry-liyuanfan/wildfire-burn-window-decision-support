@@ -10,7 +10,7 @@ evaluation with NetCDF/Zarr/Kerchunk adapters, continuous-window extraction,
 limiting-factor and sensitivity tools, and a binary scheduling layer validated
 against greedy baselines. I compared nominal, max-min and lower-tail CVaR
 formulations, keeping planning scenarios independent from held-out evaluation.
-Seventy-nine local tests verify the engineering behavior on golden fixtures. I
+Eighty-five local tests verify the engineering behavior on golden fixtures. I
 also built an anonymous ARCO-ERA5 preflight with explicit source boundaries,
 then used an authorised team identity to inventory and process the restricted
 VicClim6 collection without copying its payloads.
@@ -60,12 +60,18 @@ multipart geometries and recomputes overlap in Australian Albers: 422.16 ha of
 plan polygons, 162.56 ha of treatment polygons and 161.89 ha intersection.
 Public staffing ranges and AUD 288.73/ha statewide direct-cost scale are exposed
 as scenarios, not actual rosters, savings or ROI.
-Spartan job `29504538` then executed those two proxy variables on real 2020
+Spartan job `29504538` first executed those two proxy variables on real 2020
 VicClim6 data: all 8/8 compiled conditions over 19,509,264 district cell-hours,
 with a 2.4693% retained rate and 193,450/36,245/7,622 2/4/6-hour endpoints. The
 artifact explicitly records that precipitation was unavailable, so the rain
 guard was not applied and this remains a proxy evaluation rather than safety
-validation.
+validation. The production chain then completed 51/51 years in array `29504645`:
+992,840,304 district cell-hours, 24,273,000 retained cells (2.4448%) and
+9,919,639/2,253,645/533,488 2/4/6-hour endpoints under one exact code, spatial,
+prescription and proxy contract. The enhanced aggregate reports a descriptive
++0.221 percentage-point-per-decade slope with a +0.010 to +0.413 block-bootstrap
+interval; I do not translate it into safety, causal risk reduction or financial
+value.
 
 ## Code evidence map
 
@@ -91,6 +97,7 @@ validation.
 | How did you move from a district to real burn units? | `official_burns.py`, official ArcGIS attribute/GeoJSON hashes and the public delivery artifact; exact-ID join plus EPSG:3577 union/intersection |
 | How are FMC and ground wind now handled? | `fuel_inputs.py` and `derive_fuel_inputs`; two-model FMC interval, rain guard, explicit WRF and `observed_on_site=false` |
 | Where do crew and cost numbers come from? | FFMVic public 20/30/70-person scenarios and 2024–25 direct planned-burning cost/area; both remain proxies rather than unit records |
+| Did the complete proxy contract run beyond a pilot? | Array `29504645`, aggregate `29504810` and `vicclim6_murray_goldfields_proxy_complete_51y_29504645.json`; 51/51 years and exact contract gates |
 
 ## Expected deep questions
 

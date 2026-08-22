@@ -1,0 +1,540 @@
+{
+  "schema_version": "1.0",
+  "artifact_type": "vicclim6_murray_goldfields_51y_proxy_complete",
+  "summary": {
+    "evidence_status": "verified-real-proxy-complete-prescription-by-this-run",
+    "interpretation": "complete compiled-condition evaluation with literature-derived proxies; not operational burn windows",
+    "git_sha": "0731bd4d00d68cdaceac4c463fd2aafb3793a7ba",
+    "burn_class": "Murray Goldfields - Box ironbark forest",
+    "prescription_scope": {
+      "compiled_condition_count": 8,
+      "complete": true,
+      "evaluated_condition_count": 8,
+      "excluded_unmapped_condition_count": 0,
+      "unresolved_value_count": 0
+    },
+    "derived_fuel_inputs": {
+      "fmc_ensemble": "arithmetic midpoint",
+      "fmc_models": [
+        "Viney-1991",
+        "Van-Wagner-Pickett-1985"
+      ],
+      "fmc_rain_guard_mm": null,
+      "fmc_temperature_validity": "temperature_c > 0; other cells are missing",
+      "observed_on_site": false,
+      "variables": [
+        "fmc_surface_inside_pct",
+        "wind_speed_ground_kmh"
+      ],
+      "wind_reduction_factor": 0.33
+    },
+    "region_scope": {
+      "source_path": "official-district-boundary.geojson",
+      "geometry_type": "Polygon",
+      "selected_grid_cells": 2221,
+      "total_grid_cells": 36112,
+      "coverage_fraction_of_source_grid": 0.061503101462117855,
+      "feature_properties": {
+        "DISTRICT_NAME": "MURRAY GOLDFIELDS",
+        "REGION_NAME": "LODDON MALLEE"
+      },
+      "boundary_provenance": {
+        "source_service": "https://spatial.planning.vic.gov.au/gis/rest/services/boundary/MapServer/12/query",
+        "source_layer": "Land and Fire District Major",
+        "query_url": "https://spatial.planning.vic.gov.au/gis/rest/services/boundary/MapServer/12/query?where=DISTRICT_NAME%3D%27MURRAY+GOLDFIELDS%27&outFields=DISTRICT_NAME%2CREGION_NAME&returnGeometry=true&outSR=4326&maxAllowableOffset=0.001000&geometryPrecision=6&f=geojson",
+        "retrieved_at_utc": "2026-08-21T10:19:33.131347+00:00",
+        "output_crs": "EPSG:4326",
+        "max_allowable_offset_degrees": 0.001,
+        "license": "Creative Commons Attribution 4.0 International",
+        "attribution": "State of Victoria (Department of Energy, Environment and Climate Action)"
+      },
+      "coordinate_reference_system": "EPSG:4326 grid-cell centres",
+      "boundary_inclusion_rule": "even-odd point-in-polygon at cell centre",
+      "label": "Murray Goldfields FFMVic district"
+    },
+    "year_start": 1973,
+    "year_end": 2023,
+    "year_count": 51,
+    "evaluated_space_time_cells": 992840304,
+    "provisional_pass_cells": 24273000,
+    "provisional_pass_rate": 0.0244480405380481,
+    "condition_failure_counts": {
+      "FDIIgnitionDay1:0": 881467006,
+      "FMCSurfaceInside:6": 828939491,
+      "KBDI:4": 0,
+      "KBDI:5": 0,
+      "RelativeHumidity:2": 77256336,
+      "Temperature:1": 36927642,
+      "WindSpeed:3": 89206761,
+      "WindSpeedGround:7": 411966
+    },
+    "condition_failure_rates": {
+      "FDIIgnitionDay1:0": 0.8878235527392531,
+      "FMCSurfaceInside:6": 0.834917244656901,
+      "KBDI:4": 0.0,
+      "KBDI:5": 0.0,
+      "RelativeHumidity:2": 0.0778134566946428,
+      "Temperature:1": 0.03719393929841913,
+      "WindSpeed:3": 0.08985006011601238,
+      "WindSpeedGround:7": 0.0004149368215011545
+    },
+    "minimum_duration_endpoints": {
+      "2": 9919639,
+      "4": 2253645,
+      "6": 533488
+    },
+    "annual": [
+      {
+        "year": 1973,
+        "evaluated_space_time_cells": 19402656,
+        "provisional_pass_cells": 142522,
+        "provisional_pass_rate": 0.00734548919488136,
+        "metric_hours": 8736,
+        "left_censored": true
+      },
+      {
+        "year": 1974,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 165633,
+        "provisional_pass_rate": 0.008513226795285352,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1975,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 580865,
+        "provisional_pass_rate": 0.029855375936216975,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1976,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 607653,
+        "provisional_pass_rate": 0.03114689513658742,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 1977,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 589931,
+        "provisional_pass_rate": 0.030321351400804688,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1978,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 433434,
+        "provisional_pass_rate": 0.022277697939346093,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1979,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 336346,
+        "provisional_pass_rate": 0.01728755610106106,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1980,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 537993,
+        "provisional_pass_rate": 0.02757628375934633,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 1981,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 536815,
+        "provisional_pass_rate": 0.02759128822222085,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1982,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 923930,
+        "provisional_pass_rate": 0.04748827608609393,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1983,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 458036,
+        "provisional_pass_rate": 0.023542194782472825,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1984,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 182512,
+        "provisional_pass_rate": 0.009355145329931463,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 1985,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 435091,
+        "provisional_pass_rate": 0.022362864644047378,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1986,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 288642,
+        "provisional_pass_rate": 0.014835659612787032,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1987,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 217068,
+        "provisional_pass_rate": 0.011156889714000234,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1988,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 330333,
+        "provisional_pass_rate": 0.016932109791532885,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 1989,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 210822,
+        "provisional_pass_rate": 0.010835856981613861,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1990,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 485118,
+        "provisional_pass_rate": 0.024934158992925563,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1991,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 453899,
+        "provisional_pass_rate": 0.02332956071044554,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1992,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 372398,
+        "provisional_pass_rate": 0.01908826493915916,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 1993,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 173117,
+        "provisional_pass_rate": 0.008897890415070754,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1994,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 358918,
+        "provisional_pass_rate": 0.018447714736255626,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1995,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 523237,
+        "provisional_pass_rate": 0.02689340438611099,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1996,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 226653,
+        "provisional_pass_rate": 0.011617711462615914,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 1997,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 565070,
+        "provisional_pass_rate": 0.029043542441493507,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1998,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 445921,
+        "provisional_pass_rate": 0.02291950641345891,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 1999,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 403931,
+        "provisional_pass_rate": 0.020761298851354547,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2000,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 293050,
+        "provisional_pass_rate": 0.01502106896497992,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 2001,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 566427,
+        "provisional_pass_rate": 0.029113289706598905,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2002,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 868888,
+        "provisional_pass_rate": 0.044659220105304494,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2003,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 488166,
+        "provisional_pass_rate": 0.025090820499219776,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2004,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 598570,
+        "provisional_pass_rate": 0.030681321448107934,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 2005,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 351094,
+        "provisional_pass_rate": 0.018045575751594885,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2006,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 740379,
+        "provisional_pass_rate": 0.03805409756187821,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2007,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 769523,
+        "provisional_pass_rate": 0.03955204472048668,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2008,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 630804,
+        "provisional_pass_rate": 0.03233356214770583,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 2009,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 575245,
+        "provisional_pass_rate": 0.029566518434454018,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2010,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 268001,
+        "provisional_pass_rate": 0.013774750770457998,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2011,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 71740,
+        "provisional_pass_rate": 0.0036873019886965227,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2012,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 401879,
+        "provisional_pass_rate": 0.02059939319084513,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 2013,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 715992,
+        "provisional_pass_rate": 0.03680065131712853,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2014,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 693744,
+        "provisional_pass_rate": 0.035657145676697526,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2015,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 857904,
+        "provisional_pass_rate": 0.04409466302356707,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2016,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 615400,
+        "provisional_pass_rate": 0.03154398853795817,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 2017,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 439428,
+        "provisional_pass_rate": 0.02258577834247192,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2018,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 886115,
+        "provisional_pass_rate": 0.04554465572503233,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2019,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 816025,
+        "provisional_pass_rate": 0.041942160654113186,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2020,
+        "evaluated_space_time_cells": 19509264,
+        "provisional_pass_cells": 481733,
+        "provisional_pass_rate": 0.024692525561189803,
+        "metric_hours": 8784,
+        "left_censored": false
+      },
+      {
+        "year": 2021,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 413474,
+        "provisional_pass_rate": 0.021251791224899723,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2022,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 320376,
+        "provisional_pass_rate": 0.016466727933239993,
+        "metric_hours": 8760,
+        "left_censored": false
+      },
+      {
+        "year": 2023,
+        "evaluated_space_time_cells": 19455960,
+        "provisional_pass_cells": 423155,
+        "provisional_pass_rate": 0.021749376540659008,
+        "metric_hours": 8760,
+        "left_censored": false
+      }
+    ],
+    "descriptive_trend": {
+      "estimator": "Theil-Sen slope with moving-block residual bootstrap",
+      "slope_rate_per_year": 0.0002213717544649558,
+      "change_rate_per_decade": 0.002213717544649558,
+      "bootstrap_95pct_ci_rate_per_year": [
+        9.723012162560533e-06,
+        0.0004129847862505732
+      ],
+      "bootstrap_block_years": 5,
+      "bootstrap_samples": 2000,
+      "seed": 20260821,
+      "causal_interpretation": false
+    },
+    "quality_gate": {
+      "complete_expected_year_set": true,
+      "single_exact_git_sha": true,
+      "single_prescription_contract": true,
+      "single_spatial_contract": true,
+      "single_derived_fuel_input_contract": true,
+      "single_threshold_sensitivity_contract": true,
+      "all_real_data": true,
+      "raw_paths_omitted": true
+    },
+    "aggregation_git_sha": "d41e6ac1b5cf98a1e3d745704393f959cac589b4"
+  },
+  "evidence_identity": {
+    "annual_run_git_sha": "0731bd4d00d68cdaceac4c463fd2aafb3793a7ba",
+    "aggregation_git_sha": "d41e6ac1b5cf98a1e3d745704393f959cac589b4",
+    "input_summary_sha256": "63f9353633fa12d38126c916c1a5f2493b15b2f8f519c0d75751ea1b46bca1d1"
+  },
+  "slurm_accounting": {
+    "array_job_id": "29504645",
+    "aggregate_job_id": "29504810",
+    "array_elapsed_total_seconds": 2513,
+    "array_max_rss_kib": 931212,
+    "aggregate_elapsed_seconds": 7,
+    "aggregate_max_rss_kib": 52868
+  },
+  "publication_boundary": [
+    "All compiled conditions are evaluated, but FMC and fuel-level wind are literature-derived proxies.",
+    "VicClim6 has no precipitation field, so no rain guard was applied.",
+    "District grid cells are not operational burn units or treatable area.",
+    "Rates and trends are descriptive, not approval, safety, causal risk or economic outcomes."
+  ]
+}
