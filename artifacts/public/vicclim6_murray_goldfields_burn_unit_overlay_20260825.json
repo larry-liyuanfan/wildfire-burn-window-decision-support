@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "status": "verified-real-official-public-spatial-contract",
+  "scope": "Murray Goldfields current-plan polygons to representative VicClim6 grid",
+  "spartan": {
+    "job_id": "29584607",
+    "state": "COMPLETED",
+    "exit_code": "0:0",
+    "elapsed_seconds": 5,
+    "max_rss_kib": 101860,
+    "allocated_cpus": 1,
+    "requested_memory": "8G"
+  },
+  "implementation": {
+    "git_sha": "0c2abba002af8a88662af89cbfa67d0b5adbbecf",
+    "source_crs": "EPSG:4326",
+    "area_crs": "EPSG:3577 Australian Albers",
+    "grid_shape": [148, 244],
+    "contract": "area-weighted polygon-to-grid intersection; zero coverage fails explicitly and never falls back to the nearest grid centre"
+  },
+  "inputs": {
+    "official_geojson_features": 221,
+    "official_unique_treat_no": 176,
+    "official_geojson_sha256": "e7b5c2265fde192f6088592dc38da57f9aa4739890d4d3de578f6549a2bb3f51",
+    "representative_grid_sha256": "12e2b701eda7ed85adb9ca3ad5be0f14df8fb7a64cb9f72b4186b60264e156ed"
+  },
+  "results": {
+    "burn_unit_count": 176,
+    "covered_burn_unit_count": 176,
+    "zero_coverage_burn_unit_count": 0,
+    "weight_row_count": 351,
+    "weight_min": 5.487208167458422e-7,
+    "weight_max": 0.5298697886588742,
+    "polygon_coverage_fraction_min": 0.9999999999998781,
+    "polygon_coverage_fraction_median": 1.0,
+    "polygon_coverage_fraction_max": 1.000000000000219,
+    "polygon_hectares_sum": 24639.831954078993,
+    "covered_hectares_sum": 24639.83195407908
+  },
+  "artifact_hashes": {
+    "burn_unit_overlay_json_sha256": "ca1fd90e438665937a26f94a38b5d715aa7caa0420e74f1ac87a491bb3c7db85",
+    "metrics_json_sha256": "febc6eae5f6f41b0c73c0fe6dbbefe215138bf1811415aad96394a65d536a12d",
+    "run_manifest_json_sha256": "5851acbc1fa16ee47cdce2866952f3aac1062bad40d2fb6bcc2e5dbc70116ce8",
+    "error_cases_json_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+  },
+  "boundary": "This run proves an official-ID spatial contract and complete grid intersection for 176 plan IDs. It does not yet contain 51-year burn-unit weather climatology, operational approval, safety, causal risk reduction, realised crew records, savings or ROI."
+}

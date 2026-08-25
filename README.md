@@ -23,7 +23,7 @@ large-array execution, provenance and refusal to guess unresolved semantics.
 flowchart LR
   W[Private FMS workbook] --> A[Typed rule AST]
   V[Six VicClim6 families] --> T[Leakage-safe time alignment]
-  B[Official FFMVic district and burn-unit polygons] --> S[Spatial scope]
+  B[Official FFMVic district and burn-unit polygons] --> S[Area-weighted polygon-to-grid contract]
   H[FFMVic Fire History outcomes] --> X[Plan/outcome polygon intersection]
   M[Temperature/RH/rain + 10 m wind] --> P[FMC ensemble + fuel-level-wind proxy]
   A --> D[Xarray/Dask rule graph]
@@ -53,7 +53,10 @@ district mask is still not a burn-unit boundary. A separate official JFMP/Fire
 History adapter now queries **176 current Murray Goldfields burn IDs** and
 **187 historical burn IDs**, aligns eight shared IDs and measures plan/outcome
 polygon overlap in EPSG:3577. This outcome layer is kept separate from the
-historical district weather screen. See [boundary provenance](docs/boundary-data.md).
+  historical district weather screen. All 176 current-plan IDs now also have a
+  reproducible area-weighted VicClim6 grid contract; the 51-year weather results
+  remain district-level until a separate burn-unit climatology run is completed.
+  See [boundary provenance](docs/boundary-data.md).
 
 ## Stable tool contracts
 
@@ -72,6 +75,13 @@ source, active constraints, warnings and a typed result.
 The Pydantic schemas are in `src/burnwindows/models.py`; JSON Schema can be
 generated directly with `ToolEnvelope.model_json_schema()` and the request
 models used by a calling service.
+
+The HTTP layer exposes `GET /api/tools`, `POST /api/tools/{tool_name}:invoke`,
+`POST /api/jobs/burn-unit-climatology`, `GET /api/jobs/{job_id}`, and
+`GET /metrics`. Undeclared fields and unknown tools fail before execution. The
+optional Model Studio planner may select exactly one declared tool and fill its
+typed arguments; it cannot submit SQL, Dask graphs, optimiser expressions or
+an arbitrary filesystem path.
 
 ## Technical design
 
@@ -100,6 +110,10 @@ models used by a calling service.
   converted to a selected `spatial_cell` axis before evaluation. The exact file
   hash, official feature properties, simplification tolerance and inclusion
   rule are retained; empty or ambiguous scopes fail closed.
+- **Burn-unit overlay:** current-plan polygons are unioned by official
+  `TREAT_NO`, projected to EPSG:3577 and intersected with the rectilinear grid.
+  Weights are overlap area divided by grid-cell area. Zero-coverage units remain
+  explicit failures; nearest-cell substitution is forbidden.
 - **Scheduling:** candidate windows are binary variables with resource and daily
   capacity constraints. The decision layer now compares nominal, max-min and
   lower-tail CVaR formulations; every solver output is independently validated.
@@ -161,6 +175,19 @@ burn-window official-outcomes \
   --output-dir artifacts/public/ffmvic_murray_goldfields_burn_delivery_20260822
 ```
 
+Build the official burn-unit/grid contract and start the trusted tool service:
+
+```bash
+burn-window build-burn-unit-overlay \
+  --grid /restricted/VicClim6/2020/01/IDV71000_VIC_T_SFC.nc \
+  --where "DISTRICT='Murray Goldfields'" \
+  --output-dir artifacts/burn-unit-overlay
+
+burn-window serve-tools \
+  --artifact-catalog configs/public-artifact-catalog.json \
+  --host 0.0.0.0 --port 8000
+```
+
 ### Verified official burn-unit and outcome integration
 
 The public FFMVic JFMP and Fire History services returned **221 plan features
@@ -180,6 +207,20 @@ scale proxy**—not a unit's observed cost, saving or ROI. These data now suppor
 burn-unit, treated-area, resource-scenario and cost-scale discussion while
 remaining separate from safety and causal risk-reduction claims. See the
 [machine-readable artifact](artifacts/public/ffmvic_murray_goldfields_burn_delivery_20260822.json).
+
+### Verified burn-unit to VicClim6 spatial contract
+
+Spartan job `29584607` unioned 221 official Murray Goldfields current-plan
+features into **176 unique `TREAT_NO` units** and intersected them with the
+148×244 VicClim6 grid in Australian Albers. All 176 units had explicit coverage,
+producing 351 non-zero polygon/cell weights and zero nearest-cell fallbacks. The
+job completed in five seconds on one CPU with 101,860 KiB MaxRSS; the source
+GeoJSON, representative grid, manifest and compact result are hash-pinned.
+
+This closes the burn-unit **spatial-contract** gap only. It does not turn the
+existing district-level 51-year weather screen into burn-unit climatology and
+does not prove safety, risk reduction or economic return. See the
+[compact run record](artifacts/public/vicclim6_murray_goldfields_burn_unit_overlay_20260825.json).
 
 Every analysis emits `run_manifest.json`, `metrics.json` and
 `error_cases.json`. The manifest captures git SHA, input hashes where practical,

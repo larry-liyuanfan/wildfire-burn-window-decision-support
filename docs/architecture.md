@@ -24,6 +24,14 @@ The agent is outside the trust boundary. It cannot submit arbitrary array code,
 raw Dask graphs or a solver result. It selects a typed tool and receives a result
 whose data version, constraints and warnings are explicit.
 
+The service boundary is also typed: callers discover schemas with
+`GET /api/tools`, invoke only declared operations at
+`POST /api/tools/{tool_name}:invoke`, and submit long burn-unit aggregation work
+through an artifact-catalog-backed asynchronous job endpoint. Each response is
+a `ToolEnvelope` with status, data version, source, constraints, warnings,
+result and trace ID. Unknown arguments, artifact IDs and arbitrary paths fail
+before domain code runs.
+
 ## Rule compilation
 
 The workbook compiler processes all non-empty cells in each burn-class row:

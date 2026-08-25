@@ -520,6 +520,71 @@ def command_official_outcomes(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_burn_unit_overlay(args: argparse.Namespace) -> int:
+    import xarray as xr
+
+    from .burn_units import build_area_weighted_overlay
+    from .official_burns import PLANNED_BURNS_URL, fetch_arcgis_geojson
+
+    if args.geojson:
+        geojson = json.loads(args.geojson.read_text(encoding="utf-8"))
+        provenance: dict[str, Any] = {"source_path": str(args.geojson.resolve())}
+    else:
+        geojson, provenance = fetch_arcgis_geojson(
+            PLANNED_BURNS_URL,
+            where=args.where,
+            out_fields=["OBJECTID", "TREAT_NO", "TREAT_NAME", "HECTARES", "DISTRICT", "REGION"],
+        )
+    with xr.open_dataset(args.grid) as dataset:
+        if args.latitude_name not in dataset.coords or args.longitude_name not in dataset.coords:
+            raise ValueError("grid file lacks requested latitude/longitude coordinates")
+        overlay = build_area_weighted_overlay(
+            geojson,
+            latitude=np.asarray(dataset[args.latitude_name].values),
+            longitude=np.asarray(dataset[args.longitude_name].values),
+            id_property=args.id_property,
+        )
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    write_json(args.output_dir / "burn_unit_overlay.json", overlay)
+    metrics = {
+        key: overlay[key]
+        for key in (
+            "grid_shape",
+            "burn_unit_count",
+            "covered_burn_unit_count",
+            "zero_coverage_burn_unit_count",
+            "contract",
+        )
+    }
+    metrics["weight_row_count"] = len(overlay["weights"])
+    metrics["provenance"] = provenance
+    manifest = make_manifest(
+        command=sys.argv,
+        input_paths=[args.grid, *([args.geojson] if args.geojson else [])],
+        config={
+            "where": args.where,
+            "id_property": args.id_property,
+            "latitude_name": args.latitude_name,
+            "longitude_name": args.longitude_name,
+        },
+        data_kind="official-burn-unit-area-weighted-grid-overlay",
+    )
+    write_run_artifacts(args.output_dir, manifest=manifest, metrics=metrics)
+    print(json.dumps(metrics, indent=2, default=str))
+    return 0
+
+
+def command_serve_tools(args: argparse.Namespace) -> int:
+    try:
+        import uvicorn
+    except ImportError as exc:
+        raise RuntimeError("uvicorn is unavailable; install the 'serve' extra") from exc
+    from .service import create_app
+
+    uvicorn.run(create_app(), host=args.host, port=args.port)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="burn-window")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -652,6 +717,24 @@ def build_parser() -> argparse.ArgumentParser:
     outcomes.add_argument("--history-district", default="Loddon Mallee - Murray Goldfields")
     outcomes.add_argument("--output-dir", type=Path, required=True)
     outcomes.set_defaults(handler=command_official_outcomes)
+
+    overlay = subparsers.add_parser(
+        "build-burn-unit-overlay",
+        help="build official burn-unit to VicClim6 area-weighted grid contracts",
+    )
+    overlay.add_argument("--grid", type=Path, required=True)
+    overlay.add_argument("--geojson", type=Path)
+    overlay.add_argument("--where", default="1=1")
+    overlay.add_argument("--id-property", default="TREAT_NO")
+    overlay.add_argument("--latitude-name", default="latitude")
+    overlay.add_argument("--longitude-name", default="longitude")
+    overlay.add_argument("--output-dir", type=Path, required=True)
+    overlay.set_defaults(handler=command_burn_unit_overlay)
+
+    serve = subparsers.add_parser("serve-tools", help="serve the typed trusted-tool registry")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.set_defaults(handler=command_serve_tools)
     return parser
 
 

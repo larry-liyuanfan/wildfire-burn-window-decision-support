@@ -115,6 +115,7 @@ class ToolEnvelope(BaseModel):
     constraints: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     result: Any = None
+    trace_id: str | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
