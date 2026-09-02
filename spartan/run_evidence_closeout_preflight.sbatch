@@ -27,7 +27,7 @@ export PIP_CACHE_DIR="${EVIDENCE_ROOT}/.cache/pip"
 export XDG_CACHE_HOME="${EVIDENCE_ROOT}/.cache/xdg"
 export PYTHONUNBUFFERED=1
 
-module load Python/3.11.3
+module load GCCcore/11.3.0 Python/3.11.3
 python -m venv "${EVIDENCE_ROOT}/.venv"
 source "${EVIDENCE_ROOT}/.venv/bin/activate"
 python -m pip install --upgrade pip
@@ -50,4 +50,3 @@ python -m burnwindows.tool_benchmark \
 git rev-parse HEAD > "${EVIDENCE_ROOT}/results/git-sha-${SLURM_JOB_ID}.txt"
 python -m pip freeze > "${EVIDENCE_ROOT}/results/environment-${SLURM_JOB_ID}.txt"
 python --version > "${EVIDENCE_ROOT}/results/python-${SLURM_JOB_ID}.txt"
-

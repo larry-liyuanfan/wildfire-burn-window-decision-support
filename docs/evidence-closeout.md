@@ -85,7 +85,10 @@ Artifact:
 [`../artifacts/public/flare_tool_service_fixture_benchmark_20260903.json`](../artifacts/public/flare_tool_service_fixture_benchmark_20260903.json)
 
 - implementation SHA: `ff599cd7be31144131aee63444b4d86bd45bb6a2`
-- artifact SHA-256: `0eee4b5f1e99aa3898f9b08ef00ea42ccca7e696d631562eff6e9a47f6bb6c1e`
+- canonical-JSON SHA-256: `53030e139c42f984ed9ea95588bb507c9b04614edec7653a2e388217f1674925`
+- repository-normalised LF bytes SHA-256: `fe434547e2f731b4afa1ba8fd2f9b73a7a276602aed455f5a6dd56f62af74578`
+  (a Windows working tree may materialise CRLF bytes, so the canonical hash is
+  the cross-platform content identity)
 - fixed workload: 168 hourly points for array tools, 51 annual values and 100
   seeded bootstrap samples for the trend tool, and 12 schedule candidates;
 - protocol: three warm-ups and 30 measured loopback invocations per tool, each
@@ -156,4 +159,3 @@ ranking, representation learning and search evaluation.
 ## 90-second interview story
 
 > FLARE 是墨尔本大学的 Data Science Industry Project。行业方的问题是：计划燃烧的天气窗口会不会因为阈值定义变化而显著变化，并且能否把结论做成可审计交付。我负责把私有 workbook 的 43 类规则编译成 typed AST；不能可靠解释的字段不猜，而是保留为 unresolved。数据侧我实现了无未来信息泄漏的日频到小时级对齐、单位与缺测策略，并在 Spartan 对 1973–2023 的受限 VicClim6 完成 51/51 年 checkpointed district-level 处理。后来我发现 district weather 不能直接冒充 burn-unit 结果，因此把 221 个官方 current-plan polygons 按 `TREAT_NO` 归并为 176 个 burn IDs，再用 area-weighted overlay 建立 polygon 到网格的空间合同；176/176 有覆盖，nearest fallback 为零，但我仍明确它只解决空间映射，没有宣称完成 burn-unit climatology。最后我把规则、趋势、敏感性、燃料代理和调度封装成 6 个 typed tools，加入 request hash、provenance、timeout、幂等和 exact-checkpoint resume。98 个测试以及固定 fixture 的 6×30 调用验证了 schema 和失败恢复。最关键的取舍是：FMC 和 ground wind 仍是代理而非现场测量，所以所有输出都禁止被表述为安全批准、因果风险下降或 ROI。这段经历证明我能把复杂领域数据变成 Agent 可安全调用、可拒绝、可追溯的工具，而不是证明我训练了搜索模型。
-
