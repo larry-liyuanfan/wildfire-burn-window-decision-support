@@ -1,0 +1,163 @@
+{
+  "schema_version": "1.0",
+  "created_at_utc": "2026-09-02T14:57:22.627567+00:00",
+  "benchmark_kind": "offline-domain-tool-fixture",
+  "boundary": "Loopback deterministic-fixture benchmark only; not a production SLA, autonomous Agent evaluation, VicClim6 quality result, field validation or safety evidence.",
+  "implementation_git_sha": "ff599cd7be31144131aee63444b4d86bd45bb6a2",
+  "runtime": {
+    "python": "3.13.13 (tags/v3.13.13:01104ce, Apr  7 2026, 19:25:48) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "cpu_count": 28
+  },
+  "workload": {
+    "hourly_points_for_array_tools": 168,
+    "annual_points_for_trend": 51,
+    "bootstrap_samples_for_trend": 100,
+    "schedule_candidates": 12,
+    "warmup_calls_per_tool": 3,
+    "measured_calls_per_tool": 30,
+    "request_fixture_version": "fixed-load-fixture-v1"
+  },
+  "tools": [
+    {
+      "tool": "compare_threshold_scenarios",
+      "repetitions": 30,
+      "success_count": 30,
+      "success_rate": 1.0,
+      "deterministic_result_hash_count": 1,
+      "latency_ms": {
+        "service_execution_p50": 5.595050010015257,
+        "service_execution_p95": 6.1367999878712,
+        "loopback_round_trip_p50": 11.521149994223379,
+        "loopback_round_trip_p95": 13.124499993864447
+      },
+      "memory_bytes": {
+        "process_rss_before": 99934208,
+        "process_peak_rss": 101646336,
+        "process_peak_rss_delta": 1712128,
+        "python_tracemalloc_peak": 680580
+      }
+    },
+    {
+      "tool": "derive_fuel_inputs",
+      "repetitions": 30,
+      "success_count": 30,
+      "success_rate": 1.0,
+      "deterministic_result_hash_count": 1,
+      "latency_ms": {
+        "service_execution_p50": 2.4577499862061813,
+        "service_execution_p95": 2.663100021891296,
+        "loopback_round_trip_p50": 9.271949995309114,
+        "loopback_round_trip_p95": 12.050999997882172
+      },
+      "memory_bytes": {
+        "process_rss_before": 99409920,
+        "process_peak_rss": 107380736,
+        "process_peak_rss_delta": 7970816,
+        "python_tracemalloc_peak": 1893901
+      }
+    },
+    {
+      "tool": "explain_limiting_factors",
+      "repetitions": 30,
+      "success_count": 30,
+      "success_rate": 1.0,
+      "deterministic_result_hash_count": 1,
+      "latency_ms": {
+        "service_execution_p50": 1.8674000020837411,
+        "service_execution_p95": 2.046700014034286,
+        "loopback_round_trip_p50": 7.427349992212839,
+        "loopback_round_trip_p95": 8.323799993377179
+      },
+      "memory_bytes": {
+        "process_rss_before": 99762176,
+        "process_peak_rss": 101756928,
+        "process_peak_rss_delta": 1994752,
+        "python_tracemalloc_peak": 690261
+      }
+    },
+    {
+      "tool": "find_burn_windows",
+      "repetitions": 30,
+      "success_count": 30,
+      "success_rate": 1.0,
+      "deterministic_result_hash_count": 1,
+      "latency_ms": {
+        "service_execution_p50": 6.401550010195933,
+        "service_execution_p95": 6.80350000038743,
+        "loopback_round_trip_p50": 12.486250008805655,
+        "loopback_round_trip_p95": 16.137300000991672
+      },
+      "memory_bytes": {
+        "process_rss_before": 99872768,
+        "process_peak_rss": 102629376,
+        "process_peak_rss_delta": 2756608,
+        "python_tracemalloc_peak": 960435
+      }
+    },
+    {
+      "tool": "get_region_trend",
+      "repetitions": 30,
+      "success_count": 30,
+      "success_rate": 1.0,
+      "deterministic_result_hash_count": 1,
+      "latency_ms": {
+        "service_execution_p50": 1314.7197000071174,
+        "service_execution_p95": 1337.3603000072762,
+        "loopback_round_trip_p50": 1323.347100013052,
+        "loopback_round_trip_p95": 1345.8385999838356
+      },
+      "memory_bytes": {
+        "process_rss_before": 99315712,
+        "process_peak_rss": 100900864,
+        "process_peak_rss_delta": 1585152,
+        "python_tracemalloc_peak": 493869
+      }
+    },
+    {
+      "tool": "optimize_burn_schedule",
+      "repetitions": 30,
+      "success_count": 30,
+      "success_rate": 1.0,
+      "deterministic_result_hash_count": 1,
+      "latency_ms": {
+        "service_execution_p50": 35.72954999981448,
+        "service_execution_p95": 36.56180002144538,
+        "loopback_round_trip_p50": 41.298249998362735,
+        "loopback_round_trip_p95": 42.208900005789474
+      },
+      "memory_bytes": {
+        "process_rss_before": 133038080,
+        "process_peak_rss": 136056832,
+        "process_peak_rss_delta": 3018752,
+        "python_tracemalloc_peak": 1007400
+      }
+    }
+  ],
+  "failure_recovery": [
+    {
+      "case": "undeclared_field_rejected_then_corrected",
+      "passed": true
+    },
+    {
+      "case": "same_key_same_request_replayed",
+      "passed": true
+    },
+    {
+      "case": "same_key_different_request_conflicts",
+      "passed": true
+    },
+    {
+      "case": "deadline_fails_closed",
+      "passed": true
+    },
+    {
+      "case": "corrected_request_succeeds_after_timeout",
+      "passed": true
+    },
+    {
+      "case": "artifact_job_resumes_from_exact_checkpoint",
+      "passed": true
+    }
+  ]
+}
