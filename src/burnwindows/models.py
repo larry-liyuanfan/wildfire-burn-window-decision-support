@@ -106,9 +106,42 @@ class ScheduleResult(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class ToolError(BaseModel):
+    """Machine-readable failure returned after a request passed schema validation."""
+
+    code: str
+    message: str
+    retryable: bool = False
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class ToolProvenance(BaseModel):
+    """Execution provenance without claiming that caller-supplied data was audited."""
+
+    status: Literal["caller_asserted", "incomplete"]
+    request_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    code_sha: str
+    source_references: list[str] = Field(default_factory=list)
+
+
+class ToolExecution(BaseModel):
+    """Service controls attached uniformly to all six stateless domain tools."""
+
+    mode: Literal["direct", "service"] = "direct"
+    timeout_seconds: float | None = Field(default=None, gt=0)
+    elapsed_ms: float | None = Field(default=None, ge=0)
+    idempotency_key: str | None = None
+    replayed: bool = False
+    checkpoint_mode: Literal["not_applicable_stateless", "artifact_checkpoint"] = (
+        "not_applicable_stateless"
+    )
+
+
 class ToolEnvelope(BaseModel):
     """Stable outer response shape suitable for function calling."""
 
+    schema_version: Literal["1.1"] = "1.1"
+    tool_name: str | None = None
     status: Literal["ok", "partial", "error", "needs_clarification"]
     data_version: str
     source: str
@@ -116,8 +149,19 @@ class ToolEnvelope(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     result: Any = None
     trace_id: str | None = None
+    error: ToolError | None = None
+    provenance: ToolProvenance | None = None
+    execution: ToolExecution | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @model_validator(mode="after")
+    def validate_error_contract(self) -> ToolEnvelope:
+        if self.status == "error" and self.error is None:
+            raise ValueError("error status requires error details")
+        if self.status != "error" and self.error is not None:
+            raise ValueError("non-error status cannot include error details")
+        return self
 
 
 class FindBurnWindowsRequest(BaseModel):

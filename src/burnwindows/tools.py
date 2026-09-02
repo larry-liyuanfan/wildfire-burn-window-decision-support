@@ -10,6 +10,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 import numpy as np
+from pydantic import BaseModel
 
 from .engine import (
     apply_threshold_scenario,
@@ -37,7 +38,7 @@ from .trend import block_bootstrap_ci, theil_sen_slope
 def tool_schemas() -> dict[str, dict[str, Any]]:
     """Return JSON Schemas suitable for a function-calling registry."""
 
-    models = {
+    models: dict[str, type[BaseModel]] = {
         "find_burn_windows": FindBurnWindowsRequest,
         "explain_limiting_factors": ExplainLimitingFactorsRequest,
         "compare_threshold_scenarios": ThresholdScenarioRequest,
@@ -115,7 +116,7 @@ def find_burn_windows(
     if suitable.ndim != 1:
         raise ValueError("tool contract expects one regional time series")
     windows = extract_windows(
-        suitable,
+        suitable.tolist(),
         times,
         min_duration_hours=min_duration_hours,
         location=location,
