@@ -115,7 +115,7 @@ def fixture_payloads(hours: int = 168) -> dict[str, dict[str, Any]]:
             "suitable_rates": [0.03 + 0.0001 * index for index in range(51)],
             "region": "fixture-district",
             "block_size": 5,
-            "bootstrap_samples": 500,
+            "bootstrap_samples": 100,
             "data_version": "fixed-load-fixture-v1",
         },
         "optimize_burn_schedule": {
@@ -383,6 +383,7 @@ def run_benchmark(
         "workload": {
             "hourly_points_for_array_tools": hours,
             "annual_points_for_trend": 51,
+            "bootstrap_samples_for_trend": 100,
             "schedule_candidates": 12,
             "warmup_calls_per_tool": warmup,
             "measured_calls_per_tool": repetitions,
