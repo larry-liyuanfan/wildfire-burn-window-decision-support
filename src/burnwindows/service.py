@@ -328,7 +328,7 @@ def create_app(
     *,
     climatology_runner: Callable[[dict[str, Any]], Any] | None = None,
     tool_registry: Mapping[str, tuple[type[BaseModel], Callable[..., ToolEnvelope]]] | None = None,
-    default_tool_timeout_seconds: float = 5.0,
+    default_tool_timeout_seconds: float = 30.0,
 ):
     try:
         from fastapi import FastAPI, HTTPException, Response
