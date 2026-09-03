@@ -28,9 +28,45 @@ The service boundary is also typed: callers discover schemas with
 `GET /api/tools`, invoke only declared operations at
 `POST /api/tools/{tool_name}:invoke`, and submit long burn-unit aggregation work
 through an artifact-catalog-backed asynchronous job endpoint. Each response is
-a `ToolEnvelope` with status, data version, source, constraints, warnings,
-result and trace ID. Unknown arguments, artifact IDs and arbitrary paths fail
-before domain code runs.
+a `ToolEnvelope` 1.1 with status, data version, source, constraints, warnings,
+typed result/error, trace ID, request/code provenance and execution metadata.
+Unknown arguments, artifact IDs and arbitrary paths fail before domain code
+runs.
+
+### Execution reliability contract
+
+```mermaid
+flowchart LR
+    R[Raw request] --> V[Pydantic validation]
+    V --> H[Canonical request SHA-256]
+    H --> I{Idempotency key?}
+    I -->|same key + same hash| C[Replay cached envelope]
+    I -->|same key + different hash| X[HTTP 409]
+    I -->|new/no key| D[Bounded deadline]
+    D -->|success| P[Publish ToolEnvelope + provenance]
+    D -->|timeout/error| F[Typed fail-closed envelope]
+    J[Long artifact job] --> K[Catalog-scoped checkpoint]
+    K --> Q[Resume only exact failed-job token]
+```
+
+The six domain-tool invocations are bounded and stateless. Their checkpoint
+mode is therefore `not_applicable_stateless`; an idempotent retry replays the
+same validated request rather than resuming internal computation. The separate
+burn-unit climatology job is artifact-backed and may expose a checkpoint. A
+resume request must match both the failed parent job and its exact checkpoint
+token, preventing a caller from substituting an arbitrary path or partial
+state.
+
+Timeout means the service will not publish a late result. The underlying Python
+thread may finish after the response deadline, so this boundary is fail-closed
+result publication rather than hard process termination. Deployments that need
+hard cancellation must place tools in cancellable worker processes or batch
+jobs.
+
+`data_version` is caller-supplied: the envelope labels a specific value
+`caller_asserted` and an empty/unknown value `incomplete`. It does not claim the
+service independently audited the caller's data. Full restricted-data evidence
+still requires a manifest with source hashes and quality gates.
 
 ## Rule compilation
 

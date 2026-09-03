@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - agent/**
+      - codex/**
 
 permissions:
   contents: read
@@ -26,3 +27,9 @@ jobs:
         run: python -m pytest
       - name: Lint
         run: python -m ruff check .
+      - name: Type check trusted-tool boundary
+        run: >-
+          python -m mypy
+          src/burnwindows/models.py
+          src/burnwindows/service.py
+          src/burnwindows/tool_benchmark.py

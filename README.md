@@ -6,6 +6,13 @@ scenarios and feasible schedules. The project is designed as a **trusted tool
 layer for an AI agent**: an LLM may choose a tool, but it cannot invent weather
 rules, bypass missing-data policy or return an infeasible schedule.
 
+This is an individual engineering extension of the University of Melbourne
+FLARE **Data Science Industry Project (Vocational Placement)**. It is not
+presented as employment, a Research Assistant appointment or an autonomous
+Agent. The [evidence closeout](docs/evidence-closeout.md) separates the industry
+brief, team inputs, official sources, personal implementation and public-use
+limits; it also defines exactly what the recurring 43/221/176/51/91 counts mean.
+
 ## Why this project exists
 
 The product question is how a planner or Agent can turn expert prescriptions,
@@ -60,8 +67,9 @@ polygon overlap in EPSG:3577. This outcome layer is kept separate from the
 
 ## Stable tool contracts
 
-All six public tools return a `ToolEnvelope` containing status, data version,
-source, active constraints, warnings and a typed result.
+All six public tools return `ToolEnvelope` 1.1 with status, data version, source,
+active constraints, warnings, a typed result or machine-readable error,
+request/code provenance, trace ID and execution metadata.
 
 | Tool | Deterministic responsibility |
 |---|---|
@@ -78,10 +86,30 @@ models used by a calling service.
 
 The HTTP layer exposes `GET /api/tools`, `POST /api/tools/{tool_name}:invoke`,
 `POST /api/jobs/burn-unit-climatology`, `GET /api/jobs/{job_id}`, and
-`GET /metrics`. Undeclared fields and unknown tools fail before execution. The
-optional Model Studio planner may select exactly one declared tool and fill its
-typed arguments; it cannot submit SQL, Dask graphs, optimiser expressions or
-an arbitrary filesystem path.
+`GET /metrics`. Undeclared fields and unknown tools fail before execution.
+Canonical request hashes bind optional idempotency keys; mismatched reuse is a
+conflict, deadlines fail closed, and typed provenance distinguishes a named
+caller data version from an incomplete one. The six invocations are stateless,
+so checkpointing is explicitly not applicable. The separate long-running
+artifact job resumes only from the exact checkpoint token emitted by its failed
+parent. An optional Model Studio planner may select exactly one declared tool
+and fill its typed arguments; it cannot submit SQL, Dask graphs, optimiser
+expressions or an arbitrary filesystem path. No real task-selection evaluation
+has been run, so this remains an Agent-callable tool layer rather than an
+autonomous Agent claim.
+
+### Fixed-load tool boundary benchmark
+
+The tracked fixture benchmark runs each of the six tools in an isolated child
+process with three warm-ups and 30 measured loopback calls. Every tool completed
+30/30 calls with one deterministic result hash; six failure/recovery checks for
+schema correction, replay/conflict, timeout/retry and exact-checkpoint resume
+all passed. Service P95 ranged from 2.05 ms for limiting-factor attribution to
+1,337.36 ms for a 51-point/100-bootstrap trend request; peak process RSS ranged
+from 96.2 to 129.8 MiB. These measurements are a deterministic Windows fixture
+benchmark—not VicClim6 performance, a concurrency test, a production SLA or an
+Agent evaluation. See the [machine-readable record](artifacts/public/flare_tool_service_fixture_benchmark_20260903.json)
+and [scope/metric definitions](docs/evidence-closeout.md#fixed-load-offline-tool-benchmark).
 
 ## Technical design
 
@@ -538,7 +566,8 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 85 local tests plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
+- 98 current local tests (the earlier merged-main closeout baseline was 91)
+  plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
   and full-year 2024 weather-only screen jobs on Spartan with exact commits and
   hashes;
 - a remote controlled exit-75/checkpoint/resume gate whose uninterrupted and

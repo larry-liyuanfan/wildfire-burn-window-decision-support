@@ -2,82 +2,21 @@
 
 ## 90-second story
 
-The project converts expert prescribed-burning constraints into deterministic,
-Agent-callable tools over multi-decadal gridded climate data. I built a typed
-rule compiler that preserves inequality boundaries and records ambiguous fields
-instead of guessing, a no-lookahead daily-to-hourly alignment policy, Xarray/Dask
-evaluation with NetCDF/Zarr/Kerchunk adapters, continuous-window extraction,
-limiting-factor and sensitivity tools, and a binary scheduling layer validated
-against greedy baselines. I compared nominal, max-min and lower-tail CVaR
-formulations, keeping planning scenarios independent from held-out evaluation.
-Eighty-five local tests verify the engineering behavior on golden fixtures. I
-also built an anonymous ARCO-ERA5 preflight with explicit source boundaries,
-then used an authorised team identity to inventory and process the restricted
-VicClim6 collection without copying its payloads.
-A full-year 2024 Spartan run processed 8,283,312 cell-hours and found 1,391,401
-passes of temperature/RH/wind necessary conditions (16.7976%), with 2/4/6-hour
-run counts of 243,967/160,691/96,270. Missing FFDI, FFFI, rain history, fuel
-moisture, site and burn-plan constraints mean these are not burn windows or
-safety evidence. The controlled exit-75 plus resume job `29467567` stopped at
-168/336 hours, restored its checkpoint, and matched the uninterrupted summary
-exactly over 316,848 cell-hours (semantic SHA `6e13387b...205a`). This verifies
-one bounded restart path, not recovery from every infrastructure failure. The
-real 2020 VicClim6 pilot evaluated 317,207,808 statewide space-time cells. The
-completed statewide 1973–2023 chain then evaluated 16,142,930,688 cells with
-51/51 exact-SHA annual checkpoints and a strict aggregation gate. The data
-directory had no regional mask, so I fetched and hashed the official
-Murray Goldfields fire-management-district polygon and made spatial scope part
-of the aggregation contract. Exact-SHA jobs `29486334`/`29486336` then completed
-51/51 years over 992,840,304 regional cells. Six mapped conditions retained
-48,143,687 cells (4.8491%), and annual tasks took 44–81 seconds with less than
-0.85 GiB MaxRSS. Two fuel/ground-wind conditions remain unmapped, and the
-district is not a burn-unit/treatable-area mask. It is therefore a provisional
-weather-exposure screen, not a burn approval, complete prescription, safety,
-area, risk or economic result. A block-bootstrap descriptive trend is also
-non-causal; historical 6.49% and 9.04% values remain unverified.
-The district retained 6.1503% of statewide cells while summed elapsed time and
-peak RSS fell 83.74% and 88.10%. Per-cell throughput fell to 37.82% of the
-statewide rate, which makes fixed I/O/alignment overhead visible. Because the
-two chains use different spatial contracts and Git SHAs, I present this as an
-observed scope comparison, not worker scaling or causal code acceleration.
-I then ran a same-workload 1/2/4-thread gate over 19,509,264 real
-region-cell-hours. Outputs were identical, but four-thread efficiency was only
-29.78%, so I rejected the pre-registered 60% scaling claim. A second exact-SHA
-51-year district chain evaluated seven threshold scenarios. It reproduced the
-4.8491% baseline; narrowing/widening all mapped bounds changed the rate to
-0.3853%/13.0361%. Paired annual effects use seeded five-year moving-block
-bootstrap intervals, and KBDI's 51/51-year zero response is reported as an
-inactive bound under this contract—not as general domain irrelevance. These
-results are descriptive sensitivity evidence, not causal, safety or economic
-evidence.
-I then closed two previously missing engineering loops without hiding their
-uncertainty. A sixth typed tool derives dry-fuel FMC from the Viney and Van
-Wagner--Pickett equations and converts 10-m wind through an explicit reduction
-factor; rain-affected hours fail rather than receiving an invented value. An
-official FFMVic adapter paginates and hashes 221 JFMP plan features and 430 Fire
-History features. It resolves 176/187 burn IDs, joins eight shared IDs, unions
-multipart geometries and recomputes overlap in Australian Albers: 422.16 ha of
-plan polygons, 162.56 ha of treatment polygons and 161.89 ha intersection.
-Public staffing ranges and AUD 288.73/ha statewide direct-cost scale are exposed
-as scenarios, not actual rosters, savings or ROI.
-Spartan job `29504538` first executed those two proxy variables on real 2020
-VicClim6 data: all 8/8 compiled conditions over 19,509,264 district cell-hours,
-with a 2.4693% retained rate and 193,450/36,245/7,622 2/4/6-hour endpoints. The
-artifact explicitly records that precipitation was unavailable, so the rain
-guard was not applied and this remains a proxy evaluation rather than safety
-validation. The production chain then completed 51/51 years in array `29504645`:
-992,840,304 district cell-hours, 24,273,000 retained cells (2.4448%) and
-9,919,639/2,253,645/533,488 2/4/6-hour endpoints under one exact code, spatial,
-prescription and proxy contract. The enhanced aggregate reports a descriptive
-+0.221 percentage-point-per-decade slope with a +0.010 to +0.413 block-bootstrap
-interval; I do not translate it into safety, causal risk reduction or financial
-value.
+FLARE 是墨尔本大学的 Data Science Industry Project。行业方的问题是：计划燃烧的天气窗口会不会因为阈值定义变化而显著变化，并且能否把结论做成可审计交付。我负责把私有 workbook 的 43 类规则编译成 typed AST；不能可靠解释的字段不猜，而是保留为 unresolved。数据侧我实现了无未来信息泄漏的日频到小时级对齐、单位与缺测策略，并在 Spartan 对 1973–2023 的受限 VicClim6 完成 51/51 年 checkpointed district-level 处理。
+
+随后我发现 district weather 不能直接冒充 burn-unit 结果，因此把 221 个官方 current-plan polygons 按 `TREAT_NO` 归并为 176 个 burn IDs，再用 area-weighted overlay 建立 polygon 到网格的空间合同；176/176 有覆盖，nearest fallback 为零，但我仍明确它只解决空间映射，没有宣称完成 burn-unit climatology。
+
+最后我把规则、趋势、敏感性、燃料代理和调度封装成 6 个 typed tools，加入 request hash、provenance、timeout、幂等和 exact-checkpoint resume。98 个测试以及固定 fixture 的 6×30 调用验证了 schema 和失败恢复。最关键的取舍是：FMC 和 ground wind 仍是代理而非现场测量，所以所有输出都禁止被表述为安全批准、因果风险下降或 ROI。这段经历证明我能把复杂领域数据变成 Agent 可安全调用、可拒绝、可追溯的工具，而不是证明我训练了搜索模型或自主 Agent。
 
 ## Code evidence map
 
 | Interview question | Evidence |
 |---|---|
 | How do you stop an Agent from inventing domain rules? | `models.py`, `rules.py`, `tools.py` |
+| How do retries avoid duplicate or mismatched work? | canonical validated-request hash plus idempotency store in `service.py`; same request replays and changed arguments return 409 |
+| What does timeout guarantee? | `service.py` and `test_service_reliability.py`; fail-closed publication, not hard termination of a running Python thread |
+| Which work can resume from a checkpoint? | stateless tools declare checkpoint N/A; only the artifact-catalog climatology job accepts the exact token emitted by its failed parent |
+| Is this an autonomous Agent? | No. `docs/evidence-closeout.md` documents an Agent-callable deterministic tool boundary; no real LLM task-selection evaluation exists |
 | How do you prevent temporal leakage? | `alignment.py` and alignment tests |
 | How are strict/inclusive boundaries handled? | `parse_threshold`, `evaluate_condition`, rule tests |
 | What happens when a variable is missing? | explicit `MissingPolicy` and warning envelope |
