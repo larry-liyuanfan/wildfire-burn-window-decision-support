@@ -33,3 +33,5 @@ jobs:
           src/burnwindows/models.py
           src/burnwindows/service.py
           src/burnwindows/tool_benchmark.py
+      - name: Strict type check burn-ID climatology core
+        run: python -m mypy --strict src/burnwindows/burn_unit_climatology.py

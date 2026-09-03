@@ -118,14 +118,14 @@ class ToolError(BaseModel):
 class ToolProvenance(BaseModel):
     """Execution provenance without claiming that caller-supplied data was audited."""
 
-    status: Literal["caller_asserted", "incomplete"]
+    status: Literal["caller_asserted", "incomplete", "artifact_verified"]
     request_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     code_sha: str
     source_references: list[str] = Field(default_factory=list)
 
 
 class ToolExecution(BaseModel):
-    """Service controls attached uniformly to all six stateless domain tools."""
+    """Service controls attached uniformly to stateless domain tools."""
 
     mode: Literal["direct", "service"] = "direct"
     timeout_seconds: float | None = Field(default=None, gt=0)
@@ -206,6 +206,27 @@ class RegionTrendRequest(BaseModel):
             raise ValueError("years and suitable_rates lengths differ")
         if any(rate < 0 or rate > 1 for rate in self.suitable_rates):
             raise ValueError("suitable_rates must be between 0 and 1")
+        return self
+
+
+class BurnUnitClimatologyRequest(BaseModel):
+    """Read-only query over an allowlisted precomputed compact artifact."""
+
+    artifact_id: str = Field(min_length=1, max_length=200)
+    burn_ids: list[str] = Field(default_factory=list, max_length=176)
+    year_start: int | None = Field(default=None, ge=1973, le=2023)
+    year_end: int | None = Field(default=None, ge=1973, le=2023)
+
+    @model_validator(mode="after")
+    def validate_year_range(self) -> BurnUnitClimatologyRequest:
+        if (
+            self.year_start is not None
+            and self.year_end is not None
+            and self.year_end < self.year_start
+        ):
+            raise ValueError("year_end must not precede year_start")
+        if len(self.burn_ids) != len(set(self.burn_ids)):
+            raise ValueError("burn_ids must be unique")
         return self
 
 

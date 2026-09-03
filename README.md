@@ -67,7 +67,7 @@ polygon overlap in EPSG:3577. This outcome layer is kept separate from the
 
 ## Stable tool contracts
 
-All six public tools return `ToolEnvelope` 1.1 with status, data version, source,
+All seven public tools return `ToolEnvelope` 1.1 with status, data version, source,
 active constraints, warnings, a typed result or machine-readable error,
 request/code provenance, trace ID and execution metadata.
 
@@ -79,6 +79,7 @@ request/code provenance, trace ID and execution metadata.
 | `get_region_trend` | Report Theil–Sen slope and seeded block-bootstrap interval |
 | `optimize_burn_schedule` | Compare two greedy baselines with a validated binary programme, machine-checkable feasibility/solver certificates, local rejection reasons and discrete crew-capacity counterfactuals |
 | `derive_fuel_inputs` | Produce a dry-fuel FMC model ensemble and explicit 10-m-to-fuel-level wind scenario with rain guards and provenance |
+| `get_burn_unit_climatology` | Query only hash-pinned, precomputed compact burn-ID/year artifacts; callers cannot supply paths or request recomputation |
 
 The Pydantic schemas are in `src/burnwindows/models.py`; JSON Schema can be
 generated directly with `ToolEnvelope.model_json_schema()` and the request
@@ -89,8 +90,9 @@ The HTTP layer exposes `GET /api/tools`, `POST /api/tools/{tool_name}:invoke`,
 `GET /metrics`. Undeclared fields and unknown tools fail before execution.
 Canonical request hashes bind optional idempotency keys; mismatched reuse is a
 conflict, deadlines fail closed, and typed provenance distinguishes a named
-caller data version from an incomplete one. The six invocations are stateless,
-so checkpointing is explicitly not applicable. The separate long-running
+caller data version from an incomplete one. The six caller-data invocations and
+the read-only compact-artifact query are stateless, so checkpointing is
+explicitly not applicable. The separate long-running
 artifact job resumes only from the exact checkpoint token emitted by its failed
 parent. An optional Model Studio planner may select exactly one declared tool
 and fill its typed arguments; it cannot submit SQL, Dask graphs, optimiser
@@ -100,7 +102,7 @@ autonomous Agent claim.
 
 ### Fixed-load tool boundary benchmark
 
-The tracked fixture benchmark runs each of the six tools in an isolated child
+The tracked fixture benchmark runs each of the six caller-data tools in an isolated child
 process with three warm-ups and 30 measured loopback calls. Every tool completed
 30/30 calls with one deterministic result hash; six failure/recovery checks for
 schema correction, replay/conflict, timeout/retry and exact-checkpoint resume
@@ -110,6 +112,8 @@ from 96.2 to 129.8 MiB. These measurements are a deterministic Windows fixture
 benchmark—not VicClim6 performance, a concurrency test, a production SLA or an
 Agent evaluation. See the [machine-readable record](artifacts/public/flare_tool_service_fixture_benchmark_20260903.json)
 and [scope/metric definitions](docs/evidence-closeout.md#fixed-load-offline-tool-benchmark).
+The seventh tool is tested separately against a hash-pinned compact artifact;
+it performs no weather or rule recomputation.
 
 ## Technical design
 
@@ -150,7 +154,9 @@ and [scope/metric definitions](docs/evidence-closeout.md#fixed-load-offline-tool
   are explicitly not LP duals, causal effects or financial marginal values.
 
 See [architecture](docs/architecture.md), [decision log](docs/decisions.md) and
-[evidence ledger](docs/evidence.md).
+[evidence ledger](docs/evidence.md). The exact sparse metric, annual schema,
+quality gates and Slurm dependency order are in the
+[burn-ID climatology contract](docs/burn-unit-climatology.md).
 
 ## Quick start
 

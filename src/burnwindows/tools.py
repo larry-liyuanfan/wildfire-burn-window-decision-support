@@ -20,6 +20,7 @@ from .engine import (
 )
 from .fuel_inputs import derive_fuel_input_arrays
 from .models import (
+    BurnUnitClimatologyRequest,
     DeriveFuelInputsRequest,
     ExplainLimitingFactorsRequest,
     FindBurnWindowsRequest,
@@ -45,6 +46,7 @@ def tool_schemas() -> dict[str, dict[str, Any]]:
         "get_region_trend": RegionTrendRequest,
         "optimize_burn_schedule": OptimizeScheduleRequest,
         "derive_fuel_inputs": DeriveFuelInputsRequest,
+        "get_burn_unit_climatology": BurnUnitClimatologyRequest,
     }
     return {name: model.model_json_schema() for name, model in models.items()}
 

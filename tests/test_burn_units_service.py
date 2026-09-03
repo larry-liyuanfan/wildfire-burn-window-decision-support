@@ -104,7 +104,7 @@ def test_tool_service_rejects_undeclared_fields_and_records_trace() -> None:
     client = TestClient(create_app())
     tools = client.get("/api/tools")
     assert tools.status_code == 200
-    assert len(tools.json()["tools"]) == 6
+    assert len(tools.json()["tools"]) == 7
     payload = {
         "times": ["2026-01-01T00:00:00", "2026-01-01T01:00:00"],
         "data": {"temperature_c": [20, 20], "relative_humidity_pct": [50, 50]},
