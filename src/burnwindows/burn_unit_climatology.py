@@ -29,7 +29,7 @@ RAIN_GUARD_WARNING = "precipitation field absent; FMC rain guard was not applied
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
-def _require_sha256(value: str, *, field: str) -> str:
+def require_sha256(value: str, *, field: str) -> str:
     normalised = value.strip().lower()
     if not SHA256_RE.fullmatch(normalised):
         raise ValueError(f"{field} must be a lowercase SHA-256 digest")
@@ -248,9 +248,9 @@ def aggregate_grid_year(
     """Build one annual record per burn ID from evaluated grid-cell masks."""
 
     provenance = {
-        "data_sha256": _require_sha256(data_sha256, field="data_sha256"),
-        "rule_sha256": _require_sha256(rule_sha256, field="rule_sha256"),
-        "spatial_sha256": _require_sha256(spatial_sha256, field="spatial_sha256"),
+        "data_sha256": require_sha256(data_sha256, field="data_sha256"),
+        "rule_sha256": require_sha256(rule_sha256, field="rule_sha256"),
+        "spatial_sha256": require_sha256(spatial_sha256, field="spatial_sha256"),
     }
     if not code_sha.strip() or code_sha == "unknown":
         raise ValueError("code SHA must be known")
@@ -489,7 +489,7 @@ def aggregate_annual_artifacts(
             for name in ("data_sha256", "rule_sha256", "spatial_sha256", "git_sha"):
                 value = str(row.get(name, ""))
                 if name != "git_sha":
-                    _require_sha256(value, field=name)
+                    require_sha256(value, field=name)
                 elif not value or value == "unknown":
                     raise ValueError("annual record has an unknown Git SHA")
                 sha_sets[name].add(value)
@@ -559,7 +559,7 @@ def validate_compact_artifact(
     if not isinstance(provenance, dict):
         raise TypeError("compact artifact lacks provenance")
     for name in ("data_sha256", "rule_sha256", "spatial_sha256"):
-        _require_sha256(str(provenance.get(name, "")), field=name)
+        require_sha256(str(provenance.get(name, "")), field=name)
     if not provenance.get("git_sha") or provenance.get("git_sha") == "unknown":
         raise ValueError("compact artifact has an unknown Git SHA")
     years = set(range(int(artifact.get("year_start", 0)), int(artifact.get("year_end", -1)) + 1))
@@ -704,7 +704,7 @@ class BurnUnitClimatologyCatalog:
                 if raw_location.is_absolute()
                 else (path.parent / raw_location).resolve()
             )
-            expected_sha = _require_sha256(
+            expected_sha = require_sha256(
                 str(raw_entry.get("sha256", "")), field="catalog artifact sha256"
             )
             if sha256_file(location) != expected_sha:

@@ -18,7 +18,7 @@ readonly EXPECTED_OUTPUT_ROOT=/data/gpfs/projects/punim1257/Group44/outputs/flar
 : "${PRESCRIPTIONS:=/data/gpfs/projects/punim1257/Group44/data/raw/FMS-Prescriptions_2.xlsx}"
 : "${OVERLAY:=/data/gpfs/projects/punim1257/Group44/outputs/vicclim6-burn-unit-overlay-20260825/result-murray-goldfields/burn_unit_overlay.json}"
 : "${FLARE_GIT_SHA:?Pin the pushed commit to execute}"
-: "${DATA_SHA256:=a88d53704f0b865585f5e20b68b13732e3175ab3f05175553220d73f30f688ac4}"
+: "${DATA_SHA256:=a88d53704f0b865585f5e20b68b13732e3175ab3f0517553220d73f30f688ac4}"
 : "${RULE_SHA256:=e063ffda8c003b4fb5e9c9506072cbc6edf78364b358acfb84c13f91a22feb1a}"
 : "${SPATIAL_SHA256:=ca1fd90e438665937a26f94a38b5d715aa7caa0420e74f1ac87a491bb3c7db85}"
 readonly RUN_DIR="${OUTPUT_ROOT}/pilot-2020"

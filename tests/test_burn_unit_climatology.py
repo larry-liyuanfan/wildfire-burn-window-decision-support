@@ -15,6 +15,7 @@ from burnwindows.burn_unit_climatology import (
     compare_annual_recomputation,
     count_continuous_segments,
     publish_compact_artifact,
+    require_sha256,
     validate_compact_artifact,
 )
 from burnwindows.service import create_app
@@ -70,6 +71,11 @@ def test_continuous_segments_count_maximal_runs() -> None:
     assert count_continuous_segments(mask, 2) == 2
     assert count_continuous_segments(mask, 3) == 1
     assert count_continuous_segments(mask, 4) == 0
+
+
+def test_sha_contract_rejects_a_plausible_but_65_character_value() -> None:
+    with pytest.raises(ValueError, match="SHA-256"):
+        require_sha256("a" * 65, field="data_sha256")
 
 
 def test_annual_records_keep_continuous_fraction_provenance_and_warning() -> None:

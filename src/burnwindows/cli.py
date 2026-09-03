@@ -25,6 +25,7 @@ from .burn_unit_climatology import (
     compare_annual_recomputation,
     publish_compact_artifact,
     read_json,
+    require_sha256,
     validate_compact_artifact,
 )
 from .engine import apply_threshold_scenario
@@ -624,6 +625,11 @@ def _compute_burn_unit_year(
     if dask_workers < 1:
         raise ValueError("dask-workers must be positive")
     dask.config.set(scheduler=args.scheduler, num_workers=dask_workers)
+    require_sha256(args.data_sha256, field="data_sha256")
+    if args.expected_rule_sha256:
+        require_sha256(args.expected_rule_sha256, field="expected_rule_sha256")
+    if args.expected_spatial_sha256:
+        require_sha256(args.expected_spatial_sha256, field="expected_spatial_sha256")
     overlay_payload = read_json(args.overlay)
     overlay = SparseBurnOverlay.from_mapping(
         overlay_payload,
@@ -916,6 +922,9 @@ def command_burn_unit_preflight(args: argparse.Namespace) -> int:
     from .inventory import inventory_netcdf
     from .manifest import sha256_file
 
+    require_sha256(args.data_sha256, field="data_sha256")
+    require_sha256(args.expected_rule_sha256, field="expected_rule_sha256")
+    require_sha256(args.expected_spatial_sha256, field="expected_spatial_sha256")
     overlay = SparseBurnOverlay.from_mapping(
         read_json(args.overlay),
         expected_burn_unit_count=args.expected_burn_units,

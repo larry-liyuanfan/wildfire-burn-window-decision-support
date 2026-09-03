@@ -18,7 +18,7 @@ readonly EXPECTED_OUTPUT_ROOT=/data/gpfs/projects/punim1257/Group44/outputs/flar
 : "${PRESCRIPTIONS:=/data/gpfs/projects/punim1257/Group44/data/raw/FMS-Prescriptions_2.xlsx}"
 : "${OVERLAY:=/data/gpfs/projects/punim1257/Group44/outputs/vicclim6-burn-unit-overlay-20260825/result-murray-goldfields/burn_unit_overlay.json}"
 : "${FLARE_GIT_SHA:?Pin the pushed commit to execute}"
-: "${DATA_SHA256:=a88d53704f0b865585f5e20b68b13732e3175ab3f05175553220d73f30f688ac4}"
+: "${DATA_SHA256:=a88d53704f0b865585f5e20b68b13732e3175ab3f0517553220d73f30f688ac4}"
 : "${RULE_SHA256:=e063ffda8c003b4fb5e9c9506072cbc6edf78364b358acfb84c13f91a22feb1a}"
 : "${SPATIAL_SHA256:=ca1fd90e438665937a26f94a38b5d715aa7caa0420e74f1ac87a491bb3c7db85}"
 
@@ -38,7 +38,8 @@ readonly EXPECTED_OUTPUT_ROOT=/data/gpfs/projects/punim1257/Group44/outputs/flar
 module purge
 module load "${FLARE_TOOLCHAIN_MODULE:-GCCcore/11.3.0}"
 module load "${FLARE_PYTHON_MODULE:-Python/3.11.3}"
-mkdir -p "${OUTPUT_ROOT}/logs" "${OUTPUT_ROOT}/preflight"
+readonly RUN_DIR="${OUTPUT_ROOT}/preflight-${SLURM_JOB_ID}"
+mkdir -p "${OUTPUT_ROOT}/logs" "${RUN_DIR}"
 if [[ ! -x "${FLARE_PYTHON}" ]]; then
   python -m venv --system-site-packages "${OUTPUT_ROOT}/.venv"
 fi
@@ -56,4 +57,4 @@ srun "${FLARE_PYTHON}" -m burnwindows.cli burn-unit-climatology-preflight \
   --expected-spatial-sha256 "${SPATIAL_SHA256}" \
   --expected-burn-units 176 \
   --expected-weight-rows 351 \
-  --output-dir "${OUTPUT_ROOT}/preflight"
+  --output-dir "${RUN_DIR}"
