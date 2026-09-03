@@ -300,3 +300,28 @@ def test_spartan_chain_is_pinned_to_authorised_account_and_output_root() -> None
         assert "spartan-trip" not in text
         assert "yzhang3504" not in text
     assert "#SBATCH --array=1973-2023%4" in scripts[3].read_text(encoding="utf-8")
+
+
+def test_public_execution_record_is_redacted_complete_and_truth_bounded() -> None:
+    repository = Path(__file__).parents[1]
+    record_path = (
+        repository
+        / "artifacts"
+        / "public"
+        / "vicclim6_murray_goldfields_burn_id_climatology_20260903.json"
+    )
+    record_text = record_path.read_text(encoding="utf-8")
+    record = json.loads(record_text)
+
+    assert record["implementation"]["git_sha"] == (
+        "bf90d0afd1012f893369a2ef87f72133892d6bd9"
+    )
+    assert record["spartan"]["annual_array"]["completed_tasks"] == 51
+    assert record["spartan"]["annual_array"]["failed_tasks"] == 0
+    assert record["results"]["annual_record_count"] == 176 * 51
+    assert record["results"]["direct_comparison"]["maximum_absolute_difference"] == 0
+    assert all(record["quality_gate"].values())
+    assert record["compact_artifact"]["bytes_published_to_git"] is False
+    assert record["recorded_quality_failure"]["hidden"] is False
+    assert "/data/gpfs/" not in record_text
+    assert "FMS-Prescriptions_2.xlsx" not in record_text

@@ -17,7 +17,7 @@ private workbook rules
 → typed AST with unresolved fields preserved
 → no-lookahead temporal, unit, missing-data and spatial contracts
 → area-weighted official-polygon-to-grid mapping
-→ six typed deterministic domain tools
+→ seven typed deterministic domain tools
 → response provenance, refusal states and auditable artifacts
 ```
 
@@ -34,9 +34,9 @@ work.
 |---|---|---|
 | 43 | Burn-class rows in the private 43-row × 25-column `FMS-Prescriptions_2.xlsx`; the loader requires exactly 43 and compiles usable cells while retaining unresolved values. | Private-input inspection plus loader tests. It means row coverage, not 43 algorithms or operational validation. Threshold contents are not published. |
 | 221 | Official current-plan GeoJSON features returned for Murray Goldfields by the FFMVic service. | The public artifact records 221 features and 220 unique plan records. Multipart or duplicate geometry means feature count is not burn-unit count. |
-| 176 | Unique current-plan `TREAT_NO` burn IDs after grouping and unioning the 221 features. | Spartan overlay job `29584607` covered 176/176 IDs with 351 non-zero polygon/grid weights and zero nearest-cell fallbacks. This verifies a spatial contract, not a 51-year burn-unit climatology. |
-| 51 years | Actual file-backed VicClim6 coverage from 1973 through 2023 in the restricted Group44 copy. | Arrays completed 51/51 exact-SHA annual checkpoints. The verified 51-year weather outputs are district-level; directory labels mentioning 1972–2024 do not change the observed coverage. |
-| 91 tests | Collected and passing tests at merged `main` commit `5bfb760`. | This was a software regression count, not a dataset, model-evaluation or field-validation sample size. The closeout branch adds seven reliability cases and currently collects 98 tests. |
+| 176 | Unique current-plan `TREAT_NO` burn IDs after grouping and unioning the 221 features. | Spartan overlay job `29584607` covered 176/176 IDs with 351 non-zero polygon/grid weights and zero nearest-cell fallbacks. The separate burn-ID chain then retained the complete 176-ID set. |
+| 51 years | Actual file-backed VicClim6 coverage from 1973 through 2023 in the restricted Group44 copy. | The burn-ID array completed 51/51 tasks and the aggregate passed the complete 176 × 51 Cartesian-product gate. Earlier district arrays remain district results. Directory labels mentioning 1972–2024 do not change the observed coverage. |
+| 107 tests | Collected and passing tests on the final burn-ID branch. | This is a software regression count, not a dataset, model-evaluation or field-validation sample size. The earlier merged `main` closeout baseline collected 91 tests. |
 
 The official historical outcome adapter is a separate layer: it found 187
 historical IDs and eight exact current-plan/history ID matches. Those geometry
@@ -45,7 +45,7 @@ causal effect, safety outcome or approval claim.
 
 ## Trusted tool boundary
 
-The six public tools remain deterministic:
+The seven public tools remain deterministic:
 
 1. `find_burn_windows`
 2. `explain_limiting_factors`
@@ -53,6 +53,7 @@ The six public tools remain deterministic:
 4. `get_region_trend`
 5. `optimize_burn_schedule`
 6. `derive_fuel_inputs`
+7. `get_burn_unit_climatology`
 
 Every invocation now exposes the same input JSON Schema and `ToolEnvelope` 1.1
 output contract. The envelope distinguishes `ok`, `partial`, `error` and
@@ -70,10 +71,12 @@ The reliability policy is deliberately narrow:
 - a per-request deadline returns `tool_timeout` and publishes no late result;
 - runtime and domain-validation failures return typed errors rather than a
   plausible empty result;
-- these six calls are stateless, so their checkpoint mode is explicitly
+- the six caller-data calls are stateless, so their checkpoint mode is explicitly
   `not_applicable_stateless`;
-- the long artifact-backed burn-unit climatology job is separate and may resume
-  only from the exact checkpoint token emitted by that failed job.
+- the seventh tool is a read-only query over an allowlisted, hash-pinned compact
+  artifact and accepts no caller path or recomputation request;
+- long-running artifact jobs remain separate and may resume only from the exact
+  checkpoint token emitted by the failed parent.
 
 This is a safe **tool layer that an Agent could call**. A language-model planner
 has not been evaluated on real task selection, so the system is not described
@@ -116,11 +119,23 @@ are low-millisecond operations on this fixed fixture.
 
 ### District weather is not burn-unit outcome
 
-The restricted 51-year chain used an official district mask. Treating its cell
-counts as burn-unit results would be a spatial-level error. The fix was to make
-the spatial contract part of each manifest and build a separate area-weighted
-overlay for 176 unique official burn IDs. The overlay closes geometry only; a
-separate burn-unit climatology has not been run.
+The earlier restricted 51-year chain used an official district mask. Treating
+its cell counts as burn-unit results would be a spatial-level error. The fix was
+to make the spatial contract part of each manifest, build a separate
+area-weighted overlay for 176 unique official burn IDs, and run a new annual
+chain against that overlay. Jobs `29995522`–`29995527` produced 8,976 annual
+burn-ID records and passed the complete-ID/year and single-contract gates. This
+new result does not retroactively change the spatial meaning of the district
+series.
+
+### Reject an invalid collection identity before compute
+
+Preflight job `29995349` rejected a legacy collection identifier transcribed as
+65 characters. The failure artifact was preserved rather than relabelled as an
+infrastructure retry. Early SHA-256 format validation was added and the
+corrected exact-commit chain completed without infrastructure retries. This is
+the intended fail-closed behaviour: a plausible identifier does not reach the
+51-year array.
 
 ### Nearest fallback can create false coverage
 
@@ -149,7 +164,11 @@ or warning rather than a silently usable number.
 
 Suggested single resume bullet:
 
-> 将 43 类非结构化计划燃烧规则编译为 typed AST，构建无前视时空合同、area-weighted polygon→grid 聚合与 6 个可审计工具；在 1973–2023 VicClim6 上完成 51/51 年 checkpointed district chain，并将 221 个官方 polygons 归并为 176 个 burn IDs、实现 176/176 覆盖且零 nearest fallback。
+> 将 351 条非零 polygon-grid 交叠压缩为按 burn ID 归一化的稀疏面积权重，在 Spartan 对 1973–2023 VicClim6 完成 176×51=8,976 条年度 burn-ID 气候记录，并以独立 direct recomputation 验证最大差异为 0、51/51 年及 single-SHA 门禁全部通过。
+
+Optional tool-boundary bullet:
+
+> 将 8/8 规则（含 FMC 与 ground-wind 文献代理）在网格级评估，输出连续 `weighted_suitable_area_fraction`、0.5/0.8/1.0 描述性敏感性和 2/4/6 小时连续段，并通过只读 typed tool 查询 hash-pinned 预计算 artifact。
 
 This project should occupy an auxiliary position for search roles. It proves
 complex-data contracts, typed tools, deterministic execution and evidence-safe
@@ -158,4 +177,4 @@ ranking, representation learning and search evaluation.
 
 ## 90-second interview story
 
-> FLARE 是墨尔本大学的 Data Science Industry Project。行业方的问题是：计划燃烧的天气窗口会不会因为阈值定义变化而显著变化，并且能否把结论做成可审计交付。我负责把私有 workbook 的 43 类规则编译成 typed AST；不能可靠解释的字段不猜，而是保留为 unresolved。数据侧我实现了无未来信息泄漏的日频到小时级对齐、单位与缺测策略，并在 Spartan 对 1973–2023 的受限 VicClim6 完成 51/51 年 checkpointed district-level 处理。后来我发现 district weather 不能直接冒充 burn-unit 结果，因此把 221 个官方 current-plan polygons 按 `TREAT_NO` 归并为 176 个 burn IDs，再用 area-weighted overlay 建立 polygon 到网格的空间合同；176/176 有覆盖，nearest fallback 为零，但我仍明确它只解决空间映射，没有宣称完成 burn-unit climatology。最后我把规则、趋势、敏感性、燃料代理和调度封装成 6 个 typed tools，加入 request hash、provenance、timeout、幂等和 exact-checkpoint resume。98 个测试以及固定 fixture 的 6×30 调用验证了 schema 和失败恢复。最关键的取舍是：FMC 和 ground wind 仍是代理而非现场测量，所以所有输出都禁止被表述为安全批准、因果风险下降或 ROI。这段经历证明我能把复杂领域数据变成 Agent 可安全调用、可拒绝、可追溯的工具，而不是证明我训练了搜索模型。
+> FLARE 是墨尔本大学的 Data Science Industry Project。行业方的问题是：计划燃烧的天气窗口会不会因为阈值定义变化而显著变化，并且能否把结论做成可审计交付。我负责把私有 workbook 的 43 类规则编译成 typed AST；不能可靠解释的字段不猜，而是保留为 unresolved。早期 51 年结果只到 district 层级，我没有把它冒充 burn-unit 结果，而是把 221 个官方 polygons 按 `TREAT_NO` 归并为 176 个 burn IDs，用 351 条非零交叠建立稀疏面积权重。随后在 Spartan 对 1973–2023 完成 51/51 年、8,976 条 burn-ID/year 记录，并用独立 direct recomputation 验证 2020 小时级结果最大差异为 0。最后我把预计算结果接入第七个只读 typed tool；路径、SHA、一致性和缺测警告都 fail closed。最关键的边界是 FMC 和 ground wind 仍是代理，降水缺失使 rain guard 未执行，因此结果只能叫描述性气候统计，不能称为安全批准、因果风险下降、现场结果或 ROI。

@@ -2,11 +2,11 @@
 
 ## 90-second story
 
-FLARE 是墨尔本大学的 Data Science Industry Project。行业方的问题是：计划燃烧的天气窗口会不会因为阈值定义变化而显著变化，并且能否把结论做成可审计交付。我负责把私有 workbook 的 43 类规则编译成 typed AST；不能可靠解释的字段不猜，而是保留为 unresolved。数据侧我实现了无未来信息泄漏的日频到小时级对齐、单位与缺测策略，并在 Spartan 对 1973–2023 的受限 VicClim6 完成 51/51 年 checkpointed district-level 处理。
+FLARE 是墨尔本大学的 Data Science Industry Project。行业方的问题是：计划燃烧的天气窗口会不会因为阈值定义变化而显著变化，并且能否把结论做成可审计交付。我负责把私有 workbook 的 43 类规则编译成 typed AST；不能可靠解释的字段不猜，而是保留为 unresolved。数据侧我实现了无未来信息泄漏的日频到小时级对齐、单位与缺测策略，并在 Spartan 对 1973–2023 的受限 VicClim6 完成 51/51 年 checkpointed 处理。
 
-随后我发现 district weather 不能直接冒充 burn-unit 结果，因此把 221 个官方 current-plan polygons 按 `TREAT_NO` 归并为 176 个 burn IDs，再用 area-weighted overlay 建立 polygon 到网格的空间合同；176/176 有覆盖，nearest fallback 为零，但我仍明确它只解决空间映射，没有宣称完成 burn-unit climatology。
+随后我发现 district weather 不能直接冒充 burn-unit 结果，因此把 221 个官方 current-plan polygons 按 `TREAT_NO` 归并为 176 个 burn IDs，再用 351 条非零 polygon-grid 交叠建立稀疏面积权重。独立 burn-ID 链完成 176×51=8,976 条年度记录，51/51 array tasks 通过；2020 direct recomputation 与稀疏结果的有效性 mask、小时 fraction 和年度签名一致，最大差异为 0。
 
-最后我把规则、趋势、敏感性、燃料代理和调度封装成 6 个 typed tools，加入 request hash、provenance、timeout、幂等和 exact-checkpoint resume。98 个测试以及固定 fixture 的 6×30 调用验证了 schema 和失败恢复。最关键的取舍是：FMC 和 ground wind 仍是代理而非现场测量，所以所有输出都禁止被表述为安全批准、因果风险下降或 ROI。这段经历证明我能把复杂领域数据变成 Agent 可安全调用、可拒绝、可追溯的工具，而不是证明我训练了搜索模型或自主 Agent。
+最后我把规则、趋势、敏感性、燃料代理和调度封装成 6 个 caller-data tools，并增加只读的第七个 burn-ID artifact 查询；调用者不能提交路径或触发重算。107 个测试、固定 fixture 的 6×30 调用和 exact-commit Spartan chain 验证了 schema、失败恢复与 artifact 门禁。最关键的取舍是：FMC 和 ground wind 仍是代理而非现场测量，降水缺失使 rain guard 未执行，所以所有输出都禁止被表述为安全批准、因果风险下降、现场结果或 ROI。
 
 ## Code evidence map
 

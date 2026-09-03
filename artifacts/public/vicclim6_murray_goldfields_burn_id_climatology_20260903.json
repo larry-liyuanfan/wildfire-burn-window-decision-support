@@ -1,0 +1,163 @@
+{
+  "schema_version": "1.0",
+  "status": "verified-real-8-of-8-proxy-burn-id-climatology-by-this-run",
+  "scope": "1973-2023 Murray Goldfields official burn-ID climatology",
+  "implementation": {
+    "git_sha": "bf90d0afd1012f893369a2ef87f72133892d6bd9",
+    "branch": "codex/flare-burn-id-climatology",
+    "local_tests_passed": 106,
+    "github_quality_run_id": 33738791513,
+    "aggregation": "one-pass CSR-style sparse area weighting over non-zero polygon-grid intersections",
+    "direct_comparison": "independent per-burn direct loop"
+  },
+  "spartan": {
+    "account": "punim1257",
+    "partition": "sapphire",
+    "preflight": {
+      "job_id": "29995522",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "elapsed_seconds": 13,
+      "compute_max_rss_kib": 102792,
+      "allocated_cpus": 1,
+      "requested_memory": "4G"
+    },
+    "pilot_2020": {
+      "job_id": "29995523",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "elapsed_seconds": 26,
+      "compute_seconds": 20,
+      "compute_max_rss_kib": 4331068,
+      "allocated_cpus": 1,
+      "requested_memory": "8G"
+    },
+    "direct_comparison_2020": {
+      "job_id": "29995524",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "elapsed_seconds": 19,
+      "compute_seconds": 14,
+      "compute_max_rss_kib": 1658252,
+      "allocated_cpus": 1,
+      "requested_memory": "8G"
+    },
+    "annual_array": {
+      "job_id": "29995525",
+      "state": "COMPLETED",
+      "completed_tasks": 51,
+      "failed_tasks": 0,
+      "task_elapsed_seconds_sum": 1325,
+      "task_elapsed_seconds_min": 19,
+      "task_elapsed_seconds_max": 70,
+      "compute_max_rss_kib": 4438152,
+      "allocated_cpus_per_task": 1,
+      "requested_memory_per_task": "8G",
+      "maximum_concurrent_tasks": 4
+    },
+    "aggregate": {
+      "job_id": "29995526",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "elapsed_seconds": 6,
+      "compute_max_rss_kib": 205320,
+      "allocated_cpus": 1,
+      "requested_memory": "4G"
+    },
+    "compact_publish_and_service_test": {
+      "job_id": "29995527",
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "elapsed_seconds": 8,
+      "maximum_step_rss_kib": 204700,
+      "allocated_cpus": 1,
+      "requested_memory": "4G"
+    },
+    "infrastructure_retries": 0
+  },
+  "inputs": {
+    "vicclim6_collection_metadata_sha256": "a88d53704f0b865585f5e20b68b13732e3175ab3f0517553220d73f30f688ac4",
+    "prescription_workbook_sha256": "e063ffda8c003b4fb5e9c9506072cbc6edf78364b358acfb84c13f91a22feb1a",
+    "burn_unit_overlay_sha256": "ca1fd90e438665937a26f94a38b5d715aa7caa0420e74f1ac87a491bb3c7db85",
+    "vicclim6_file_count": 3672,
+    "vicclim6_total_bytes": 263698792008,
+    "compiled_condition_count": 8,
+    "evaluated_condition_count": 8,
+    "fmc_observed_on_site": false,
+    "ground_wind_observed_on_site": false,
+    "precipitation_available": false
+  },
+  "results": {
+    "burn_unit_count": 176,
+    "covered_burn_unit_count": 176,
+    "year_start": 1973,
+    "year_end": 2023,
+    "year_count": 51,
+    "annual_record_count": 8976,
+    "source_weight_row_count": 351,
+    "selected_unique_grid_cell_count": 230,
+    "normalised_weight_sum_min": 0.9999999999999999,
+    "normalised_weight_sum_max": 1.0000000000000002,
+    "nearest_cell_fallback_count": 0,
+    "continuous_metric": "hourly weighted_suitable_area_fraction",
+    "descriptive_thresholds": [
+      0.5,
+      0.8,
+      1.0
+    ],
+    "continuous_segment_durations_hours": [
+      2,
+      4,
+      6
+    ],
+    "pilot_hour_count": 8784,
+    "direct_comparison": {
+      "validity_masks_equal": true,
+      "hourly_fraction_equal": true,
+      "annual_record_signatures_equal": true,
+      "absolute_tolerance": 1e-12,
+      "maximum_absolute_difference": 0.0
+    }
+  },
+  "quality_gate": {
+    "complete_176_burn_ids": true,
+    "complete_51_years": true,
+    "complete_burn_id_year_cartesian_product": true,
+    "no_missing_or_duplicate_year": true,
+    "single_data_rule_spatial_and_git_sha": true,
+    "normalised_weight_sums_within_1e-6": true,
+    "zero_nearest_cell_fallback": true,
+    "rain_guard_warning_preserved": true,
+    "restricted_raw_paths_omitted": true
+  },
+  "compact_artifact": {
+    "artifact_id": "flare-murray-goldfields-burn-id-climatology-1973-2023-v1",
+    "bytes_published_to_git": false,
+    "sha256": "2f85815eb40c487456ffa3d83a0c58e8a3e6037ca103c41424b188db8c7cfbd9",
+    "catalog_sha256": "fb72a292a8396cb9a143ea855746cd9c625c6bea487f30417108695395b6c2b8",
+    "service_test_sha256": "b48741d347d504da08ccec8ef268920d7bea7a85b334571e20924b7eb16f6acc",
+    "service_test": {
+      "tool_listed": true,
+      "query_status": "ok",
+      "query_record_count": 176,
+      "provenance_status": "artifact_verified",
+      "read_only_precomputed": true
+    }
+  },
+  "recorded_quality_failure": {
+    "job_id": "29995349",
+    "status": "failed-quality-gate",
+    "reason": "a legacy collection identifier was transcribed as 65 characters and rejected",
+    "corrective_action": "preserved the failure artifact, added early SHA-format validation and submitted a corrected configuration",
+    "failure_artifact_sha256": "abcfba138ac31909db0227e1a35c37c7d4620b13d2163c88326e2401d386f972",
+    "hidden": false
+  },
+  "publication_boundary": [
+    "The restricted workbook, VicClim6 payloads, hourly arrays and full per-burn compact artifact remain in authorised FLARE project storage.",
+    "FMC is a dry-fuel meteorological proxy, not an on-site measurement.",
+    "Fuel-level wind is a declared reduction-factor proxy, not a field measurement.",
+    "VicClim6 precipitation is unavailable, so the FMC rain guard was not applied.",
+    "The continuous area fractions and 0.5/0.8/1.0 thresholds are descriptive climatology only.",
+    "No result is operational approval, safety evidence, causal risk reduction, a field outcome, saving or return on investment."
+  ]
+}
