@@ -12,12 +12,18 @@ from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from datetime import datetime, timezone
+from functools import partial
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from .burn_unit_climatology import (
+    BurnUnitClimatologyCatalog,
+    get_burn_unit_climatology,
+)
 from .manifest import git_sha
 from .models import (
+    BurnUnitClimatologyRequest,
     DeriveFuelInputsRequest,
     ExplainLimitingFactorsRequest,
     FindBurnWindowsRequest,
@@ -39,6 +45,17 @@ from .tools import (
     tool_schemas,
 )
 
+
+def _unconfigured_climatology_tool(
+    *,
+    artifact_id: str,
+    burn_ids: list[str],
+    year_start: int | None,
+    year_end: int | None,
+) -> ToolEnvelope:
+    del artifact_id, burn_ids, year_start, year_end
+    raise RuntimeError("precomputed burn-unit climatology catalog is not configured")
+
 TOOL_REGISTRY: dict[str, tuple[type[BaseModel], Callable[..., ToolEnvelope]]] = {
     "find_burn_windows": (FindBurnWindowsRequest, find_burn_windows),
     "explain_limiting_factors": (ExplainLimitingFactorsRequest, explain_limiting_factors),
@@ -46,6 +63,10 @@ TOOL_REGISTRY: dict[str, tuple[type[BaseModel], Callable[..., ToolEnvelope]]] = 
     "get_region_trend": (RegionTrendRequest, get_region_trend),
     "optimize_burn_schedule": (OptimizeScheduleRequest, optimize_burn_schedule),
     "derive_fuel_inputs": (DeriveFuelInputsRequest, derive_fuel_inputs),
+    "get_burn_unit_climatology": (
+        BurnUnitClimatologyRequest,
+        _unconfigured_climatology_tool,
+    ),
 }
 
 STATELESS_TOOL_EXECUTION = {
@@ -262,9 +283,13 @@ def _service_envelope(
     idempotency_key: str | None,
     code_sha: str,
 ) -> ToolEnvelope:
-    provenance_status: Literal["caller_asserted", "incomplete"] = (
-        "incomplete" if envelope.data_version.strip().lower() in {"", "unknown"} else "caller_asserted"
-    )
+    provenance_status: Literal["caller_asserted", "incomplete", "artifact_verified"]
+    if tool_name == "get_burn_unit_climatology":
+        provenance_status = "artifact_verified"
+    elif envelope.data_version.strip().lower() in {"", "unknown"}:
+        provenance_status = "incomplete"
+    else:
+        provenance_status = "caller_asserted"
     warnings = list(envelope.warnings)
     if provenance_status == "incomplete":
         warnings.append("caller did not provide a specific data_version")
@@ -328,6 +353,7 @@ def create_app(
     *,
     climatology_runner: Callable[[dict[str, Any]], Any] | None = None,
     tool_registry: Mapping[str, tuple[type[BaseModel], Callable[..., ToolEnvelope]]] | None = None,
+    artifact_catalog: str | None = None,
     default_tool_timeout_seconds: float = 30.0,
 ):
     try:
@@ -338,6 +364,12 @@ def create_app(
     if not 0.001 <= default_tool_timeout_seconds <= 60.0:
         raise ValueError("default_tool_timeout_seconds must be between 0.001 and 60")
     registry = dict(tool_registry or TOOL_REGISTRY)
+    if artifact_catalog is not None:
+        catalog = BurnUnitClimatologyCatalog(artifact_catalog)
+        registry["get_burn_unit_climatology"] = (
+            BurnUnitClimatologyRequest,
+            partial(get_burn_unit_climatology, catalog),
+        )
     unknown_registry_names = sorted(set(registry) - set(tool_schemas()))
     if unknown_registry_names:
         raise ValueError(f"tool registry contains unknown schemas: {unknown_registry_names}")

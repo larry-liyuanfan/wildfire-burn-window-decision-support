@@ -68,5 +68,6 @@ def test_all_tools_publish_json_schema() -> None:
         "get_region_trend",
         "optimize_burn_schedule",
         "derive_fuel_inputs",
+        "get_burn_unit_climatology",
     }
     assert all(schema["type"] == "object" for schema in schemas.values())

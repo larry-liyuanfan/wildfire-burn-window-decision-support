@@ -17,6 +17,8 @@ flowchart LR
     I["Private FMS workbook"] --> J["Runtime compiler"]
     J --> D
     C --> K["ToolEnvelope with evidence and warnings"]
+    O["Hash-pinned compact burn-ID artifact"] --> Q["Read-only climatology query"]
+    Q --> K
     K --> A
 ```
 
@@ -49,7 +51,8 @@ flowchart LR
     K --> Q[Resume only exact failed-job token]
 ```
 
-The six domain-tool invocations are bounded and stateless. Their checkpoint
+The six caller-data domain-tool invocations and the read-only compact-artifact
+query are bounded and stateless. Their checkpoint
 mode is therefore `not_applicable_stateless`; an idempotent retry replays the
 same validated request rather than resuming internal computation. The separate
 burn-unit climatology job is artifact-backed and may expose a checkpoint. A

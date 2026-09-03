@@ -7,12 +7,27 @@ import json
 import os
 import sys
 import time
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 
 from .aggregate import aggregate_vicclim6_years
+from .burn_unit_climatology import (
+    DEFAULT_DURATIONS,
+    DEFAULT_THRESHOLDS,
+    RAIN_GUARD_WARNING,
+    BurnUnitClimatologyCatalog,
+    SparseBurnOverlay,
+    aggregate_annual_artifacts,
+    aggregate_grid_year,
+    compare_annual_recomputation,
+    publish_compact_artifact,
+    read_json,
+    require_sha256,
+    validate_compact_artifact,
+)
 from .engine import apply_threshold_scenario
 from .fuel_inputs import add_xarray_fuel_inputs, promote_derived_conditions
 from .io import (
@@ -24,7 +39,7 @@ from .io import (
     open_vicclim6_period,
     parse_chunks,
 )
-from .manifest import git_sha, make_manifest, write_json, write_run_artifacts
+from .manifest import git_sha, make_manifest, sha256_file, write_json, write_run_artifacts
 from .models import MissingPolicy, Prescription
 from .rules import compilation_summary, load_prescriptions
 from .spatial import subset_rectilinear_geojson
@@ -574,6 +589,522 @@ def command_burn_unit_overlay(args: argparse.Namespace) -> int:
     return 0
 
 
+def _all_condition_inputs_valid(dataset: object, prescription: Prescription) -> object:
+    import xarray as xr
+
+    template = next(iter(dataset.data_vars.values()))
+    combined = xr.ones_like(template, dtype=bool)
+    season_months = {
+        "summer": [12, 1, 2],
+        "autumn": [3, 4, 5],
+        "winter": [6, 7, 8],
+        "spring": [9, 10, 11],
+    }
+    for condition in prescription.conditions:
+        if condition.operational_status == "unmapped":
+            raise ValueError(f"condition remains unmapped: {condition.field}")
+        if condition.variable not in dataset:
+            raise ValueError(f"dataset lacks condition variable {condition.variable}")
+        valid = dataset[condition.variable].notnull()
+        if condition.season:
+            active = dataset.time.dt.month.isin(season_months[condition.season])
+            valid = xr.where(active, valid, True)
+        combined &= valid
+    return combined
+
+
+def _compute_burn_unit_year(
+    args: argparse.Namespace,
+    *,
+    method: Literal["sparse", "direct"],
+) -> tuple[dict[str, Any], np.ndarray, np.ndarray]:
+    import dask
+    import pandas as pd
+
+    dask_workers = args.dask_workers or int(os.environ.get("SLURM_CPUS_PER_TASK", "1"))
+    if dask_workers < 1:
+        raise ValueError("dask-workers must be positive")
+    dask.config.set(scheduler=args.scheduler, num_workers=dask_workers)
+    require_sha256(args.data_sha256, field="data_sha256")
+    if args.expected_rule_sha256:
+        require_sha256(args.expected_rule_sha256, field="expected_rule_sha256")
+    if args.expected_spatial_sha256:
+        require_sha256(args.expected_spatial_sha256, field="expected_spatial_sha256")
+    overlay_payload = read_json(args.overlay)
+    overlay = SparseBurnOverlay.from_mapping(
+        overlay_payload,
+        expected_burn_unit_count=args.expected_burn_units,
+        expected_weight_row_count=args.expected_weight_rows,
+    )
+    spatial_sha256 = sha256_file(args.overlay)
+    if args.expected_spatial_sha256 and spatial_sha256 != args.expected_spatial_sha256:
+        raise ValueError(
+            f"overlay SHA mismatch: expected {args.expected_spatial_sha256}, found {spatial_sha256}"
+        )
+    rule_sha256 = sha256_file(args.prescriptions)
+    if args.expected_rule_sha256 and rule_sha256 != args.expected_rule_sha256:
+        raise ValueError(
+            f"workbook SHA mismatch: expected {args.expected_rule_sha256}, found {rule_sha256}"
+        )
+
+    prescriptions = load_prescriptions(args.prescriptions)
+    prescription = promote_derived_conditions(_select(prescriptions, args.burn_class))
+    remaining_unmapped = [
+        condition.field
+        for condition in prescription.conditions
+        if condition.operational_status == "unmapped"
+    ]
+    if len(prescription.conditions) != 8 or prescription.unresolved or remaining_unmapped:
+        raise ValueError(
+            "burn-ID climatology requires one complete 8/8 compiled rule with no unresolved "
+            f"values; conditions={len(prescription.conditions)}, "
+            f"unresolved={prescription.unresolved}, unmapped={remaining_unmapped}"
+        )
+
+    year = int(args.year)
+    metric_start = pd.Timestamp(year=year, month=1, day=1)
+    if year == 1973:
+        metric_start += pd.Timedelta(hours=24)
+        load_start = metric_start
+    else:
+        load_start = metric_start - pd.Timedelta(hours=max(DEFAULT_DURATIONS) - 1)
+    metric_end = pd.Timestamp(year=year, month=12, day=31, hour=23)
+    dataset = open_vicclim6_period(
+        args.input,
+        start=load_start,
+        end=metric_end,
+        chunks=parse_chunks(args.chunks),
+    )
+    if (
+        int(dataset.sizes.get("latitude", -1)),
+        int(dataset.sizes.get("longitude", -1)),
+    ) != overlay.grid_shape:
+        raise ValueError(
+            "VicClim6 grid shape differs from the pinned burn-unit overlay contract"
+        )
+    dataset = dataset.stack(
+        spatial_cell=("latitude", "longitude"), create_index=False
+    ).isel(spatial_cell=overlay.flat_grid_indices)
+    dataset, unit_warnings = normalise_dataset(dataset)
+    dataset, fuel_provenance, fuel_warnings = add_xarray_fuel_inputs(
+        dataset,
+        wind_reduction_factor=args.wind_reduction_factor,
+        rain_guard_mm=args.fmc_rain_guard_mm,
+    )
+    dataset = ensure_hourly_grid(dataset)
+    suitable_with_context, masks_with_context, rule_warnings = evaluate_xarray(
+        dataset,
+        prescription,
+        missing_policy=MissingPolicy.ERROR,
+        include_unmapped=False,
+    )
+    valid_with_context = _all_condition_inputs_valid(dataset, prescription)
+    metric_slice = slice(metric_start, metric_end)
+    suitable = suitable_with_context.sel(time=metric_slice)
+    valid = valid_with_context.sel(time=metric_slice)
+    masks = {name: values.sel(time=metric_slice) for name, values in masks_with_context.items()}
+    if int(suitable.sizes.get("time", 0)) < 1:
+        raise ValueError("annual metric selection is empty")
+    computed = dask.compute(suitable, valid, *(masks[name] for name in masks))
+    suitable_values = np.asarray(computed[0].values, dtype=bool)
+    valid_values = np.asarray(computed[1].values, dtype=bool)
+    condition_values = {
+        name: np.asarray(value.values, dtype=bool)
+        for name, value in zip(masks, computed[2:], strict=True)
+    }
+    warnings = sorted(
+        {
+            *unit_warnings,
+            *fuel_warnings,
+            *rule_warnings,
+            (
+                "all 8/8 compiled conditions are evaluated at grid level; FMC and ground wind "
+                "remain literature-derived proxies"
+            ),
+            (
+                "weighted area fractions and 0.5/0.8/1.0 thresholds are descriptive "
+                "climatology, not operational approval"
+            ),
+        }
+    )
+    if RAIN_GUARD_WARNING not in warnings:
+        raise ValueError("expected VicClim6 precipitation-unavailable warning was not emitted")
+    code_sha = git_sha()
+    records, hourly_fraction, valid_hours = aggregate_grid_year(
+        year=year,
+        overlay=overlay,
+        suitable=suitable_values,
+        all_conditions_valid=valid_values,
+        condition_masks=condition_values,
+        data_sha256=args.data_sha256,
+        rule_sha256=rule_sha256,
+        spatial_sha256=spatial_sha256,
+        code_sha=code_sha,
+        warnings=warnings,
+        thresholds=DEFAULT_THRESHOLDS,
+        durations=DEFAULT_DURATIONS,
+        method=method,
+    )
+    weight_sums = overlay.weight_sums()
+    metrics = {
+        "schema_version": "1.0",
+        "artifact_kind": "burn-unit-climatology-annual",
+        "evidence_status": "verified-real-8-of-8-proxy-climatology-by-this-run",
+        "year": year,
+        "burn_class": args.burn_class,
+        "metric_start": metric_start.isoformat(),
+        "metric_end": metric_end.isoformat(),
+        "metric_hours": int(suitable_values.shape[0]),
+        "left_censored": year == 1973,
+        "aggregation_method": method,
+        "prescription_scope": {
+            "compiled_condition_count": len(prescription.conditions),
+            "evaluated_condition_count": len(condition_values),
+            "unresolved_value_count": len(prescription.unresolved),
+            "remaining_unmapped_condition_count": len(remaining_unmapped),
+        },
+        "derived_fuel_inputs": fuel_provenance,
+        "spatial_contract": {
+            "burn_unit_count": len(overlay.burn_ids),
+            "source_weight_row_count": overlay.source_weight_row_count,
+            "selected_unique_grid_cell_count": len(overlay.flat_grid_indices),
+            "normalised_weight_sum_min": float(weight_sums.min()),
+            "normalised_weight_sum_max": float(weight_sums.max()),
+            "zero_coverage_burn_unit_count": overlay.zero_coverage_burn_unit_count,
+            "nearest_cell_fallback_count": 0,
+        },
+        "provenance": {
+            "data_sha256": args.data_sha256,
+            "rule_sha256": rule_sha256,
+            "spatial_sha256": spatial_sha256,
+            "git_sha": code_sha,
+        },
+        "thresholds": list(DEFAULT_THRESHOLDS),
+        "durations_hours": list(DEFAULT_DURATIONS),
+        "warnings": warnings,
+        "annual_records": records,
+        "quality_gate": {
+            "all_176_burn_ids": len(overlay.burn_ids) == 176,
+            "all_351_nonzero_weights_used": overlay.source_weight_row_count == 351,
+            "normalised_weight_sums_within_1e-6": bool(
+                np.allclose(weight_sums, 1.0, atol=1e-6, rtol=0.0)
+            ),
+            "zero_nearest_cell_fallback": overlay.zero_coverage_burn_unit_count == 0,
+            "complete_8_of_8_rule": len(condition_values) == 8,
+            "rain_guard_warning_preserved": RAIN_GUARD_WARNING in warnings,
+            "single_data_rule_spatial_and_git_sha": True,
+        },
+    }
+    if not all(metrics["quality_gate"].values()):
+        raise ValueError(f"annual quality gate failed: {metrics['quality_gate']}")
+    return metrics, hourly_fraction, valid_hours
+
+
+def _write_hourly_npz(
+    path: Path,
+    *,
+    burn_ids: Sequence[str],
+    hourly_fraction: np.ndarray,
+    valid_hours: np.ndarray,
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(
+        path,
+        burn_ids=np.asarray(burn_ids),
+        weighted_suitable_area_fraction=np.asarray(hourly_fraction, dtype=np.float64),
+        valid_hours=np.asarray(valid_hours, dtype=bool),
+    )
+
+
+def command_burn_unit_year(args: argparse.Namespace) -> int:
+    from .manifest import sha256_file
+
+    started = time.perf_counter()
+    try:
+        metrics, hourly_fraction, valid_hours = _compute_burn_unit_year(
+            args, method="sparse"
+        )
+        hourly_path = args.output_dir / "hourly_weighted_suitable_area_fraction.npz"
+        _write_hourly_npz(
+            hourly_path,
+            burn_ids=[row["burn_id"] for row in metrics["annual_records"]],
+            hourly_fraction=hourly_fraction,
+            valid_hours=valid_hours,
+        )
+        metrics["hourly_artifact"] = {
+            "filename": hourly_path.name,
+            "sha256": sha256_file(hourly_path),
+            "published_in_compact_artifact": False,
+        }
+        metrics["wall_seconds"] = time.perf_counter() - started
+        manifest = make_manifest(
+            command=sys.argv,
+            input_paths=[args.prescriptions, args.overlay],
+            config={
+                "year": args.year,
+                "data_sha256": args.data_sha256,
+                "burn_class": args.burn_class,
+                "chunks": parse_chunks(args.chunks),
+                "scheduler": args.scheduler,
+                "dask_workers": args.dask_workers,
+                "wind_reduction_factor": args.wind_reduction_factor,
+                "fmc_rain_guard_mm": args.fmc_rain_guard_mm,
+                "expected_burn_units": args.expected_burn_units,
+                "expected_weight_rows": args.expected_weight_rows,
+            },
+            data_kind="real",
+        )
+        write_run_artifacts(args.output_dir, manifest=manifest, metrics=metrics)
+    except Exception as exc:
+        write_json(
+            args.output_dir / "quality_failure.json",
+            {
+                "status": "failed",
+                "year": args.year,
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "git_sha": git_sha(),
+                "hidden": False,
+            },
+        )
+        raise
+    print(json.dumps({key: value for key, value in metrics.items() if key != "annual_records"}, indent=2))
+    return 0
+
+
+def command_compare_burn_unit_year(args: argparse.Namespace) -> int:
+    try:
+        expected = read_json(args.pilot_dir / "metrics.json")
+        hourly_path = args.pilot_dir / str(expected["hourly_artifact"]["filename"])
+        with np.load(hourly_path, allow_pickle=False) as arrays:
+            expected_fraction = np.asarray(
+                arrays["weighted_suitable_area_fraction"], dtype=np.float64
+            )
+            expected_valid = np.asarray(arrays["valid_hours"], dtype=bool)
+        actual, actual_fraction, actual_valid = _compute_burn_unit_year(
+            args, method="direct"
+        )
+        comparison = compare_annual_recomputation(
+            expected_records=expected["annual_records"],
+            expected_hourly_fraction=expected_fraction,
+            expected_valid_hours=expected_valid,
+            actual_records=actual["annual_records"],
+            actual_hourly_fraction=actual_fraction,
+            actual_valid_hours=actual_valid,
+        )
+        comparison["pilot_hourly_sha256"] = expected["hourly_artifact"]["sha256"]
+        comparison["git_sha"] = git_sha()
+        manifest = make_manifest(
+            command=sys.argv,
+            input_paths=[args.prescriptions, args.overlay, hourly_path],
+            config={"year": args.year, "comparison": "direct-per-burn"},
+            data_kind="real",
+        )
+        write_run_artifacts(args.output_dir, manifest=manifest, metrics=comparison)
+    except Exception as exc:
+        write_json(
+            args.output_dir / "quality_failure.json",
+            {
+                "status": "failed",
+                "year": args.year,
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "git_sha": git_sha(),
+                "hidden": False,
+            },
+        )
+        raise
+    print(json.dumps(comparison, indent=2))
+    return 0
+
+
+def command_burn_unit_preflight(args: argparse.Namespace) -> int:
+    from .inventory import inventory_netcdf
+    from .manifest import sha256_file
+
+    require_sha256(args.data_sha256, field="data_sha256")
+    require_sha256(args.expected_rule_sha256, field="expected_rule_sha256")
+    require_sha256(args.expected_spatial_sha256, field="expected_spatial_sha256")
+    overlay = SparseBurnOverlay.from_mapping(
+        read_json(args.overlay),
+        expected_burn_unit_count=args.expected_burn_units,
+        expected_weight_row_count=args.expected_weight_rows,
+    )
+    prescriptions = load_prescriptions(args.prescriptions)
+    prescription = promote_derived_conditions(_select(prescriptions, args.burn_class))
+    inventory = inventory_netcdf(args.input, sample_count=3)
+    result = {
+        "status": "passed",
+        "git_sha": git_sha(),
+        "data_sha256": inventory["collection_metadata_sha256"],
+        "rule_sha256": sha256_file(args.prescriptions),
+        "spatial_sha256": sha256_file(args.overlay),
+        "burn_unit_count": len(overlay.burn_ids),
+        "weight_row_count": overlay.source_weight_row_count,
+        "normalised_weight_sum_min": float(overlay.weight_sums().min()),
+        "normalised_weight_sum_max": float(overlay.weight_sums().max()),
+        "nearest_cell_fallback_count": 0,
+        "compiled_condition_count": len(prescription.conditions),
+        "evaluated_condition_count": sum(
+            condition.operational_status != "unmapped" for condition in prescription.conditions
+        ),
+        "unresolved_value_count": len(prescription.unresolved),
+        "vicclim6_file_count": inventory["file_count"],
+        "vicclim6_total_bytes": inventory["total_bytes"],
+    }
+    expected = {
+        "data_sha256": args.data_sha256,
+        "rule_sha256": args.expected_rule_sha256,
+        "spatial_sha256": args.expected_spatial_sha256,
+    }
+    mismatches = {
+        name: {"expected": value, "actual": result[name]}
+        for name, value in expected.items()
+        if value and value != result[name]
+    }
+    if mismatches:
+        result["status"] = "failed"
+        result["mismatches"] = mismatches
+        write_json(args.output_dir / "quality_failure.json", result)
+        raise ValueError(f"preflight SHA mismatch: {mismatches}")
+    gates = {
+        "all_176_burn_ids": len(overlay.burn_ids) == 176,
+        "all_351_nonzero_weights": overlay.source_weight_row_count == 351,
+        "normalised_weight_sums_within_1e-6": bool(
+            np.allclose(overlay.weight_sums(), 1.0, atol=1e-6, rtol=0.0)
+        ),
+        "zero_nearest_cell_fallback": overlay.zero_coverage_burn_unit_count == 0,
+        "complete_8_of_8_rule": len(prescription.conditions) == 8
+        and not prescription.unresolved
+        and all(
+            condition.operational_status != "unmapped"
+            for condition in prescription.conditions
+        ),
+        "expected_51_year_collection_file_count": inventory["file_count"] == 3672,
+    }
+    result["quality_gate"] = gates
+    if not all(gates.values()):
+        result["status"] = "failed"
+        write_json(args.output_dir / "quality_failure.json", result)
+        raise ValueError(f"preflight quality gate failed: {gates}")
+    manifest = make_manifest(
+        command=sys.argv,
+        input_paths=[args.prescriptions, args.overlay],
+        config={"data_sha256": args.data_sha256, "burn_class": args.burn_class},
+        data_kind="real-metadata-preflight",
+    )
+    write_run_artifacts(args.output_dir, manifest=manifest, metrics=result)
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def command_aggregate_burn_unit_climatology(args: argparse.Namespace) -> int:
+    try:
+        artifact = aggregate_annual_artifacts(
+            args.input,
+            expected_years=range(args.year_start, args.year_end + 1),
+            expected_burn_unit_count=args.expected_burn_units,
+        )
+        validation = validate_compact_artifact(artifact)
+        artifact["aggregation_git_sha"] = git_sha()
+        write_json(args.output, artifact)
+    except Exception as exc:
+        write_json(
+            args.failure_output,
+            {
+                "status": "failed",
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "git_sha": git_sha(),
+                "hidden": False,
+            },
+        )
+        raise
+    print(json.dumps(validation, indent=2))
+    return 0
+
+
+def command_publish_burn_unit_climatology(args: argparse.Namespace) -> int:
+    result = publish_compact_artifact(
+        args.input,
+        output_dir=args.output_dir,
+        artifact_id=args.artifact_id,
+    )
+    write_json(args.output_dir / "publication_record.json", result)
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def command_validate_burn_unit_climatology(args: argparse.Namespace) -> int:
+    result = validate_compact_artifact(read_json(args.input))
+    if args.output:
+        write_json(args.output, result)
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def command_smoke_burn_unit_service(args: argparse.Namespace) -> int:
+    from fastapi.testclient import TestClient
+
+    from .service import create_app
+
+    catalog = BurnUnitClimatologyCatalog(args.artifact_catalog)
+    artifact_id = args.artifact_id or catalog.artifact_ids[0]
+    client = TestClient(create_app(artifact_catalog=str(args.artifact_catalog)))
+    listed = client.get("/api/tools")
+    if listed.status_code != 200:
+        raise RuntimeError("tool discovery failed")
+    response = client.post(
+        "/api/tools/get_burn_unit_climatology:invoke",
+        json={
+            "arguments": {
+                "artifact_id": artifact_id,
+                "burn_ids": [args.burn_id] if args.burn_id else [],
+                "year_start": args.year_start,
+                "year_end": args.year_end,
+            }
+        },
+    )
+    body = response.json()
+    if response.status_code != 200 or body.get("status") not in {"ok", "partial"}:
+        raise RuntimeError(f"climatology tool smoke test failed: {body}")
+    result = {
+        "status": "passed",
+        "artifact_id": artifact_id,
+        "tool_listed": "get_burn_unit_climatology" in listed.json()["tools"],
+        "query_status": body["status"],
+        "query_record_count": body["result"]["record_count"],
+        "artifact_sha256": body["result"]["artifact_sha256"],
+        "provenance_status": body["provenance"]["status"],
+        "read_only_precomputed": "no weather or rule recomputation"
+        in " ".join(body["constraints"]),
+        "git_sha": git_sha(),
+    }
+    if not result["tool_listed"] or not result["read_only_precomputed"]:
+        raise RuntimeError(f"service smoke quality gate failed: {result}")
+    write_json(args.output, result)
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def _add_burn_unit_compute_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--input", type=Path, required=True, help="restricted VicClim6 root")
+    parser.add_argument("--prescriptions", type=Path, required=True)
+    parser.add_argument("--overlay", type=Path, required=True)
+    parser.add_argument("--year", type=int, required=True, choices=range(1973, 2024))
+    parser.add_argument("--burn-class", required=True)
+    parser.add_argument("--data-sha256", required=True)
+    parser.add_argument("--expected-rule-sha256")
+    parser.add_argument("--expected-spatial-sha256")
+    parser.add_argument("--expected-burn-units", type=int, default=176)
+    parser.add_argument("--expected-weight-rows", type=int, default=351)
+    parser.add_argument("--chunks", default='{"time":168,"latitude":37,"longitude":61}')
+    parser.add_argument("--scheduler", choices=["synchronous", "threads"], default="synchronous")
+    parser.add_argument("--dask-workers", type=int, default=1)
+    parser.add_argument("--wind-reduction-factor", type=float, default=0.33)
+    parser.add_argument("--fmc-rain-guard-mm", type=float, default=0.2)
+
+
 def command_serve_tools(args: argparse.Namespace) -> int:
     try:
         import uvicorn
@@ -581,7 +1112,13 @@ def command_serve_tools(args: argparse.Namespace) -> int:
         raise RuntimeError("uvicorn is unavailable; install the 'serve' extra") from exc
     from .service import create_app
 
-    uvicorn.run(create_app(), host=args.host, port=args.port)
+    uvicorn.run(
+        create_app(
+            artifact_catalog=(str(args.artifact_catalog) if args.artifact_catalog else None)
+        ),
+        host=args.host,
+        port=args.port,
+    )
     return 0
 
 
@@ -731,7 +1268,82 @@ def build_parser() -> argparse.ArgumentParser:
     overlay.add_argument("--output-dir", type=Path, required=True)
     overlay.set_defaults(handler=command_burn_unit_overlay)
 
+    preflight = subparsers.add_parser(
+        "burn-unit-climatology-preflight",
+        help="validate the restricted data, complete rule and sparse overlay contracts",
+    )
+    preflight.add_argument("--input", type=Path, required=True)
+    preflight.add_argument("--prescriptions", type=Path, required=True)
+    preflight.add_argument("--overlay", type=Path, required=True)
+    preflight.add_argument("--burn-class", required=True)
+    preflight.add_argument("--data-sha256", required=True)
+    preflight.add_argument("--expected-rule-sha256", required=True)
+    preflight.add_argument("--expected-spatial-sha256", required=True)
+    preflight.add_argument("--expected-burn-units", type=int, default=176)
+    preflight.add_argument("--expected-weight-rows", type=int, default=351)
+    preflight.add_argument("--output-dir", type=Path, required=True)
+    preflight.set_defaults(handler=command_burn_unit_preflight)
+
+    burn_year = subparsers.add_parser(
+        "burn-unit-climatology-year",
+        help="evaluate one year at sparse overlay cells and write 176 burn-ID records",
+    )
+    _add_burn_unit_compute_arguments(burn_year)
+    burn_year.add_argument("--output-dir", type=Path, required=True)
+    burn_year.set_defaults(handler=command_burn_unit_year)
+
+    compare_burn_year = subparsers.add_parser(
+        "compare-burn-unit-climatology-year",
+        help="directly recompute and compare one annual sparse pilot",
+    )
+    _add_burn_unit_compute_arguments(compare_burn_year)
+    compare_burn_year.add_argument("--pilot-dir", type=Path, required=True)
+    compare_burn_year.add_argument("--output-dir", type=Path, required=True)
+    compare_burn_year.set_defaults(handler=command_compare_burn_unit_year)
+
+    aggregate_burn = subparsers.add_parser(
+        "aggregate-burn-unit-climatology",
+        help="quality-gate annual burn-ID artifacts and build the compact query artifact",
+    )
+    aggregate_burn.add_argument("--input", type=Path, required=True)
+    aggregate_burn.add_argument("--year-start", type=int, default=1973)
+    aggregate_burn.add_argument("--year-end", type=int, default=2023)
+    aggregate_burn.add_argument("--expected-burn-units", type=int, default=176)
+    aggregate_burn.add_argument("--output", type=Path, required=True)
+    aggregate_burn.add_argument("--failure-output", type=Path, required=True)
+    aggregate_burn.set_defaults(handler=command_aggregate_burn_unit_climatology)
+
+    publish_burn = subparsers.add_parser(
+        "publish-burn-unit-climatology",
+        help="validate and publish an allowlisted compact artifact and catalog",
+    )
+    publish_burn.add_argument("--input", type=Path, required=True)
+    publish_burn.add_argument("--output-dir", type=Path, required=True)
+    publish_burn.add_argument("--artifact-id", required=True)
+    publish_burn.set_defaults(handler=command_publish_burn_unit_climatology)
+
+    validate_burn = subparsers.add_parser(
+        "validate-burn-unit-climatology",
+        help="validate a compact burn-ID artifact schema and quality gates",
+    )
+    validate_burn.add_argument("--input", type=Path, required=True)
+    validate_burn.add_argument("--output", type=Path)
+    validate_burn.set_defaults(handler=command_validate_burn_unit_climatology)
+
+    smoke_burn = subparsers.add_parser(
+        "smoke-burn-unit-service",
+        help="invoke the read-only climatology tool against a precomputed artifact catalog",
+    )
+    smoke_burn.add_argument("--artifact-catalog", type=Path, required=True)
+    smoke_burn.add_argument("--artifact-id")
+    smoke_burn.add_argument("--burn-id")
+    smoke_burn.add_argument("--year-start", type=int, default=1973)
+    smoke_burn.add_argument("--year-end", type=int, default=2023)
+    smoke_burn.add_argument("--output", type=Path, required=True)
+    smoke_burn.set_defaults(handler=command_smoke_burn_unit_service)
+
     serve = subparsers.add_parser("serve-tools", help="serve the typed trusted-tool registry")
+    serve.add_argument("--artifact-catalog", type=Path)
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=8000)
     serve.set_defaults(handler=command_serve_tools)

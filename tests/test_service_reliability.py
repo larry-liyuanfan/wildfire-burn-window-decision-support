@@ -24,9 +24,9 @@ def _poll(client: TestClient, job_id: str) -> dict[str, Any]:
     raise AssertionError("job did not finish")
 
 
-def test_all_six_tools_publish_one_output_and_execution_contract() -> None:
+def test_all_tools_publish_one_output_and_execution_contract() -> None:
     body = TestClient(create_app()).get("/api/tools").json()["tools"]
-    assert tuple(sorted(body)) == TOOL_NAMES
+    assert tuple(sorted(body)) == tuple(sorted((*TOOL_NAMES, "get_burn_unit_climatology")))
     for contract in body.values():
         assert contract["input_schema"]["type"] == "object"
         assert contract["output_schema"] == ToolEnvelope.model_json_schema()
@@ -132,7 +132,7 @@ def test_failed_artifact_job_resumes_only_from_its_exact_checkpoint() -> None:
     assert completed["parent_job_id"] == submitted["job_id"]
 
 
-def test_fixed_load_fixture_covers_exactly_the_six_public_tools() -> None:
+def test_fixed_load_fixture_covers_exactly_the_six_caller_data_tools() -> None:
     payloads = fixture_payloads(24)
     assert tuple(sorted(payloads)) == TOOL_NAMES
     assert all(payload["data_version"] == "fixed-load-fixture-v1" for payload in payloads.values())

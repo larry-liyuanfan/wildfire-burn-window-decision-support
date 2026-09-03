@@ -11,7 +11,7 @@ FLARE **Data Science Industry Project (Vocational Placement)**. It is not
 presented as employment, a Research Assistant appointment or an autonomous
 Agent. The [evidence closeout](docs/evidence-closeout.md) separates the industry
 brief, team inputs, official sources, personal implementation and public-use
-limits; it also defines exactly what the recurring 43/221/176/51/91 counts mean.
+limits; it also defines exactly what the recurring 43/221/176/51 counts mean.
 
 ## Why this project exists
 
@@ -60,14 +60,15 @@ district mask is still not a burn-unit boundary. A separate official JFMP/Fire
 History adapter now queries **176 current Murray Goldfields burn IDs** and
 **187 historical burn IDs**, aligns eight shared IDs and measures plan/outcome
 polygon overlap in EPSG:3577. This outcome layer is kept separate from the
-  historical district weather screen. All 176 current-plan IDs now also have a
-  reproducible area-weighted VicClim6 grid contract; the 51-year weather results
-  remain district-level until a separate burn-unit climatology run is completed.
-  See [boundary provenance](docs/boundary-data.md).
+historical district weather screen. All 176 current-plan IDs now also have a
+reproducible area-weighted VicClim6 grid contract. A separate 1973–2023 burn-ID
+climatology chain has completed under its own exact data/rule/spatial/code
+contract; it does not retroactively relabel the earlier district series. See
+[boundary provenance](docs/boundary-data.md).
 
 ## Stable tool contracts
 
-All six public tools return `ToolEnvelope` 1.1 with status, data version, source,
+All seven public tools return `ToolEnvelope` 1.1 with status, data version, source,
 active constraints, warnings, a typed result or machine-readable error,
 request/code provenance, trace ID and execution metadata.
 
@@ -79,6 +80,7 @@ request/code provenance, trace ID and execution metadata.
 | `get_region_trend` | Report Theil–Sen slope and seeded block-bootstrap interval |
 | `optimize_burn_schedule` | Compare two greedy baselines with a validated binary programme, machine-checkable feasibility/solver certificates, local rejection reasons and discrete crew-capacity counterfactuals |
 | `derive_fuel_inputs` | Produce a dry-fuel FMC model ensemble and explicit 10-m-to-fuel-level wind scenario with rain guards and provenance |
+| `get_burn_unit_climatology` | Query only hash-pinned, precomputed compact burn-ID/year artifacts; callers cannot supply paths or request recomputation |
 
 The Pydantic schemas are in `src/burnwindows/models.py`; JSON Schema can be
 generated directly with `ToolEnvelope.model_json_schema()` and the request
@@ -89,8 +91,9 @@ The HTTP layer exposes `GET /api/tools`, `POST /api/tools/{tool_name}:invoke`,
 `GET /metrics`. Undeclared fields and unknown tools fail before execution.
 Canonical request hashes bind optional idempotency keys; mismatched reuse is a
 conflict, deadlines fail closed, and typed provenance distinguishes a named
-caller data version from an incomplete one. The six invocations are stateless,
-so checkpointing is explicitly not applicable. The separate long-running
+caller data version from an incomplete one. The six caller-data invocations and
+the read-only compact-artifact query are stateless, so checkpointing is
+explicitly not applicable. The separate long-running
 artifact job resumes only from the exact checkpoint token emitted by its failed
 parent. An optional Model Studio planner may select exactly one declared tool
 and fill its typed arguments; it cannot submit SQL, Dask graphs, optimiser
@@ -100,7 +103,7 @@ autonomous Agent claim.
 
 ### Fixed-load tool boundary benchmark
 
-The tracked fixture benchmark runs each of the six tools in an isolated child
+The tracked fixture benchmark runs each of the six caller-data tools in an isolated child
 process with three warm-ups and 30 measured loopback calls. Every tool completed
 30/30 calls with one deterministic result hash; six failure/recovery checks for
 schema correction, replay/conflict, timeout/retry and exact-checkpoint resume
@@ -110,6 +113,8 @@ from 96.2 to 129.8 MiB. These measurements are a deterministic Windows fixture
 benchmark—not VicClim6 performance, a concurrency test, a production SLA or an
 Agent evaluation. See the [machine-readable record](artifacts/public/flare_tool_service_fixture_benchmark_20260903.json)
 and [scope/metric definitions](docs/evidence-closeout.md#fixed-load-offline-tool-benchmark).
+The seventh tool is tested separately against a hash-pinned compact artifact;
+it performs no weather or rule recomputation.
 
 ## Technical design
 
@@ -150,7 +155,9 @@ and [scope/metric definitions](docs/evidence-closeout.md#fixed-load-offline-tool
   are explicitly not LP duals, causal effects or financial marginal values.
 
 See [architecture](docs/architecture.md), [decision log](docs/decisions.md) and
-[evidence ledger](docs/evidence.md).
+[evidence ledger](docs/evidence.md). The exact sparse metric, annual schema,
+quality gates and Slurm dependency order are in the
+[burn-ID climatology contract](docs/burn-unit-climatology.md).
 
 ## Quick start
 
@@ -245,10 +252,39 @@ producing 351 non-zero polygon/cell weights and zero nearest-cell fallbacks. The
 job completed in five seconds on one CPU with 101,860 KiB MaxRSS; the source
 GeoJSON, representative grid, manifest and compact result are hash-pinned.
 
-This closes the burn-unit **spatial-contract** gap only. It does not turn the
-existing district-level 51-year weather screen into burn-unit climatology and
-does not prove safety, risk reduction or economic return. See the
+This artifact closes the burn-unit **spatial-contract** gap only. The later,
+separate burn-ID climatology uses this contract; the existing district-level
+51-year weather screen remains a district result. Neither artifact proves
+safety, risk reduction or economic return. See the
 [compact run record](artifacts/public/vicclim6_murray_goldfields_burn_unit_overlay_20260825.json).
+
+### Verified 1973–2023 burn-ID climatology
+
+Exact-commit Spartan jobs `29995523`–`29995527` evaluated all eight compiled
+conditions for each of the **176 official burn IDs** across all **51 file-backed
+years (1973–2023)**. The annual array completed **51/51 tasks** with no failed
+tasks and the aggregate contains the complete **176 × 51 = 8,976** burn-ID/year
+Cartesian product. A CSR-style pass used the 351 non-zero polygon/grid weights
+over 230 unique grid cells; an independent direct per-burn recomputation for
+2020 matched its validity masks, hourly fractions and annual record signatures
+with maximum absolute difference **0.0** at tolerance `1e-12`.
+
+The aggregation gate also verified one data, rule, spatial and Git identity;
+normalised per-burn weights; zero nearest-cell fallback; the full year set; and
+preservation of the missing-precipitation warning. The compact artifact is
+hash-pinned and exposed only through the read-only
+`get_burn_unit_climatology` tool; callers cannot submit a path or trigger
+weather recomputation. The full artifact and hourly arrays remain in authorised
+FLARE storage. The repository carries only a
+[redacted execution record](artifacts/public/vicclim6_murray_goldfields_burn_id_climatology_20260903.json).
+
+The metric is an hourly, continuous `weighted_suitable_area_fraction`, with
+0.5/0.8/1.0 descriptive sensitivity thresholds and maximal 2/4/6-hour segment
+counts. FMC and fuel-level wind remain literature/parameter proxies rather than
+on-site observations, and precipitation was unavailable so the FMC rain guard
+was not applied. These outputs are descriptive climatology—not operational
+approval, safety evidence, causal risk reduction, field outcomes, savings or
+ROI.
 
 Every analysis emits `run_manifest.json`, `metrics.json` and
 `error_cases.json`. The manifest captures git SHA, input hashes where practical,
@@ -566,7 +602,7 @@ Verified locally in this repository:
 - deterministic rejection explanations and crew-capacity counterfactuals;
 - max-min robust MILP plus a 30-seed/6,000-scenario-per-policy operations benchmark;
 - runtime compilation of all 43 workbook rows into typed or unresolved fields.
-- 98 current local tests (the earlier merged-main closeout baseline was 91)
+- 107 current local tests (the earlier merged-main closeout baseline was 91)
   plus bounded real public ARCO-ERA5 preflight, 168-hour pilot
   and full-year 2024 weather-only screen jobs on Spartan with exact commits and
   hashes;
@@ -592,6 +628,9 @@ Verified locally in this repository:
 - an official JFMP/Fire History delivery layer with eight exact-ID matched burn
   units, Australian-Albers polygon overlap, crew scenarios and a statewide
   direct-cost-per-hectare planning benchmark.
+- a separate 1973–2023 burn-ID climatology with 176 × 51 = 8,976 annual records,
+  a 2020 sparse-versus-direct maximum absolute difference of 0.0, complete
+  single-contract gates and a read-only hash-pinned artifact query.
 
 Not verified or not eligible for promotion:
 
