@@ -23,7 +23,30 @@ def stable_hash(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
-async def exercise(catalog: Path, artifact_id: str, burn_id: str) -> dict[str, Any]:
+def redacted_diagnostics(value: dict[str, Any]) -> dict[str, Any]:
+    warnings = value["warnings"]
+    codes = set()
+    for warning in warnings:
+        if warning == "precipitation field absent; FMC rain guard was not applied":
+            codes.add("precipitation_unavailable")
+        elif warning.startswith("unknown burn IDs omitted:"):
+            codes.add("unknown_burn_ids")
+        elif warning == "no verified compact result was published for this invocation":
+            codes.add("no_verified_result")
+        else:
+            codes.add("other_warning_present")
+    return {
+        "warning_codes": sorted(codes),
+        "warning_count": len(warnings),
+        "warnings_sha256": stable_hash(warnings),
+        "constraint_count": len(value["constraints"]),
+        "constraints_sha256": stable_hash(value["constraints"]),
+    }
+
+
+async def exercise(
+    catalog: Path, artifact_id: str, burn_id: str, expected_artifact_sha256: str | None = None
+) -> dict[str, Any]:
     request = {
         "artifact_id": artifact_id,
         "burn_ids": [burn_id],
@@ -83,6 +106,8 @@ async def exercise(catalog: Path, artifact_id: str, burn_id: str) -> dict[str, A
                     assert not reply.isError and value["status"] == "ok"
                     assert value["provenance"]["status"] == "artifact_verified"
                     assert result["record_count"] == 1
+                    if expected_artifact_sha256 is not None:
+                        assert result["artifact_sha256"] == expected_artifact_sha256
                     record = result["records"][0]
                     assert record["burn_id"] == burn_id and record["year"] == 2020
                     assert record["rule_sha256"] and record["data_sha256"]
@@ -108,8 +133,7 @@ async def exercise(catalog: Path, artifact_id: str, burn_id: str) -> dict[str, A
                         "data_version": value["data_version"],
                         "request_sha256": value["provenance"]["request_sha256"],
                         "result_sha256": stable_hash(result),
-                        "constraints": value["constraints"],
-                        "warnings": value["warnings"],
+                        **redacted_diagnostics(value),
                         "record_provenance_present": bool(
                             result
                             and result["records"]
@@ -147,11 +171,28 @@ def main() -> None:
     parser.add_argument("--artifact-id", required=True)
     parser.add_argument("--burn-id", required=True)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--expected-catalog-sha256")
+    parser.add_argument("--expected-artifact-sha256")
     parser.add_argument(
         "--evidence-kind", choices=["real-precomputed", "synthetic-contract-fixture"], required=True
     )
     args = parser.parse_args()
-    result = asyncio.run(exercise(args.artifact_catalog, args.artifact_id, args.burn_id))
+    if args.evidence_kind == "real-precomputed" and not (
+        args.expected_catalog_sha256 and args.expected_artifact_sha256
+    ):
+        raise ValueError(
+            "real-precomputed requires independently recorded catalog and artifact SHAs"
+        )
+    if (
+        args.expected_catalog_sha256
+        and sha256_file(args.artifact_catalog) != args.expected_catalog_sha256
+    ):
+        raise ValueError("catalog SHA mismatch")
+    result = asyncio.run(
+        exercise(
+            args.artifact_catalog, args.artifact_id, args.burn_id, args.expected_artifact_sha256
+        )
+    )
     result["evidence_kind"] = args.evidence_kind
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

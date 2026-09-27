@@ -28,7 +28,9 @@ REQUEST = {
 
 def test_stdio_real_client_roundtrip_with_fixture(tmp_path):
     source = tmp_path / "fixture.json"
-    source.write_text(json.dumps(_full_compact_artifact()), encoding="utf-8")
+    fixture = _full_compact_artifact()
+    fixture["records"][0]["warnings"].append("PRIVATE_NOTE /restricted/example/person")
+    source.write_text(json.dumps(fixture), encoding="utf-8")
     publication = publish_compact_artifact(
         source, output_dir=tmp_path / "published", artifact_id="compact-v1"
     )
@@ -59,6 +61,9 @@ def test_stdio_real_client_roundtrip_with_fixture(tmp_path):
     assert report["repeated_result_identical"]
     assert report["records_exported"] is False
     assert all("records" not in case for case in report["cases"])
+    assert "PRIVATE_NOTE" not in json.dumps(report)
+    assert "/restricted/example/person" not in json.dumps(report)
+    assert report["cases"][0]["warning_count"] >= 1
 
 
 @pytest.mark.parametrize(
