@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import os
 import sys
 from datetime import timedelta
 from importlib.metadata import version
@@ -40,7 +41,15 @@ async def exercise(catalog: Path, artifact_id: str, burn_id: str) -> dict[str, A
         server = StdioServerParameters(
             command=sys.executable,
             args=arguments,
-            env={"PYTHONPATH": source, "PYTHONDONTWRITEBYTECODE": "1"},
+            env={
+                "PYTHONPATH": source,
+                "PYTHONDONTWRITEBYTECODE": "1",
+                **(
+                    {"LD_LIBRARY_PATH": os.environ["LD_LIBRARY_PATH"]}
+                    if "LD_LIBRARY_PATH" in os.environ
+                    else {}
+                ),
+            },
             cwd=str(Path(__file__).resolve().parents[1]),
         )
         async with (
