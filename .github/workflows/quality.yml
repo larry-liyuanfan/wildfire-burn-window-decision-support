@@ -22,7 +22,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install
-        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,serve]"
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,serve,mcp]"
       - name: Test
         run: python -m pytest
       - name: Lint
@@ -33,5 +33,6 @@ jobs:
           src/burnwindows/models.py
           src/burnwindows/service.py
           src/burnwindows/tool_benchmark.py
+          src/burnwindows/mcp_server.py
       - name: Strict type check burn-ID climatology core
         run: python -m mypy --strict src/burnwindows/burn_unit_climatology.py
