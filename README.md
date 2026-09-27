@@ -13,6 +13,22 @@ Agent. The [evidence closeout](docs/evidence-closeout.md) separates the industry
 brief, team inputs, official sources, personal implementation and public-use
 limits; it also defines exactly what the recurring 43/221/176/51 counts mean.
 
+### Actual MCP integration (2026-09-27)
+
+The official **MCP Python SDK 1.26.0** now exposes the existing
+`get_burn_unit_climatology` tool through **stdio**, with strict input/output
+schemas and read-only annotations. A real MCP client completed `tools/list`
+and six `tools/call` checks against the **real hash-pinned 176×51 precomputed
+artifact on Spartan**, including one official burn-ID/year, repeatability,
+unknown ID, forbidden parameter, unknown artifact and unconfigured catalog.
+No raw data was recomputed or copied; the public
+[redacted report](artifacts/public/flare_mcp_real_application_20260927.json)
+contains checks/hashes, not records or free-text source warnings.
+
+This is **one MCP-exposed tool from the seven-tool domain registry**, not an
+autonomous or LLM-evaluated Agent. See the
+[application handoff and exact reproduction](docs/AGENT_APPLICATION_HANDOFF_20260927.md).
+
 ## Why this project exists
 
 The product question is how a planner or Agent can turn expert prescriptions,

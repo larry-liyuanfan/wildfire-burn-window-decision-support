@@ -1,0 +1,134 @@
+{
+  "scope": "read_only_MCP_stdio_application_check_not_LLM_or_weather_evaluation",
+  "git_sha": "e7826458aed85ea1354dd5bad9d92d9428806ad6",
+  "sdk": "official modelcontextprotocol/python-sdk",
+  "mcp_version": "1.26.0",
+  "python": "3.11.3",
+  "catalog_sha256": "fb72a292a8396cb9a143ea855746cd9c625c6bea487f30417108695395b6c2b8",
+  "tool_names": [
+    "get_burn_unit_climatology"
+  ],
+  "tools_list_roundtrips": 2,
+  "tools_call_roundtrips": 6,
+  "repeated_result_identical": true,
+  "records_exported": false,
+  "cases": [
+    {
+      "case": "valid",
+      "protocol_is_error": false,
+      "status": "ok",
+      "record_count": 1,
+      "provenance_status": "artifact_verified",
+      "error_code": null,
+      "data_version": "flare-murray-goldfields-burn-id-climatology-1973-2023-v1:2f85815eb40c487456ffa3d83a0c58e8a3e6037ca103c41424b188db8c7cfbd9",
+      "request_sha256": "6225a8a8b89f3388943a1641eee01c687bd6d19bc99186570d8f206fb36b5924",
+      "result_sha256": "ce28a9c6897f9cb7eff772f33aa126b56400eb5e765a187d0b23473a56985dce",
+      "warning_codes": [
+        "other_warning_present",
+        "precipitation_unavailable"
+      ],
+      "warning_count": 6,
+      "warnings_sha256": "b893548d310145d8762ad24d10da159f2c259ad286eaa950729365442243ca86",
+      "constraint_count": 3,
+      "constraints_sha256": "83794181bfb372c71147fbf0cb5cb857ab50b70396d0297dda088a2fcecd6d0d",
+      "record_provenance_present": true
+    },
+    {
+      "case": "repeat",
+      "protocol_is_error": false,
+      "status": "ok",
+      "record_count": 1,
+      "provenance_status": "artifact_verified",
+      "error_code": null,
+      "data_version": "flare-murray-goldfields-burn-id-climatology-1973-2023-v1:2f85815eb40c487456ffa3d83a0c58e8a3e6037ca103c41424b188db8c7cfbd9",
+      "request_sha256": "6225a8a8b89f3388943a1641eee01c687bd6d19bc99186570d8f206fb36b5924",
+      "result_sha256": "ce28a9c6897f9cb7eff772f33aa126b56400eb5e765a187d0b23473a56985dce",
+      "warning_codes": [
+        "other_warning_present",
+        "precipitation_unavailable"
+      ],
+      "warning_count": 6,
+      "warnings_sha256": "b893548d310145d8762ad24d10da159f2c259ad286eaa950729365442243ca86",
+      "constraint_count": 3,
+      "constraints_sha256": "83794181bfb372c71147fbf0cb5cb857ab50b70396d0297dda088a2fcecd6d0d",
+      "record_provenance_present": true
+    },
+    {
+      "case": "unknown_burn",
+      "protocol_is_error": false,
+      "status": "partial",
+      "record_count": 0,
+      "provenance_status": "artifact_verified",
+      "error_code": null,
+      "data_version": "flare-murray-goldfields-burn-id-climatology-1973-2023-v1:2f85815eb40c487456ffa3d83a0c58e8a3e6037ca103c41424b188db8c7cfbd9",
+      "request_sha256": "60ff0e1a97203d79f3df332141e35a34ca59827ad2b426d5a1909245748d5d57",
+      "result_sha256": "652e511be4fb69a46161cab8f8ca85b08a1f20a4b22f60801c3ece09d3c2ca5b",
+      "warning_codes": [
+        "unknown_burn_ids"
+      ],
+      "warning_count": 1,
+      "warnings_sha256": "67d54c80a46942dd5f718027c8ed926f6abb56b15cc24b17db7cd88a6aa26f3b",
+      "constraint_count": 3,
+      "constraints_sha256": "83794181bfb372c71147fbf0cb5cb857ab50b70396d0297dda088a2fcecd6d0d",
+      "record_provenance_present": false
+    },
+    {
+      "case": "illegal_argument",
+      "protocol_is_error": true,
+      "status": "error",
+      "record_count": 0,
+      "provenance_status": "incomplete",
+      "error_code": "invalid_arguments",
+      "data_version": "unknown",
+      "request_sha256": "ad50b032e56b3e1cf0bf3b6a6b6303c7b7c2c1d5a57c83c8cbb24344a5e4cbdc",
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "warning_codes": [
+        "no_verified_result"
+      ],
+      "warning_count": 1,
+      "warnings_sha256": "4710c0f9da706b4449c8f109ad854329e16d61bbc53d07610d840daaa3a74492",
+      "constraint_count": 1,
+      "constraints_sha256": "c12e2fe5f1a5a6bdc292212ee084dcae2229c15fb46f06f7cee7ce71f1eae23b",
+      "record_provenance_present": false
+    },
+    {
+      "case": "unknown_artifact",
+      "protocol_is_error": true,
+      "status": "error",
+      "record_count": 0,
+      "provenance_status": "incomplete",
+      "error_code": "tool_error",
+      "data_version": "unknown",
+      "request_sha256": "70c272ef17129333e31416769e033d0515c7383fc40c7d10b83275250c78ae41",
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "warning_codes": [
+        "no_verified_result"
+      ],
+      "warning_count": 1,
+      "warnings_sha256": "4710c0f9da706b4449c8f109ad854329e16d61bbc53d07610d840daaa3a74492",
+      "constraint_count": 1,
+      "constraints_sha256": "c12e2fe5f1a5a6bdc292212ee084dcae2229c15fb46f06f7cee7ce71f1eae23b",
+      "record_provenance_present": false
+    },
+    {
+      "case": "catalog_unavailable",
+      "protocol_is_error": true,
+      "status": "error",
+      "record_count": 0,
+      "provenance_status": "incomplete",
+      "error_code": "catalog_unavailable",
+      "data_version": "unknown",
+      "request_sha256": "6225a8a8b89f3388943a1641eee01c687bd6d19bc99186570d8f206fb36b5924",
+      "result_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "warning_codes": [
+        "no_verified_result"
+      ],
+      "warning_count": 1,
+      "warnings_sha256": "4710c0f9da706b4449c8f109ad854329e16d61bbc53d07610d840daaa3a74492",
+      "constraint_count": 1,
+      "constraints_sha256": "c12e2fe5f1a5a6bdc292212ee084dcae2229c15fb46f06f7cee7ce71f1eae23b",
+      "record_provenance_present": false
+    }
+  ],
+  "evidence_kind": "real-precomputed"
+}
