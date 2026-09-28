@@ -8,7 +8,7 @@ import hashlib
 import json
 import time
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from mcp import types
 from mcp.server.lowlevel import Server
@@ -16,6 +16,7 @@ from mcp.server.stdio import stdio_server
 from pydantic import ConfigDict, Field, StringConstraints, ValidationError, model_validator
 
 from .burn_unit_climatology import BurnUnitClimatologyCatalog, get_burn_unit_climatology
+from .climatology_comparison import comparison_view
 from .manifest import git_sha
 from .models import BurnUnitClimatologyRequest, ToolEnvelope
 from .service import _error_envelope, _service_envelope
@@ -31,11 +32,24 @@ class MCPClimatologyRequest(BurnUnitClimatologyRequest):
     burn_ids: list[BurnID] = Field(min_length=1, max_length=5)
     year_start: int = Field(ge=1973, le=2023)
     year_end: int = Field(ge=1973, le=2023)
+    view: Literal["records", "compare"] = "records"
+    threshold: float = 0.8
+    duration_hours: Literal[2, 4, 6] = 4
+    reference_year: int | None = None
+    reference_burn_id: BurnID | None = None
 
     @model_validator(mode="after")
     def bounded_years(self) -> MCPClimatologyRequest:
         if self.year_end - self.year_start > 4:
             raise ValueError("MCP query is limited to five years")
+        if self.threshold not in (0.5, 0.8, 1.0):
+            raise ValueError("unsupported descriptive threshold")
+        if self.reference_year is not None and not self.year_start <= self.reference_year <= self.year_end:
+            raise ValueError("reference year outside selected years")
+        if self.reference_burn_id is not None and self.reference_burn_id not in self.burn_ids:
+            raise ValueError("reference burn ID outside selection")
+        if self.view == "records" and (self.reference_year is not None or self.reference_burn_id is not None):
+            raise ValueError("comparison reference needs compare view")
         return self
 
 
@@ -60,6 +74,8 @@ def create_server(catalog_path: Path | None, *, timeout_seconds: float = 10.0) -
                 description=(
                     "Read a hash-verified precomputed burn-ID climatology artifact. "
                     "Up to 5 IDs x 5 years. Preserves proxy/missing-data warnings. "
+                    "Optional compare view: valid-hour-weighted summaries, differences "
+                    "and source-bound template explanations, no LLM. "
                     "Not operational approval, safety evidence, outcome or ROI."
                 ),
                 inputSchema=MCPClimatologyRequest.model_json_schema(),
@@ -88,8 +104,18 @@ def create_server(catalog_path: Path | None, *, timeout_seconds: float = 10.0) -
             if catalog is None:
                 error_code = "catalog_unavailable"
                 raise RuntimeError("catalog unavailable")
+            def query_and_compare() -> ToolEnvelope:
+                envelope = get_burn_unit_climatology(catalog, **request.model_dump(
+                    include={"artifact_id", "burn_ids", "year_start", "year_end"}))
+                if request.view == "compare":
+                    envelope = comparison_view(
+                        envelope, threshold=request.threshold, duration_hours=request.duration_hours,
+                        reference_year=request.reference_year, reference_burn_id=request.reference_burn_id,
+                    )
+                return envelope
+
             envelope = await asyncio.wait_for(
-                asyncio.to_thread(get_burn_unit_climatology, catalog, **request.model_dump()),
+                asyncio.to_thread(query_and_compare),
                 timeout=timeout_seconds,
             )
         except ValidationError:
@@ -98,7 +124,7 @@ def create_server(catalog_path: Path | None, *, timeout_seconds: float = 10.0) -
         except (TimeoutError, asyncio.TimeoutError):
             error_code = "timeout"
             error_message = "Read-only query deadline exceeded; no result published."
-        except (ValueError, RuntimeError):
+        except (ValueError, RuntimeError, KeyError, TypeError):
             error_message = "Tool/artifact is not available in the operator-controlled catalog."
         else:
             envelope = _service_envelope(
