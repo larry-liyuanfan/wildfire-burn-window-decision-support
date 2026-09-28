@@ -127,6 +127,11 @@ def main() -> None:
     parser.add_argument("--restricted-detail-output", type=Path, required=True)
     parser.add_argument("--evidence-kind", choices=["real-precomputed", "synthetic-contract-fixture"], required=True)
     args = parser.parse_args()
+    destinations = (args.output.resolve(), args.restricted_detail_output.resolve())
+    if destinations[0] == destinations[1]:
+        raise ValueError("redacted and restricted destinations must be distinct")
+    if any(path == args.artifact_catalog.resolve() or path.exists() for path in destinations):
+        raise ValueError("destinations must be new files, never existing inputs or reports")
     if sha256_file(args.artifact_catalog) != args.expected_catalog_sha256:
         raise ValueError("catalog SHA mismatch")
     # Prevent accidental raw table export from the approved source storage tree.
@@ -139,7 +144,8 @@ def main() -> None:
     report["evidence_kind"] = args.evidence_kind
     for path, value in ((args.output, report), (args.restricted_detail_output, details)):
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes((json.dumps(value, indent=2) + "\n").encode())
+        with path.open("xb") as stream:
+            stream.write((json.dumps(value, indent=2) + "\n").encode())
     print(json.dumps({"status": "passed", "cases": 3, "MCP_calls": 6,
                       "report_sha256": sha256_file(args.output)}))
 

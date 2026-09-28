@@ -98,19 +98,26 @@ def comparison_view(
             "burn_id": row["burn_id"], "year": row["year"],
             "reference_burn_id": key[0], "reference_year": key[1],
             "mean_area_fraction_delta_percentage_points": 100 * (a - b) if a is not None and b is not None else None,
-            "suitable_hours_delta": row["suitable_hours"] - baseline["suitable_hours"],
+            "suitable_hours_delta": (row["suitable_hours"] - baseline["suitable_hours"]
+                                     if row["valid_hours"] and baseline["valid_hours"] else None),
             "valid_hours": row["valid_hours"], "reference_valid_hours": baseline["valid_hours"],
             "equal_hour_denominator": row["valid_hours"] == baseline["valid_hours"],
         })
     explanations = []
     for row in table:
         mean_text = "unavailable" if row["mean_area_fraction"] is None else f"{row['mean_area_fraction']:.6f}"
+        observation = (
+            f"At descriptive area cutoff {threshold}, {row['suitable_hours']} hours qualify; "
+            f"{row['maximal_segments_at_least_duration']} maximal annual segments last "
+            f"at least {duration_hours} hours. "
+            if row["valid_hours"] else
+            "No valid hours were available; qualifying hours and segment comparisons are unavailable, "
+            "not evidence of zero windows. "
+        )
         explanations.append(
             f"{row['burn_id']} / {row['year']}: mean qualifying-area fraction {mean_text} "
-            f"over {row['valid_hours']}/{row['metric_hours']} valid hours. At descriptive "
-            f"area cutoff {threshold}, {row['suitable_hours']} hours qualify; "
-            f"{row['maximal_segments_at_least_duration']} maximal annual segments last "
-            f"at least {duration_hours} hours. Largest recorded annual weighted failure: "
+            f"over {row['valid_hours']}/{row['metric_hours']} valid hours. {observation}"
+            "Largest recorded annual weighted failure: "
             f"{row['annual_limiting_constraint']} (stored winner; uniqueness not known); prescription workbook "
             f"{row['rule_reference']['prescription_workbook_sha256']}. Not a pooled-period cause, "
             "field measurement, approval or safety recommendation."

@@ -52,6 +52,41 @@ def test_zero_valid_is_unknown_not_zero():
     assert "unavailable" in result.result["explanations"][0]
 
 
+@pytest.mark.parametrize("empty_year", [2020, 2021])
+def test_missing_coverage_is_not_a_decline(empty_year):
+    records = [annual(year, 0, None) if year == empty_year else annual(year)
+               for year in (2020, 2021)]
+    result = comparison_view(envelope(records), reference_year=2020).result
+    assert result["comparisons"][0]["suitable_hours_delta"] is None
+    assert result["comparisons"][0]["mean_area_fraction_delta_percentage_points"] is None
+    explanation = result["explanations"][empty_year - 2020]
+    assert "No valid hours were available" in explanation
+    assert "0 hours qualify" not in explanation
+
+
+@pytest.mark.parametrize("collision", ["same_destination", "existing_input"])
+def test_demo_rejects_output_alias_before_read_or_mcp(tmp_path, collision):
+    root = Path(__file__).resolve().parents[1]
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text("preserve input", encoding="utf-8")
+    output = tmp_path / "output.json" if collision == "same_destination" else catalog
+    detail = output if collision == "same_destination" else tmp_path / "details.json"
+    completed = subprocess.run([
+        sys.executable, str(root / "scripts/demo_mcp_comparison.py"),
+        "--artifact-catalog", str(catalog), "--artifact-id", "fixture",
+        "--burn-id", "unit-a", "--expected-catalog-sha256", "unread",
+        "--expected-artifact-sha256", "unread", "--output", str(output),
+        "--restricted-detail-output", str(detail), "--evidence-kind", "synthetic-contract-fixture",
+    ], check=False, capture_output=True, text=True, timeout=20, cwd=root,
+       env={**os.environ, "PYTHONPATH": str(root / "src")})
+    assert completed.returncode != 0
+    assert "destinations must be" in completed.stderr
+    assert "catalog SHA mismatch" not in completed.stderr
+    assert catalog.read_text(encoding="utf-8") == "preserve input"
+    assert not (tmp_path / "output.json").exists()
+    assert not (tmp_path / "details.json").exists()
+
+
 @pytest.mark.parametrize("bad", ["mixed_rule", "duplicate", "fraction", "segments", "missing_mean", "nan"])
 def test_inconsistent_source_fails_closed(bad):
     first, second = annual(), annual(2021)

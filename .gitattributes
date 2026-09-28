@@ -1,3 +1,4 @@
 *.sh text eol=lf
 *.sbatch text eol=lf
 artifacts/public/flare_mcp_real_application_20260927.json text eol=lf
+artifacts/public/flare_mcp_comparison_20260929.json text eol=lf
