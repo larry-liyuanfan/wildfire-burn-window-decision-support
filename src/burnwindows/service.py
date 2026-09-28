@@ -56,6 +56,7 @@ def _unconfigured_climatology_tool(
     del artifact_id, burn_ids, year_start, year_end
     raise RuntimeError("precomputed burn-unit climatology catalog is not configured")
 
+
 TOOL_REGISTRY: dict[str, tuple[type[BaseModel], Callable[..., ToolEnvelope]]] = {
     "find_burn_windows": (FindBurnWindowsRequest, find_burn_windows),
     "explain_limiting_factors": (ExplainLimitingFactorsRequest, explain_limiting_factors),
@@ -284,14 +285,19 @@ def _service_envelope(
     code_sha: str,
 ) -> ToolEnvelope:
     provenance_status: Literal["caller_asserted", "incomplete", "artifact_verified"]
-    if tool_name == "get_burn_unit_climatology":
+    if tool_name == "get_burn_unit_climatology" and envelope.status in {"ok", "partial"}:
         provenance_status = "artifact_verified"
-    elif envelope.data_version.strip().lower() in {"", "unknown"}:
+    elif tool_name == "get_burn_unit_climatology" or envelope.data_version.strip().lower() in {
+        "",
+        "unknown",
+    }:
         provenance_status = "incomplete"
     else:
         provenance_status = "caller_asserted"
     warnings = list(envelope.warnings)
-    if provenance_status == "incomplete":
+    if provenance_status == "incomplete" and tool_name == "get_burn_unit_climatology":
+        warnings.append("no verified compact result was published for this invocation")
+    elif provenance_status == "incomplete":
         warnings.append("caller did not provide a specific data_version")
     return envelope.model_copy(
         update={

@@ -1,5 +1,11 @@
 # FLARE evidence closeout and role translation
 
+2026-09-27 increment: the existing seventh tool is now exercised over actual MCP
+stdio using the official SDK and the real precomputed artifact in its authorised
+storage. This does not add a new weather result or prove LLM tool selection.
+See [application handoff](AGENT_APPLICATION_HANDOFF_20260927.md) and
+[redacted protocol evidence](../artifacts/public/flare_mcp_real_application_20260927.json).
+
 ## What this project is
 
 This repository records an individual engineering extension of the University

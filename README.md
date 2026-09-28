@@ -13,6 +13,33 @@ Agent. The [evidence closeout](docs/evidence-closeout.md) separates the industry
 brief, team inputs, official sources, personal implementation and public-use
 limits; it also defines exactly what the recurring 43/221/176/51 counts mean.
 
+### Actual MCP integration (2026-09-27)
+
+The official **MCP Python SDK 1.26.0** now exposes the existing
+`get_burn_unit_climatology` tool through **stdio**, with strict input/output
+schemas and read-only annotations. A real MCP client completed `tools/list`
+and six `tools/call` checks against the **real hash-pinned 176×51 precomputed
+artifact on Spartan**, including one official burn-ID/year, repeatability,
+unknown ID, forbidden parameter, unknown artifact and unconfigured catalog.
+No raw data was recomputed or copied; the public
+[redacted report](artifacts/public/flare_mcp_real_application_20260927.json)
+contains checks/hashes, not records or free-text source warnings.
+
+This is **one MCP-exposed tool from the seven-tool domain registry**, not an
+autonomous or LLM-evaluated Agent. See the
+[application handoff and exact reproduction](docs/AGENT_APPLICATION_HANDOFF_20260927.md).
+
+**2026-09-29 comparison extension:** the same MCP tool now supports a bounded
+`view="compare"`: annual tables, valid-hour-weighted summaries, percentage-point
+comparisons and deterministic explanations citing the prescription workbook
+hash and condition key. Three real compact-data cases completed **six MCP
+calls and 58 independent client arithmetic/provenance checks**; no raw weather
+was rescanned. Annual limiting-factor winners are not pooled-period causes,
+and absent observations cannot be reported as declining window counts. This
+remains a deterministic domain-tool demonstration, not an autonomous Agent or
+online SLA. See the [comparison evidence and handoff](docs/MCP_COMPARISON_HANDOFF_20260929.md)
+and [redacted execution report](artifacts/public/flare_mcp_comparison_20260929.json).
+
 ## Why this project exists
 
 The product question is how a planner or Agent can turn expert prescriptions,

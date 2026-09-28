@@ -1,0 +1,64 @@
+{
+  "code_sha": "f1341c086a756f6e70a8aab1021e066acb95c992",
+  "scope": "deterministic_MCP_comparison_no_LLM",
+  "catalog_sha256": "fb72a292a8396cb9a143ea855746cd9c625c6bea487f30417108695395b6c2b8",
+  "artifact_sha256": "2f85815eb40c487456ffa3d83a0c58e8a3e6037ca103c41424b188db8c7cfbd9",
+  "tools_call_roundtrips": 6,
+  "cases": [
+    {
+      "case": "one_unit_two_years",
+      "row_count": 2,
+      "independent_arithmetic_and_provenance_checks": 13,
+      "status": "passed",
+      "result_sha256": "96e474cb288e88132b825aa75e946c2bc7335513dd665d2ff281adef867f9206",
+      "template_id": "climatology-comparison-v1",
+      "elapsed_ms": 1.444527879357338,
+      "warning_codes": [
+        "other_warning_present",
+        "precipitation_unavailable"
+      ],
+      "warning_count": 6,
+      "warnings_sha256": "b893548d310145d8762ad24d10da159f2c259ad286eaa950729365442243ca86",
+      "constraint_count": 6,
+      "constraints_sha256": "23f98a751c1142d7f374a548efa1f64e02c9cf30e39112310445d6f11de20191"
+    },
+    {
+      "case": "two_units_same_year",
+      "row_count": 2,
+      "independent_arithmetic_and_provenance_checks": 17,
+      "status": "passed",
+      "result_sha256": "252311c7b774d116c16d908abebc2bf7968fddc3b49133cb93b2aae67941e5e2",
+      "template_id": "climatology-comparison-v1",
+      "elapsed_ms": 1.266387989744544,
+      "warning_codes": [
+        "other_warning_present",
+        "precipitation_unavailable"
+      ],
+      "warning_count": 6,
+      "warnings_sha256": "b893548d310145d8762ad24d10da159f2c259ad286eaa950729365442243ca86",
+      "constraint_count": 6,
+      "constraints_sha256": "23f98a751c1142d7f374a548efa1f64e02c9cf30e39112310445d6f11de20191"
+    },
+    {
+      "case": "one_unit_five_years",
+      "row_count": 5,
+      "independent_arithmetic_and_provenance_checks": 28,
+      "status": "passed",
+      "result_sha256": "b5cccb84a13be0e956c944bc4d8f9c9ed491218152930117df9ff9ddbb78e3e4",
+      "template_id": "climatology-comparison-v1",
+      "elapsed_ms": 1.2216989416629076,
+      "warning_codes": [
+        "other_warning_present",
+        "precipitation_unavailable"
+      ],
+      "warning_count": 6,
+      "warnings_sha256": "b893548d310145d8762ad24d10da159f2c259ad286eaa950729365442243ca86",
+      "constraint_count": 6,
+      "constraints_sha256": "23f98a751c1142d7f374a548efa1f64e02c9cf30e39112310445d6f11de20191"
+    }
+  ],
+  "records_exported": false,
+  "raw_weather_rescanned": false,
+  "template_explanations_exported": false,
+  "evidence_kind": "real-precomputed"
+}
